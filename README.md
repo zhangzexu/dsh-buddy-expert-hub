@@ -100,6 +100,37 @@ https://gitee.com/zhangzexu/dsh-buddy-expert-hub-resource.git
 
 > `$DSH_HOME/ntd-resource` 是历史上 NTD 同步留下的**本机只读副本目录**，名字沿用旧称呼，与上面的远程地址无关。插件不会往里 clone / pull / 写文件；全新安装没有这个目录也能正常同步。仓库需包含 `experts/`、`skills/` 等目录，卸载插件也不会删除这些数据目录。
 
+### 连接器：连接与自动写入宿主 MCP 配置
+
+连接器按是否需要初始化分两类，判定依据是 WorkBuddy 市场元数据的 `auth_mode` 与 `token-schema.json`：
+
+| 类型 | 判定 | 卡片交互 |
+| --- | --- | --- |
+| 免连接 | `auth_mode` 为空 / `server-side` / `mcp`，且无必填参数 | **不显示 `+`**，直接是对话气泡，点击即挂到会话 |
+| 需连接 | `token` / `oauth` / `oneid-token`，或存在必填参数 | 首次点 `+` 打开连接弹窗，填写后确认 |
+
+点「确认写入并连接」后，插件会：
+
+1. **校验必填参数**：以 `token-schema.json` 的 `fields[].required` 为准，`required:false` 允许留空；
+2. **本地加密保存**：写入 `$DSH_HOME/dsh-buddy-expert-hub/credentials.enc`（AES-256-GCM，文件权限 0600），**不碰系统环境变量**，Windows / Linux / macOS 行为一致；值不回显、不进日志、不进 prompt；
+3. **为三个 profile**（`desktop` / `web` / `hubtest`）的 `cordis.patch.yml` 追加一条 `- insert:` 片段：
+   `name: "@deepseek-ai/dsh-mcp-client"`，`transport` 由 `streamableHttp` 转 `streamable-http`，
+   `headers` / `env` 里的 `${VAR}` 转成一行**自包含**的 `!!js` 解密表达式（`process.getBuiltinModule("fs"|"crypto"|"os")`），片段里没有任何明文；
+4. **安全写入**：写前逐个备份为 `cordis.patch.yml.bak-<时间戳>`；同 `id` 条目已存在则跳过（幂等）；任一文件失败整体回滚。
+
+写入后**需要重启 dsh web**：新增插件实例要等宿主重载配置才生效，插件无法重启自己所在的宿主进程。
+
+> **安全边界**：加密主密钥由「机器名 + 用户名 + 随机 salt」派生，同机同用户的进程理论上可解密。它能防的是配置文件被分享/提交/备份泄露，**不等于** OS 级密钥库（Windows DPAPI / macOS Keychain / Linux libsecret）。要更强只能引入原生密钥库依赖，本插件坚持零依赖。
+
+OAuth 类连接器需先在 WorkBuddy 完成登录（插件只读布尔登录态，不读取、不解密凭据）；未登录时只给引导，不会假装连接成功。
+
+相关接口：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/connectors/provision/preview?id=<id>` | 只读预览：返回片段、目标 profile 文件、需设置的环境变量名，不含任何凭据 |
+| POST | `/connectors/provision` | `{ id, params, confirm: true }`；`confirm` 不是 `true` 一律拒绝（修改用户系统配置必须显式确认） |
+
 ### 关于技能数量
 
 技能数量**不写死**，它以数据根 `skills/` 里实际存在的 `SKILL.md` 为准，会随上游仓库增删而变：

@@ -23,6 +23,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 // frontmatter 解析只有一份实现，与运行时 lib/index.js 共用（块标量坑踩过两次）
 import { parseFrontmatter } from '../lib/frontmatter.js'
+// 认证模式 / 参数元数据判定与运行时 lib/index.js 共用，避免快照与市场两条路径漂移
+import { computeNeedsSetup, connectorParamMeta, readAuthModeMap } from '../lib/connector-meta.js'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const PLUGIN_ROOT = path.resolve(HERE, '..')
@@ -170,9 +172,10 @@ function tidy(text, max) {
  * @param {string} connectorsDir 市场 connectors 目录
  * @param {string} iconsDir 市场 icons 目录
  * @param {string} id 连接器 id
+ * @param {Map<string, string>} authModes id → auth_mode 映射
  * @returns {Record<string, any>|null} 条目或 null（无法识别时）
  */
-function buildConnectorEntry(connectorsDir, iconsDir, id) {
+function buildConnectorEntry(connectorsDir, iconsDir, id, authModes) {
   const connectorDir = path.join(connectorsDir, id)
   const stat = fs.statSync(connectorDir)
   if (!stat.isDirectory()) return null
@@ -204,6 +207,12 @@ function buildConnectorEntry(connectorsDir, iconsDir, id) {
   // 图标可用才写进快照：没复制成功就不留 iconExt，避免前端一直发 404 请求。
   const iconState = copyIcon(iconsDir, id, iconExt)
 
+  // 认证模式来自市场元数据；参数以 token-schema.json 为权威，mcp.json 的 ${VAR} 作补充。
+  // 只提取变量名与展示文案，绝不把任何实际值写进快照。
+  const authMode = authModes.get(id) || ''
+  const paramMeta = connectorParamMeta(config, connectorDir)
+  const needsSetup = computeNeedsSetup(authMode, paramMeta.requiredParams)
+
   return {
     id,
     name: displayName,
@@ -213,6 +222,12 @@ function buildConnectorEntry(connectorsDir, iconsDir, id) {
     url,
     iconExt: iconState === 'copied' ? iconExt : '',
     config,
+    authMode,
+    requiredParams: paramMeta.requiredParams,
+    optionalParams: paramMeta.optionalParams,
+    paramFields: paramMeta.paramFields,
+    setupSchema: paramMeta.setupSchema,
+    needsSetup,
   }
 }
 
@@ -225,6 +240,8 @@ function main() {
   const marketDir = path.join(os.homedir(), '.workbuddy', 'connectors-marketplace')
   const connectorsDir = path.join(marketDir, 'connectors')
   const iconsDir = path.join(marketDir, 'icons')
+  // 元数据在 .codebuddy-connector/connectors.json；缺失时全部按「无认证模式」处理。
+  const authModes = readAuthModeMap(marketDir)
 
   if (!fs.existsSync(connectorsDir)) {
     process.stderr.write('[build-connectors] 未找到连接器市场目录：' + connectorsDir + '\n')
@@ -242,7 +259,7 @@ function main() {
   const items = []
   for (const id of ids) {
     try {
-      const entry = buildConnectorEntry(connectorsDir, iconsDir, id)
+      const entry = buildConnectorEntry(connectorsDir, iconsDir, id, authModes)
       if (entry !== null) items.push(entry)
     } catch (error) {
       process.stderr.write('[build-connectors] 跳过 ' + id + '：' + String((error && error.message) || error) + '\n')
@@ -255,9 +272,15 @@ function main() {
   const withDescription = items.filter((item) => item.description !== '').length
   const withAuthor = items.filter((item) => item.author !== '').length
   const withIcon = items.filter((item) => item.iconExt !== '').length
+  const withSetup = items.filter((item) => item.needsSetup === true).length
+  const withRequired = items.filter((item) => item.requiredParams.length > 0).length
+  const withOptional = items.filter((item) => item.optionalParams.length > 0).length
+  const withSchema = items.filter((item) => item.setupSchema !== null).length
   process.stdout.write('[build-connectors] 扫描到目录 ' + ids.length + ' 个，写入条目 ' + items.length + ' 条\n')
   process.stdout.write(
-    '[build-connectors] 有描述 ' + withDescription + ' · 有作者 ' + withAuthor + ' · 图标已内置 ' + withIcon + '\n',
+    '[build-connectors] 有描述 ' + withDescription + ' · 有作者 ' + withAuthor + ' · 图标已内置 ' + withIcon +
+    ' · 需连接 ' + withSetup + ' · 含必填参数 ' + withRequired + ' · 含选填参数 ' + withOptional +
+    ' · 带配置说明 ' + withSchema + '\n',
   )
   process.stdout.write('[build-connectors] 图标目录：' + ICON_OUT_DIR + '\n')
   process.stdout.write('[build-connectors] 输出：' + outFile + '\n')
