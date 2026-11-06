@@ -6,8 +6,8 @@ DeepSeek Harness（dsh）插件：把 WorkBuddy 的「专家 · 技能 · 连接
 
 | 标签页 | 数据来源 | 数量（当前快照） |
 | --- | --- | --- |
-| 专家 | ntd-resource 仓库 `experts/<dir>/.codebuddy-plugin/plugin.json`（`expertType=agent`）+ `~/.dsh/experts/` 本地已导入专家 | 39 + 本地 |
-| 专家团 | 同上（`expertType=team`，含团队成员名单） | 15 + 本地 |
+| 专家 | `dsh-buddy-expert-hub-resource` 仓库 `experts/<dir>/.codebuddy-plugin/plugin.json`（`expertType=agent`）+ `~/.dsh/experts/` 本地已导入专家 | 随仓库变化 + 本地 |
+| 专家团 | 同上（`expertType=team`，含团队成员名单） | 随仓库变化 + 本地 |
 | 技能 | 数据根下的 `skills/<collection>/.../SKILL.md` | 随上游仓库变化，见下方说明 |
 | 连接器 | 本机 `~/.workbuddy/connectors-marketplace`（MCP / CLI） | 316 |
 
@@ -69,17 +69,36 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
 - 有 `~/.dsh/ntd-resource` 时**不会**为了建索引而联网：专家立刻可用。
 - 那份副本没有 `skills/`，所以「技能」标签页会提示 **「技能数据尚未同步」** 并给一个「立即同步」按钮。
 - 点「立即同步」/ 右上「刷新」时，无论当前数据根是谁，都会对 `~/.dsh/dsh-buddy-expert-hub/repo` 执行克隆或 `git fetch --depth 1` + `reset`，成功后**把数据根切到它**。
+- `ntd-resource` 只是历史遗留的**本机目录名**，与当前远程仓库名无关；全新安装没有它也能正常工作，详见下一节。
 
 ### 数据源位置
 
 | 内容 | 位置 |
 | --- | --- |
-| 专家 / 专家团 / 技能 | `https://gitcode.com/weibaohui/ntd-resource` |
+| 专家 / 专家团 / 技能 | `https://gitee.com/zhangzexu/dsh-buddy-expert-hub-resource.git` |
 | 本地已导入专家 | `$DSH_HOME/experts/<id>/`（DSH 原生格式，权威来源） |
 | 连接器 | 本机 `~/.workbuddy/connectors-marketplace/{connectors,icons}` |
 | 连接器兜底快照 | 插件内置 `data/connectors.json`（构建产物，316 条） |
 
 连接器在运行时优先读本机市场目录；读不到时自动回落到 `data/connectors.json`，`/status` 的 `connectorSource` 字段会显示当前来源（`marketplace` / `snapshot` / `none`）。
+
+### 资源仓库与同步
+
+插件默认的远程资源仓库：
+
+```text
+https://gitee.com/zhangzexu/dsh-buddy-expert-hub-resource.git
+```
+
+| 项 | 说明 |
+| --- | --- |
+| 默认值 | `lib/index.js` 的 `SOURCE_URL`；`/dsh-buddy-expert-hub/status` 返回 `sourceUrl` / `defaultUrl` / `usingDefault` |
+| 自定义 | 面板「设置」里可填 `https://` 或 `git@` 形式的仓库地址，写入 `state.json` 的 `settings.sourceUrl`，**下次同步生效**；留空回到默认地址。内网镜像或 fork 仓库用这个 |
+| 克隆目标 | `$DSH_HOME/dsh-buddy-expert-hub/repo`（只有完整仓库带 `skills/`） |
+| 同步方式 | 首次 `git clone --depth 1`，之后 `git fetch --depth 1` + `git reset --hard FETCH_HEAD`；点「立即同步」或右上「刷新」触发 |
+| 校验 | 地址只允许 `https://` 与 `git@` 两种形式，非法值会被拒并保留原设置 |
+
+> `$DSH_HOME/ntd-resource` 是历史上 NTD 同步留下的**本机只读副本目录**，名字沿用旧称呼，与上面的远程地址无关。插件不会往里 clone / pull / 写文件；全新安装没有这个目录也能正常同步。仓库需包含 `experts/`、`skills/` 等目录，卸载插件也不会删除这些数据目录。
 
 ### 关于技能数量
 
