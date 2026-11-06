@@ -236,7 +236,7 @@
     ],
     "setupSchema": {
       "title": "连接 Lux3D 国内账号",
-      "description": "填写与 Lux3D 国内 OpenAPI 共用的 apiKey；WorkBuddy 在本机保存，并在连接时通过 HTTPS 请求头发送。不要在对话中粘贴密钥。",
+      "description": "填写与 Lux3D 国内 OpenAPI 共用的 apiKey；在本机保存，并在连接时通过 HTTPS 请求头发送。不要在对话中粘贴密钥。",
       "docUrl": "https://labs.aholo3d.cn/api-keys",
       "docLabel": "获取 Lux3D 国内 apiKey（与 OpenAPI 相同）"
     },
@@ -499,7 +499,7 @@
     ],
     "setupSchema": {
       "title": "百晓智能 · 连接配置",
-      "description": "填入你的百晓智能 API 密钥即可开始使用。密钥仅保存在本机 ~/.workbuddy 目录下，不会上传到 WorkBuddy 或任何第三方服务器。",
+      "description": "填入你的百晓智能 API 密钥即可开始使用。密钥仅保存在本机 ~/.dsh/dsh-buddy-expert-hub 目录下，不会上传到 云端 或任何第三方服务器。",
       "docUrl": "https://chat.know-pa.cn/settings/mcp",
       "docLabel": "如何获取百晓智能 API 密钥？"
     },
@@ -663,7 +663,7 @@
     ],
     "setupSchema": {
       "title": "Bugly 质量概览 MCP 对接配置",
-      "description": "连接您的 Bugly 账号，用于查看产品的崩溃率、ANR 率、FOOM（OOM）率与启动耗时等质量概览。Token 仅存储在本机 ~/.workbuddy 下，不会上传云端。",
+      "description": "连接您的 Bugly 账号，用于查看产品的崩溃率、ANR 率、FOOM（OOM）率与启动耗时等质量概览。Token 仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 下，不会上传云端。",
       "docUrl": "https://bugly.tds.qq.com/v2/user/token",
       "docLabel": "如何获取 Bugly Access Token？"
     },
@@ -708,7 +708,7 @@
     ],
     "setupSchema": {
       "title": "连接到财汇MCP",
-      "description": "连接您的财汇MCP，用于查询企业、股票、债券、基金、区域、宏观、舆情、司法数据。密钥仅存储在本机 ~/.workbuddy 下。",
+      "description": "连接您的财汇MCP，用于查询企业、股票、债券、基金、区域、宏观、舆情、司法数据。密钥仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 下。",
       "docUrl": "https://mcp.finchina.com/intro",
       "docLabel": "前往财汇MCP官网获取密钥"
     },
@@ -855,7 +855,7 @@
   {
     "id": "chuhaijiang",
     "name": "chuhaijiang",
-    "description": "面向跨境电商从业人员的电商与内容运营 Skill。配合出海匠 MCP 连接器，可查询商品、达人、视频、店铺、广告、直播及 Amazon 数据，完成选品、竞品拆解、达人筛选和利润测算；还可生成商品图、带货视频与脚本，操作 AI 画布和视频剪辑，并管理社媒发布、评论、私信及店铺。使用前需按当前客户端支持的认证方式配置出海匠连接器；WorkBuddy 官方连接器使用 OAuth。",
+    "description": "面向跨境电商从业人员的电商与内容运营 Skill。配合出海匠 MCP 连接器，可查询商品、达人、视频、店铺、广告、直播及 Amazon 数据，完成选品、竞品拆解、达人筛选和利润测算；还可生成商品图、带货视频与脚本，操作 AI 画布和视频剪辑，并管理社媒发布、评论、私信及店铺。使用前需按当前客户端支持的认证方式配置出海匠连接器；",
     "author": "出海匠",
     "transport": "streamableHttp",
     "url": "https://mcp.gateway.chuhaijiang.com/mcp/oauth",
@@ -1227,7 +1227,7 @@
     ],
     "setupSchema": {
       "title": "通联数据 MCP 对接配置",
-      "description": "连接您的通联数据账号，用于查询 A股/港股、基金、指数、债券、宏观与公告数据。Token 仅存储在本机 ~/.workbuddy 下，不会上传到云端。",
+      "description": "连接您的通联数据账号，用于查询 A股/港股、基金、指数、债券、宏观与公告数据。Token 仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 下，不会上传到云端。",
       "docUrl": "https://mcp.datayes.com/#/personal-center",
       "docLabel": "如何获取通联数据 MCP Token？"
     },
@@ -1321,7 +1321,7 @@
     ],
     "setupSchema": {
       "title": "DCS Cloud 对接配置",
-      "description": "连接您的 DCS Cloud 账号。请先登录 https://www.dcs.cloud/#/login ，在个人中心创建一个个人访问令牌(PAT)，复制后填入下方。PAT 仅存储在本机 ~/.workbuddy 下，不会上传云端；连接器用它登录 dcs CLI，之后无需再次填写。",
+      "description": "连接您的 DCS Cloud 账号。请先登录 https://www.dcs.cloud/#/login ，在个人中心创建一个个人访问令牌(PAT)，复制后填入下方。PAT 仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 下，不会上传云端；连接器用它登录 dcs CLI，之后无需再次填写。",
       "docUrl": "https://www.dcs.cloud/#/login",
       "docLabel": "登录 DCS Cloud 创建 PAT"
     },
@@ -1438,7 +1438,7 @@
     ],
     "setupSchema": {
       "title": "订单豹 MCP 对接配置",
-      "description": "填写订单豹 ERP 账号，用于代客下单、查客户、库存、采购和财务。账号和密码仅存储在本机 ~/.workbuddy 下，不会上传云端。",
+      "description": "填写订单豹 ERP 账号，用于代客下单、查客户、库存、采购和财务。账号和密码仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 下，不会上传云端。",
       "docUrl": "https://show.dingdanbao.com",
       "docLabel": "请使用订单豹后台账号密码配置或联系我们获取账号密码"
     },
@@ -1543,7 +1543,7 @@
     ],
     "setupSchema": {
       "title": "邓白氏查全球 MCP 对接配置",
-      "description": "连接您的邓白氏 Direct+ 账号，用于查询全球企业档案、风险洞察、企业关联及受益所有人等商业洞察。Access Token 仅存储在本机 ~/.workbuddy 目录下，不会上传至云端。",
+      "description": "连接您的邓白氏 Direct+ 账号，用于查询全球企业档案、风险洞察、企业关联及受益所有人等商业洞察。Access Token 仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 目录下，不会上传至云端。",
       "docUrl": "https://openapi.dnbcha.com/agent/globalsearch/login",
       "docLabel": "如何获取 D&B Access Token？"
     },
@@ -1644,7 +1644,7 @@
     ],
     "setupSchema": {
       "title": "创意兔微课 MCP 对接配置",
-      "description": "填写企业后台账号密码，用于在 WorkBuddy 中制作、查询和发布课程。账号和密码仅存储在本机 ~/.workbuddy 下，不会上传至 WorkBuddy 云端。",
+      "description": "填写企业后台账号密码，用于在 WorkBuddy 中制作、查询和发布课程。账号和密码仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 下，不会上传至云端。",
       "docUrl": "https://course.flashnet.cn",
       "docLabel": "请使用企业后台账号密码配置"
     },
@@ -1927,7 +1927,7 @@
     ],
     "setupSchema": {
       "title": "二号人事部接入",
-      "description": "填写智能分身 Key 以连接二号人事部。凭证仅存储在本机 ~/.workbuddy 目录下，不经过云端。该 Key 在 ucenter 的接口白名单决定连接后可见与可调用的工具集合。",
+      "description": "填写智能分身 Key 以连接二号人事部。凭证仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 目录下，不经过云端。该 Key 在 ucenter 的接口白名单决定连接后可见与可调用的工具集合。",
       "docUrl": "https://alidocs.dingtalk.com/i/p/5YRBGvq4kOZKmDArkoz3L7jZQRnJeX6L",
       "docLabel": "查看使用帮助"
     },
@@ -2307,7 +2307,7 @@
     ],
     "setupSchema": {
       "title": "福马AI外呼配置",
-      "description": "连接福马AI账号，用于查询智能体、成员并创建外呼任务。凭证仅存储在本机 ~/.workbuddy 中。",
+      "description": "连接福马AI账号，用于查询智能体、成员并创建外呼任务。凭证仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 中。",
       "docUrl": "https://docs.qq.com/doc/DTGtFdFVVZGJoYmdj",
       "docLabel": "如何获取福马AI凭证？"
     },
@@ -2399,7 +2399,7 @@
     ],
     "setupSchema": {
       "title": "Gangtise投研 MCP",
-      "description": "Gangtise MCP汇聚机构级观点，研报，日程等另类数据，提供投研AI Agent预生成数据及全球行情/财务/估值/宏观行业等结构化数据。Key 与接口地址仅存储在本机 ~/.workbuddy 下。",
+      "description": "Gangtise MCP汇聚机构级观点，研报，日程等另类数据，提供投研AI Agent预生成数据及全球行情/财务/估值/宏观行业等结构化数据。Key 与接口地址仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 下。",
       "docUrl": "https://open-platform.gangtise.com/",
       "docLabel": "如何使用 Gangtise投研 MCP并获取授权Key"
     },
@@ -2530,7 +2530,7 @@
     ],
     "setupSchema": {
       "title": "恒生聚源授权",
-      "description": "连接您的恒生聚源 MCP，用于查询金融结构化数据、研究报告、公司公告、新闻资讯、条件选股、宏观行业、工商企业数据。Token 与接口地址仅存储在本机 ~/.workbuddy 下。",
+      "description": "连接您的恒生聚源 MCP，用于查询金融结构化数据、研究报告、公司公告、新闻资讯、条件选股、宏观行业、工商企业数据。Token 与接口地址仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 下。",
       "docUrl": "https://www.feishu.cn/docx/MeCmd4q0Yo7nmkx9D8IcMYbknob",
       "docLabel": "如何使用恒生聚源 MCP 并获取授权 token"
     },
@@ -2596,7 +2596,7 @@
     ],
     "setupSchema": {
       "title": "连接共鞋ERP",
-      "description": "请填写当前ERP账号生成的MCP Token。凭证仅保存在本机 ~/.workbuddy 目录下。",
+      "description": "请填写当前ERP账号生成的MCP Token。凭证仅保存在本机 ~/.dsh/dsh-buddy-expert-hub 目录下。",
       "docUrl": "",
       "docLabel": ""
     },
@@ -2681,7 +2681,7 @@
     ],
     "setupSchema": {
       "title": "GrainPrint 连接器凭证",
-      "description": "填写连接器凭证与后台 API 地址。凭证为「连接器专用凭证（ConnectorCredential）」，由 GrainPrint 后台按配送商维度签发，仅在本地 WorkBuddy 凭据区与 ~/.grain-print-mcp 保存，不会上传第三方。",
+      "description": "填写连接器凭证与后台 API 地址。凭证为「连接器专用凭证（ConnectorCredential）」，由 GrainPrint 后台按配送商维度签发，仅在本地凭据区与 ~/.grain-print-mcp 保存，不会上传第三方。",
       "docUrl": "",
       "docLabel": ""
     },
@@ -2765,7 +2765,7 @@
     ],
     "setupSchema": {
       "title": "Cloudnet MCP 对接配置",
-      "description": "请填写 Cloudnet 管理平台的 API Key。凭证仅存储在本机 ~/.workbuddy 下，不会上传云端。",
+      "description": "请填写 Cloudnet 管理平台的 API Key。凭证仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 下，不会上传云端。",
       "docUrl": "https://oasis.h3c.com/oasis6/static/#/net/set/apikey",
       "docLabel": "如何获取 Cloudnet API Key？"
     },
@@ -2979,7 +2979,7 @@
     ],
     "setupSchema": {
       "title": "货叮咚 ERP MCP 连接配置",
-      "description": "连接您的货叮咚 ERP 账号。X-Mcp-Key 仅存储在本机，由 WorkBuddy 在连接货叮咚 MCP 服务时通过请求头注入。请勿向他人分享该密钥。",
+      "description": "连接您的货叮咚 ERP 账号。X-Mcp-Key 仅存储在本机，在连接货叮咚 MCP 服务时通过请求头注入。请勿向他人分享该密钥。",
       "docUrl": "",
       "docLabel": ""
     },
@@ -3191,7 +3191,7 @@
     ],
     "setupSchema": {
       "title": "亿欧数据 MCP 配置",
-      "description": "连接亿欧数据 MCP，用于查询产业数据。CLIENT_ID 和 CLIENT_SECRET 仅存储在本机 ~/.workbuddy 目录中，不会上传云端。",
+      "description": "连接亿欧数据 MCP，用于查询产业数据。CLIENT_ID 和 CLIENT_SECRET 仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 目录中，不会上传云端。",
       "docUrl": "https://data.iyiou.com/ai",
       "docLabel": "如何获取亿欧数据 API 凭证？"
     },
@@ -3381,7 +3381,7 @@
     ],
     "setupSchema": {
       "title": "JoyRead 访问凭证",
-      "description": "填写 JoyRead 的 Bearer 访问令牌即可解锁完整书库；凭证仅保存在您本机 ~/.workbuddy 目录下，不会上传云端。留空也可以先以访客模式体验（仅可见最早发布的一部分绘本）。",
+      "description": "填写 JoyRead 的 Bearer 访问令牌即可解锁完整书库；凭证仅保存在您本机 ~/.dsh/dsh-buddy-expert-hub 目录下，不会上传云端。留空也可以先以访客模式体验（仅可见最早发布的一部分绘本）。",
       "docUrl": "https://joyread.smartbid.site/",
       "docLabel": "如何获取访问令牌？"
     },
@@ -3759,7 +3759,7 @@
     ],
     "setupSchema": {
       "title": "李未可记忆连接配置",
-      "description": "请输入未可 App 中生成的 MCP Key，用于按需读取你的记忆、原文片段和记忆包。按 WorkBuddy Token 模式规范，凭证保存在本机并在连接时注入请求头。",
+      "description": "请输入未可 App 中生成的 MCP Key，用于按需读取你的记忆、原文片段和记忆包。凭证保存在本机并在连接时注入请求头。",
       "docUrl": "",
       "docLabel": ""
     },
@@ -3802,7 +3802,7 @@
     ],
     "setupSchema": {
       "title": "LawyerOne 对接配置",
-      "description": "连接成功后，即可使用案例检索、法规检索、法律咨询、裁判预测、合同生成、合同审查、单方文书生成与文件脱敏八大法律服务。Token 仅存储在本机`~/.workbuddy`。",
+      "description": "连接成功后，即可使用案例检索、法规检索、法律咨询、裁判预测、合同生成、合同审查、单方文书生成与文件脱敏八大法律服务。Token 仅存储在本机`~/.dsh/dsh-buddy-expert-hub`。",
       "docUrl": "https://lawyer.fabao.law/pc/#/mcp",
       "docLabel": "如何获取法保网 API Key？"
     },
@@ -3845,7 +3845,7 @@
     ],
     "setupSchema": {
       "title": "Leads Cloud MCP 连接配置",
-      "description": "填写 Leads Cloud MCP 的 Bearer PAT。凭证仅存储在本机 ~/.workbuddy 下，并在连接时注入请求头。",
+      "description": "填写 Leads Cloud MCP 的 Bearer PAT。凭证仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 下，并在连接时注入请求头。",
       "docUrl": "https://crm.leadscloud.com/Front-Vue/#/personal-set?activeName=mcpToken",
       "docLabel": "如何获取 Leads Cloud PAT？"
     },
@@ -3888,7 +3888,7 @@
     ],
     "setupSchema": {
       "title": "乐檬零售 AGI · 连接配置",
-      "description": "填入你的乐檬零售 AGI 个人访问令牌（Lemon Personal Token）即可开始使用。令牌仅保存在本机 ~/.workbuddy 目录下，不会上传到 WorkBuddy 或任何第三方服务器。",
+      "description": "填入你的乐檬零售 AGI 个人访问令牌（Lemon Personal Token）即可开始使用。令牌仅保存在本机 ~/.dsh/dsh-buddy-expert-hub 目录下，不会上传到任何第三方服务器。",
       "docUrl": "https://agi.lemengcloud.com/",
       "docLabel": "如何获取乐檬零售 AGI Token？"
     },
@@ -3994,7 +3994,7 @@
     ],
     "setupSchema": {
       "title": "领星ERP MCP 连接配置",
-      "description": "连接您的领星ERP账号。X-Mcp-Key 仅存储在本机，由 WorkBuddy 在连接领星 MCP 服务时通过请求头注入。请勿向他人分享该密钥。",
+      "description": "连接您的领星ERP账号。X-Mcp-Key 仅存储在本机，在连接领星 MCP 服务时通过请求头注入。请勿向他人分享该密钥。",
       "docUrl": "https://www.lingxing.com/help/article/mcp",
       "docLabel": "如何获取领星 MCP 鉴权密钥？"
     },
@@ -4084,7 +4084,7 @@
     ],
     "setupSchema": {
       "title": "ListingGood API 密钥配置",
-      "description": "连接您的 ListingGood 账号以调用服务。免费工具无需填写；付费工具需要 API Key。凭证仅存储在本机 ~/.workbuddy 目录下，不会上传云端。",
+      "description": "连接您的 ListingGood 账号以调用服务。免费工具无需填写；付费工具需要 API Key。凭证仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 目录下，不会上传云端。",
       "docUrl": "https://listinggood.cn/connect",
       "docLabel": "如何获取 API Key？"
     },
@@ -4177,7 +4177,7 @@
     ],
     "setupSchema": {
       "title": "连接腾讯企点营销云",
-      "description": "填写企业管理员提供的成员密钥和业务空间 ID，即可使用业务分析、人群圈选、选品配券等能力。WorkBuddy 将配置保存在本机 ~/.workbuddy 下，连接时通过请求头发送给营销云 MCP 服务。请勿在聊天中发送密钥。",
+      "description": "填写企业管理员提供的成员密钥和业务空间 ID，即可使用业务分析、人群圈选、选品配券等能力。将配置保存在本机 ~/.dsh/dsh-buddy-expert-hub 下，连接时通过请求头发送给营销云 MCP 服务。请勿在聊天中发送密钥。",
       "docUrl": "https://tmc.qidian.qq.com/base/console/doc/33849",
       "docLabel": "如何获取成员密钥与业务空间 ID？"
     },
@@ -4379,7 +4379,7 @@
     ],
     "setupSchema": {
       "title": "萌啦 OZON 数据授权",
-      "description": "使用萌啦访问令牌连接 OZON 市场数据服务。令牌仅存储在本机 ~/.workbuddy 下，不会上传云端。",
+      "description": "使用萌啦访问令牌连接 OZON 市场数据服务。令牌仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 下，不会上传云端。",
       "docUrl": "https://ozon.menglar.com/workbench/open-api/product",
       "docLabel": "如何获取 Access Token？"
     },
@@ -4422,7 +4422,7 @@
     ],
     "setupSchema": {
       "title": "出海精灵·小元MCP服务对接配置",
-      "description": "连接您的账号以调用服务。凭证仅存储在本机 ~/.workbuddy 目录下，不会上传到云端。",
+      "description": "连接您的账号以调用服务。凭证仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 目录下，不会上传到云端。",
       "docUrl": "https://xyconsole.tradechina.com/key",
       "docLabel": "如何获取 API Key？"
     },
@@ -4465,7 +4465,7 @@
     ],
     "setupSchema": {
       "title": "连接 MergerInfo 账号（可选）",
-      "description": "留空即可直接试用：无需注册，每天可查看 5 条核心事件。已是 MergerInfo 会员的用户填入连接码后，将按账号套餐使用会员额度。连接码仅保存在本机 ~/.workbuddy 目录。",
+      "description": "留空即可直接试用：无需注册，每天可查看 5 条核心事件。已是 MergerInfo 会员的用户填入连接码后，将按账号套餐使用会员额度。连接码仅保存在本机 ~/.dsh/dsh-buddy-expert-hub 目录。",
       "docUrl": "https://www.mergerinfo.com/settings/ai-connections",
       "docLabel": "在会员区「AI 连接」生成连接码"
     },
@@ -4842,7 +4842,7 @@
     ],
     "setupSchema": {
       "title": "连接本机 NVIDIA App",
-      "description": "仅适用于已安装兼容 NVIDIA App 的 Windows 电脑。凭证由 WorkBuddy 保存在本机并注入本地进程，不经过云端。NVIDIA MCP 服务重启后，需更新会话令牌并重新连接。",
+      "description": "仅适用于已安装兼容 NVIDIA App 的 Windows 电脑。凭证保存在本机并注入本地进程，不经过云端。NVIDIA MCP 服务重启后，需更新会话令牌并重新连接。",
       "docUrl": "",
       "docLabel": ""
     },
@@ -4885,7 +4885,7 @@
     ],
     "setupSchema": {
       "title": "ofdh.cn 账号对接",
-      "description": "连接你的 ofdh.cn 账号以使用文档转换服务。API Key 仅保存在你本机的 ~/.workbuddy 目录下，不经过云端；每次转换计入你账号的每日配额（免费用户有限次，付费会员不限）。",
+      "description": "连接你的 ofdh.cn 账号以使用文档转换服务。API Key 仅保存在你本机的 ~/.dsh/dsh-buddy-expert-hub 目录下，不经过云端；每次转换计入你账号的每日配额（免费用户有限次，付费会员不限）。",
       "docUrl": "https://www.ofdh.cn/mcp-keys",
       "docLabel": "如何生成 API Key？"
     },
@@ -5205,7 +5205,7 @@
     ],
     "setupSchema": {
       "title": "Picset AI 图片连接器配置",
-      "description": "请输入在 Picset AI 用户中心创建的密钥。该密钥仅由 WorkBuddy 保存在本机用户目录，并在连接 Picset AI 图片连接器时作为 Authorization 请求头发送。",
+      "description": "请输入在 Picset AI 用户中心创建的密钥。该密钥仅保存在本机用户目录，并在连接 Picset AI 图片连接器时作为 Authorization 请求头发送。",
       "docUrl": "https://picsetai.cn/profile?scene=workbuddy&ch=image",
       "docLabel": "创建 Picset AI 密钥"
     },
@@ -5248,7 +5248,7 @@
     ],
     "setupSchema": {
       "title": "Picset AI 视频连接器配置",
-      "description": "请输入在 Picset AI 用户中心创建的密钥。该密钥仅由 WorkBuddy 保存在本机用户目录，并在连接 Picset AI 视频连接器时作为 Authorization 请求头发送。",
+      "description": "请输入在 Picset AI 用户中心创建的密钥。该密钥保存在本机用户目录，并在连接 Picset AI 视频连接器时作为 Authorization 请求头发送。",
       "docUrl": "https://picsetai.cn/profile?scene=workbuddy&ch=video",
       "docLabel": "创建 Picset AI 密钥"
     },
@@ -5339,7 +5339,7 @@
     ],
     "setupSchema": {
       "title": "质数幻方企业主体 MCP 对接配置",
-      "description": "填写您在质数幻方官网生成的 API Key。凭证由 WorkBuddy 仅存储在本机用户目录，用于连接质数幻方企业主体 MCP 服务。",
+      "description": "填写您在质数幻方官网生成的 API Key。凭证仅存储在本机用户目录，用于连接质数幻方企业主体 MCP 服务。",
       "docUrl": "https://mcp.yidian.cn/api-keys",
       "docLabel": "如何获取质数幻方 API Key？"
     },
@@ -5537,7 +5537,7 @@
     ],
     "setupSchema": {
       "title": "连接青虎AI",
-      "description": "填写青虎AI API 密钥，连接电商数据、选品运营和 LinkPix 视觉创作服务。凭证由 WorkBuddy 保存在本机，并在调用青虎AI时用于鉴权。可用范围取决于账号权限与订阅权益。",
+      "description": "填写青虎AI API 密钥，连接电商数据、选品运营和 LinkPix 视觉创作服务。凭证保存在本机，并在调用青虎AI时用于鉴权。可用范围取决于账号权限与订阅权益。",
       "docUrl": "https://www.iqinghu.com/workbench/dashboard/api-keys?urlCode=1789720362523",
       "docLabel": "如何获取 API 密钥？"
     },
@@ -5693,7 +5693,7 @@
     ],
     "setupSchema": {
       "title": "连接 QVeris",
-      "description": "填写您的 QVeris API Key。凭证仅保存在本机 WorkBuddy 配置目录中，并在连接托管 MCP 时注入请求头。",
+      "description": "填写您的 QVeris API Key。凭证仅保存在本机配置目录中，并在连接托管 MCP 时注入请求头。",
       "docUrl": "https://qveris.cn/hosted-mcp",
       "docLabel": "如何获取 QVeris API Key？"
     },
@@ -5736,7 +5736,7 @@
     ],
     "setupSchema": {
       "title": "对接企智多服务配置",
-      "description": "连接您的账号以调用服务。凭证仅存储在本机 ~/.workbuddy 目录下。",
+      "description": "连接您的账号以调用服务。凭证仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 目录下。",
       "docUrl": "https://testzsai.cecjx.com/zsai/user/my_apikey",
       "docLabel": "如何获取企智多的API KEY？"
     },
@@ -5779,7 +5779,7 @@
     ],
     "setupSchema": {
       "title": "连接 RealTrace",
-      "description": "请输入您在 RealTrace 控制台创建的 API Key。凭证仅保存在本机 WorkBuddy 配置中，不会经过 WorkBuddy 云端。",
+      "description": "请输入您在 RealTrace 控制台创建的 API Key。凭证仅保存在本机配置中，不会经过云端。",
       "docUrl": "https://realtrace.cangxuandata.com/dashboard/keys",
       "docLabel": "如何获取 API Key？"
     },
@@ -5914,7 +5914,7 @@
   {
     "id": "sesunfox-gateway",
     "name": "sesunfox",
-    "description": "聚宝赞数据查询：通过 WorkBuddy 连接器用自然语言查询聚宝赞平台业务数据（订单/商品/门店/优惠券/退款/直播间/云仓库存，均返回 {records, total} 分页结构）。用户要查这些业务数据时使用。",
+    "description": "聚宝赞数据查询：通过连接器用自然语言查询聚宝赞平台业务数据（订单/商品/门店/优惠券/退款/直播间/云仓库存，均返回 {records, total} 分页结构）。用户要查这些业务数据时使用。",
     "author": "",
     "transport": "streamableHttp",
     "url": "https://ai.jubaozan.cn/mcp/",
@@ -6025,7 +6025,7 @@
     ],
     "setupSchema": {
       "title": "商易通 MCP 用户配置",
-      "description": "填写您的商易通开放平台 MCP Token。WorkBuddy 将凭证保存在本机 ~/.workbuddy 下，仅用于访问商易通企业数据查询服务，不会上传云端。",
+      "description": "填写您的商易通开放平台 MCP Token。将凭证保存在本机 ~/.dsh/dsh-buddy-expert-hub 下，仅用于访问商易通企业数据查询服务，不会上传云端。",
       "docUrl": "https://shangyitong.vzoom.com/nsyt-pc/#/mcp",
       "docLabel": "如何获取商易通 MCP Token？"
     },
@@ -6104,7 +6104,7 @@
     ],
     "setupSchema": {
       "title": "知虾 Shopee MCP 配置",
-      "description": "填写 Menglar 分配的 Shopee MCP API Key。凭证仅保存在 WorkBuddy 本机并在连接时使用。",
+      "description": "填写 Menglar 分配的 Shopee MCP API Key。凭证仅保存在本机并在连接时使用。",
       "docUrl": "",
       "docLabel": ""
     },
@@ -6211,7 +6211,7 @@
     ],
     "setupSchema": {
       "title": "连接 Sif MCP",
-      "description": "填写您的 Sif MCP 密钥（Secret Key）以连接 Sif 亚马逊运营分析服务。密钥仅保存在本机 ~/.workbuddy 目录，不会上传云端。",
+      "description": "填写您的 Sif MCP 密钥（Secret Key）以连接 Sif 亚马逊运营分析服务。密钥仅保存在本机 ~/.dsh/dsh-buddy-expert-hub 目录，不会上传云端。",
       "docUrl": "https://www.sif.com/mcp",
       "docLabel": "如何获取 Sif MCP 密钥？"
     },
@@ -6345,7 +6345,7 @@
     ],
     "setupSchema": {
       "title": "森浦qeubee-MCP连接配置",
-      "description": "连接您的 qeubee 账号。X_ACCESS_KEY 仅存储在本机 ~/.workbuddy 下。",
+      "description": "连接您的 qeubee 账号。X_ACCESS_KEY 仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 下。",
       "docUrl": "https://www.sumscope.com/app/apply.html",
       "docLabel": "如何获取 X_ACCESS_KEY？"
     },
@@ -6427,7 +6427,7 @@
     ],
     "setupSchema": {
       "title": "PropMcp MCP 授权",
-      "description": "填写 Syspetro MCP API Key 以连接该 MCP。Key 仅保存在本机 ~/.workbuddy 下，不会上传到 WorkBuddy 云端。",
+      "description": "填写 Syspetro MCP API Key 以连接该 MCP。Key 仅保存在本机 ~/.dsh/dsh-buddy-expert-hub 下，不会上传到云端。",
       "docUrl": "https://marketplace.syspetro.com/syspetro-mcp-marketplace/workbuddy/auth-key?mcp=PropMcp&service_id=df63863d-9b67-4135-a033-13525533e92b&sso=1",
       "docLabel": "如何获取 API Key？"
     },
@@ -6607,7 +6607,7 @@
     ],
     "setupSchema": {
       "title": "TDengine MCP 连接配置",
-      "description": "连接您的 TDengine 平台。API Key 仅存储在本机 ~/.workbuddy 下。",
+      "description": "连接您的 TDengine 平台。API Key 仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 下。",
       "docUrl": "https://idmpdocs.taosdata.com/administration/profile-settings",
       "docLabel": "如何获取 TDengine IDMP API Key？"
     },
@@ -6665,7 +6665,7 @@
   {
     "id": "tec-do",
     "name": "tec-do-guide",
-    "description": "指导 WorkBuddy 何时以及如何使用 Tec-Do MCP 的工具和本地 Skill 蓝图，为出海广告投放和增长团队完成广告基准查询、TikTok 广告研究、竞品分析和用户口碑分析。",
+    "description": "指导何时以及如何使用 Tec-Do MCP 的工具和本地 Skill 蓝图，为出海广告投放和增长团队完成广告基准查询、TikTok 广告研究、竞品分析和用户口碑分析。",
     "author": "tec-do",
     "transport": "streamableHttp",
     "url": "https://tec-chi-external-skill-mcp.tec-do.cn/mcp",
@@ -6812,7 +6812,7 @@
     ],
     "setupSchema": {
       "title": "腾讯地图 Key 配置",
-      "description": "连接你的腾讯地图开发者 Key，用于地点搜索、路线规划、地址解析等。Key 仅存储在本机 ~/.workbuddy下。",
+      "description": "连接你的腾讯地图开发者 Key，用于地点搜索、路线规划、地址解析等。Key 仅存储在本机 ~/.dsh/dsh-buddy-expert-hub下。",
       "docUrl": "https://lbs.qq.com/dev/console/quick-register",
       "docLabel": "如何获取腾讯地图 Key？"
     },
@@ -7095,7 +7095,7 @@
     ],
     "setupSchema": {
       "title": "服务对接配置",
-      "description": "连接您的太忆空间账号以调用跨 Agent 长期记忆服务。凭证仅存储在本机 ~/.workbuddy 目录下，不会上传云端。",
+      "description": "连接您的太忆空间账号以调用跨 Agent 长期记忆服务。凭证仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 目录下，不会上传云端。",
       "docUrl": "https://space.timem.cloud/console/settings?tab=keys",
       "docLabel": "如何获取 API Key？"
     },
@@ -7239,7 +7239,7 @@
     ],
     "setupSchema": {
       "title": "Tushare MCP 对接配置",
-      "description": "连接您的 Tushare 账号，用于获取 A股、指数、基金、财务、估值等金融数据。 Token 仅存储在本机 ~/.workbuddy",
+      "description": "连接您的 Tushare 账号，用于获取 A股、指数、基金、财务、估值等金融数据。 Token 仅存储在本机 ~/.dsh/dsh-buddy-expert-hub",
       "docUrl": "https://tushare.pro/weborder/#/login?reg=wb",
       "docLabel": "如何获取 Tushare Token？"
     },
@@ -7372,7 +7372,7 @@
     ],
     "setupSchema": {
       "title": "飞常准 MCP 用户连接配置",
-      "description": "填写面向 C 端用户的飞常准 MCP Key。WorkBuddy 将凭证保存在本机，并在连接时注入请求头。个人行程、统计和关注操作仅作用于该 Key 绑定的当前用户。",
+      "description": "填写面向 C 端用户的飞常准 MCP Key。将凭证保存在本机，并在连接时注入请求头。个人行程、统计和关注操作仅作用于该 Key 绑定的当前用户。",
       "docUrl": "https://cmcp.variflight.com/",
       "docLabel": "打开飞常准 MCP 开放平台获取 Key"
     },
@@ -7610,7 +7610,7 @@
     ],
     "setupSchema": {
       "title": "连接微伴员工账号",
-      "description": "本预览包使用已签发的员工 Agent Secret。凭证由 WorkBuddy 保存在本机，并在调用时通过 HTTPS 发送给微伴服务；不要填写企业 OpenAPI secret。企业两字段首次授权模式尚需单独适配。",
+      "description": "本预览包使用已签发的员工 Agent Secret。凭证保存在本机，并在调用时通过 HTTPS 发送给微伴服务；不要填写企业 OpenAPI secret。企业两字段首次授权模式尚需单独适配。",
       "docUrl": "https://mcp.weibanzhushou.com/mcp?installation=1",
       "docLabel": "查看微伴凭证与安装说明"
     },
@@ -7947,7 +7947,7 @@
     ],
     "setupSchema": {
       "title": "华尔街见闻MCP授权",
-      "description": "连接您的华尔街见闻 MCP，用于查询华尔街见闻全球财经资讯与A 股大涨股异动归因数据。Token 与接口地址仅存储在本机 ~/.workbuddy 下。",
+      "description": "连接您的华尔街见闻 MCP，用于查询华尔街见闻全球财经资讯与A 股大涨股异动归因数据。Token 与接口地址仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 下。",
       "docUrl": "https://wallstreetcn.com/org-mcp/token",
       "docLabel": "如何获取华尔街见闻MCP并获取授权token"
     },
@@ -7990,7 +7990,7 @@
     ],
     "setupSchema": {
       "title": "新华财经资讯MCP授权",
-      "description": "连接新华财经资讯MCP，用于查询公告、新闻、政策数据。API Key 仅存储在本机 ~/.workbuddy 下，不会上传云端。",
+      "description": "连接新华财经资讯MCP，用于查询公告、新闻、政策数据。API Key 仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 下，不会上传云端。",
       "docUrl": "https://docs.qq.com/doc/DQndiT2RJZUF1RXpQ",
       "docLabel": "如何获取新华财经 API Key？"
     },
@@ -8153,7 +8153,7 @@
     ],
     "setupSchema": {
       "title": "连接新客来了系统（企业版）",
-      "description": "请在新客来了系统的数据报表 → MCP 数据连接中创建访问 Token。凭证仅保存在您的 WorkBuddy 本机。",
+      "description": "请在新客来了系统的数据报表 → MCP 数据连接中创建访问 Token。凭证仅保存在您的本机。",
       "docUrl": "https://web.huokexitong.com/user/mcp-connections",
       "docLabel": "如何获取 MCP Token？"
     },
@@ -8393,7 +8393,7 @@
     ],
     "setupSchema": {
       "title": "盈米 MCP 授权",
-      "description": "填写盈米 MCP API Key 以启用基金与市场数据查询。Key 仅保存在本机 ~/.workbuddy 下，不会上传云端。",
+      "description": "填写盈米 MCP API Key 以启用基金与市场数据查询。Key 仅保存在本机 ~/.dsh/dsh-buddy-expert-hub 下，不会上传云端。",
       "docUrl": "https://qieman.com/mcp",
       "docLabel": "如何获取 API Key？"
     },
@@ -8584,7 +8584,7 @@
     ],
     "setupSchema": {
       "title": "云净 CRM 连接配置",
-      "description": "请填写您在云净 CRM 个人中心创建的 WorkBuddy API Key。凭证仅保存在 WorkBuddy 本机。",
+      "description": "请填写您在云净 CRM 个人中心创建的 WorkBuddy API Key。凭证仅保存在本机。",
       "docUrl": "",
       "docLabel": ""
     },
@@ -8593,7 +8593,7 @@
   {
     "id": "yunke-cli",
     "name": "yunke-cli",
-    "description": "通过 yunke 操作云客 CRM：组织架构查询、员工/客户/通话数据统计、AI 智能分析。登录由 WorkBuddy 连接器经 OAuth 自动完成，使用前需确保 yunke 已安装且已登录。",
+    "description": "通过 yunke 操作云客 CRM：组织架构查询、员工/客户/通话数据统计、AI 智能分析。登录连接器经 OAuth 自动完成，使用前需确保 yunke 已安装且已登录。",
     "author": "",
     "transport": "cli",
     "url": "",
@@ -8861,7 +8861,7 @@
     ],
     "setupSchema": {
       "title": "郑和数据连接配置",
-      "description": "请输入从郑和数据开放平台获取的 MCP Key。凭证仅存储在本机 ~/.workbuddy 目录下，并在连接时通过 Authorization 请求头传入。",
+      "description": "请输入从郑和数据开放平台获取的 MCP Key。凭证仅存储在本机 ~/.dsh/dsh-buddy-expert-hub 目录下，并在连接时通过 Authorization 请求头传入。",
       "docUrl": "",
       "docLabel": ""
     },
@@ -8993,7 +8993,7 @@
     ],
     "setupSchema": {
       "title": "中兴通简税对接配置",
-      "description": "请填写中兴通简税分配给您企业的 openId 与 openKey。若尚未获取，请前往官网 https://open.quandianfapiao.com/ 申请开通后获取。凭证仅保存在本机 ~/.workbuddy 目录下，不会上传云端。",
+      "description": "请填写中兴通简税分配给您企业的 openId 与 openKey。若尚未获取，请前往官网 https://open.quandianfapiao.com/ 申请开通后获取。凭证仅保存在本机 ~/.dsh/dsh-buddy-expert-hub 目录下，不会上传云端。",
       "docUrl": "https://open.quandianfapiao.com/",
       "docLabel": "前往官网获取 openId 与 openKey"
     },
