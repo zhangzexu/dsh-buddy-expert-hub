@@ -11,7 +11,7 @@ DeepSeek Harness（dsh）插件：把 WorkBuddy 的「专家 · 技能 · 连接
 | 技能 | 数据根下的 `skills/<collection>/.../SKILL.md` | 随上游仓库变化，见下方说明 |
 | 连接器 | 资源仓库 `connectors/connectors.json`（单文件清单）+ `$DSH_HOME/dsh-buddy-expert-hub/connectors/` 本地已安装定义 | 随仓库变化 + 本地 |
 
-支持搜索、分页加载、详情查看、快捷提示复制、MCP 配置复制，以及把专家 / 专家团**导入**成 DSH 原生专家格式。
+支持搜索、分页加载、详情查看、快捷提示复制、MCP 配置复制，把专家 / 专家团**导入**成 DSH 原生专家格式，以及通过各标签页工具栏的 `+` 按钮**从文件夹**添加技能 / 导入专家 / 导入专家团（带格式校验、批量模式与幂等不覆盖）。
 
 适用运行时：**dsh 0.1.5-rc.1**（`main` 为 keyed 插槽、`sidebar.panellist` 为 list 插槽，注册时只传 `label` 不传 `locale`）。
 
@@ -47,12 +47,22 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
 
 1. 点击左侧栏「专家·技能·连接器」图标进入面板；
 2. 顶部四个标签页切换 专家 / 专家团 / 技能 / 连接器，徽标是各自的总数；
-3. 搜索框 250ms 防抖，每个标签页保留自己的关键词；
-4. 点击卡片或列表行，右侧滑出详情抽屉（窄屏自动全屏），`Esc`、右上 ✕ 或点击遮罩关闭；
-5. 专家 / 专家团详情底部有「导入」按钮，导入后按钮变为「已导入 ✓」并禁用；
-6. 已导入的专家会在列表**置顶**，卡片上带「本地」标识；
-7. 技能列表每页 60 条，滚动到底部或点「加载更多」继续加载；
-8. 右上「刷新」按钮触发一次资源仓库同步（数据源是本机目录时改为重新读取该目录，不联网）。
+3. 四个标签页的工具栏**位置与样式完全一致**：左侧是「全部 / 已安装 / 云端」视图按钮组，右侧各一个 `+` 按钮：
+   - 专家 →「导入专家」；专家团 →「导入专家团」；技能 →「添加技能」；连接器 →「新增连接器」；
+   - `+` 按钮不带 `title` 悬浮提示，只保留 `aria-label` 供无障碍与自动化定位；
+   - **顶部原来的「导入条目」按钮已删除**，专家 / 专家团 / 技能改为从文件夹导入（见下节）。
+4. 四处工具栏的「已安装」统一为视图按钮（专家 / 专家团 / 技能 / 连接器），四处按钮组的**顺序、class、间距、右侧 `+` 按钮位置完全一致**（均由 `ResourceToolbar` 渲染，实测四个 tab 的视图按钮 class 序列与 `+` 按钮 class 逐字相同）：
+   - `全部` = 当前列表全量；`已安装` = 本机已导入 / 已安装的条目；
+   - **`云端` 的语义按资源类型区分**：专家 / 专家团的 `云端` 指资源仓库来源（排除本地导入条目）；技能的 `云端` 指 **SkillHub 云端商店**（技能特有入口），不是仓库技能；连接器沿用原有 `origin=cloud` 语义。
+   - 技能的两个子分组「仓库技能 / SkillHub 商店」与工具栏视图**双向同步**：点「仓库技能」→ 视图切到「全部」，点「SkillHub 商店」→ 视图切到「云端」；点「全部」/「云端」视图也会同步高亮对应子分组。因此不会出现两个视图渲染同一个列表的重复面板。
+   - 连接器的「已安装」视图额外保留「全部 / 本地自定义 / 云端下载」来源细分，专家 / 专家团 / 技能不套用；
+   - 空态按视图给出下一步动作，已安装为空时引导点对应 `+` 按钮。
+5. 搜索框 250ms 防抖，每个标签页保留自己的关键词；
+6. 点击卡片或列表行，右侧滑出详情抽屉（窄屏自动全屏），`Esc`、右上 ✕ 或点击遮罩关闭；
+7. 专家 / 专家团详情底部有「导入」按钮，导入后按钮变为「已导入 ✓」并禁用；详情右上「导出」可生成单条目包（后端 `POST /import/item` 仍保留）。
+8. 已导入的专家会在列表**置顶**，卡片上带「本地」标识；
+9. 技能列表每页 60 条，滚动到底部或点「加载更多」继续加载；技能的两个子分组是「仓库技能 / SkillHub 商店」，不再有「已安装」子分组；
+10. 右上「刷新」按钮触发一次资源仓库同步（数据源是本机目录时改为重新读取该目录，不联网）。
 
 ---
 
@@ -143,14 +153,14 @@ https://gitee.com/zhangzexu/dsh-buddy-expert-hub-resource.git
 | 云端 | 资源仓库（数据根）`connectors/connectors.json`，随同步更新 | `cloud` |
 | 本地 | `$DSH_HOME/dsh-buddy-expert-hub/connectors/<dir>/connector.json` | `local` |
 
-同 id 时优先级 **local > cloud**（本地定义覆盖同名云端条目）。列表页顶部可切换「全部 / 已安装 / 云端」，`GET /connectors?origin=` 只接受这三个值，其它值（包括历史遗留的 `market`）一律按 `all` 处理。
+同 id 时优先级 **local > cloud**（本地定义覆盖同名云端条目）。工具栏统一为「全部 / 已安装 / 云端」三视图（专家 / 专家团 / 技能 / 连接器四处样式一致），连接器的 `GET /connectors?origin=` 只接受这三个值，其它值（包括历史遗留的 `market`）一律按 `all` 处理；专家 / 专家团 / 技能的「已安装 / 云端」是纯前端过滤，不改后端索引。
 
 两种「定义来源」（定义字段 `source`，表示这条定义是谁写下来的，**装到本地后依然保留**）：
 
 | source | 含义 | 产生方式 |
 | --- | --- | --- |
 | `manual` | 本地自定义 | 在「+ 新增连接器」弹窗里手填；历史定义缺 `source` 字段时也按此处理 |
-| `cloud` | 云端下载 | 在「云端 / 全部」视图点下载图标，从资源仓库安装 |
+| `cloud` | 云端下载 | 在「云端 / 全部」视图点统一的 `+` 图标，从资源仓库安装 |
 
 两层语义必须分清：`origin` 回答「现在在哪」，`source` 回答「从哪来」。所以「从云端下载后装到本地」的条目是 `origin=local` + `source=cloud`，卡片上显示「云端下载」而不是「本地自定义」。读取时**以定义文件里的 `source` 为准**（缺字段才用目录兜底：本地目录 `manual`、云端目录 `cloud`）。历史值 `market` 与更早误写的 `local` 一律归一为 `cloud`（它们都表示「不是用户手填的」），其它非法值（数字、空串、未知字符串）收敛为所在目录的兜底值。
 
@@ -165,8 +175,8 @@ https://gitee.com/zhangzexu/dsh-buddy-expert-hub-resource.git
 
 #### 安装（保存定义）
 
-- 未安装的云端卡片显示 **下载图标**，点一下把定义复制到本地 `connectors/<dir>/`；不写 profile、不保存凭据
-- 同 id 已经安装过时，卡片不会再出现下载图标（安装接口返回 `already: true`）；想让云端版本覆盖本地版本，需先卸载再安装
+- 未安装的云端卡片显示统一的 **`+` 图标**（与 SkillHub 商店的 `+` 同款 `dshe-add-btn`，无文字、无 `title`），点一下把定义复制到本地 `connectors/<dir>/`；不写 profile、不保存凭据
+- 同 id 已经安装过时，卡片不会再出现 `+` 图标（安装接口返回 `already: true`）；想让云端版本覆盖本地版本，需先卸载再安装
 - 已安装卡片显示 **× 卸载**（移除本地定义并断开连接登记；profile 里的条目不会自动删除）
 - 已安装卡片名称右侧有 **来源徽标**：`本地自定义`（靛蓝）/ `云端下载`（蓝）
 - 「已安装」视图下多一行 **来源筛选**：`全部 / 本地自定义 / 云端下载`，每项带实时条数（纯前端过滤，切来源不重新拉数据）
@@ -181,7 +191,7 @@ https://gitee.com/zhangzexu/dsh-buddy-expert-hub-resource.git
   - 安装时间 = 这条连接器**第一次装上来的时间**：定义文件里存 `installedAt`，读取时沿用文件里的值（不会每次刷新都变成“刚刚”）；
     同 id 覆盖写盘时保留最初的值；卸载后重装因为文件已删而重新计时；时间戳**越界**（≥ 8.64e15）时该行不渲染，**非数字**（如 `"abc"` / `null`）按未记录处理、取当前时间正常渲染
 
-已安装视图为空时提示「还没有安装任何连接器 —— 点右上「新增连接器」手动填一个，或在「云端 / 全部」里点下载图标安装」；来源筛选后为空时提示「没有来自该来源的连接器」。
+已安装视图为空时提示「还没有安装任何连接器 —— 点右上「新增连接器」手动填一个，或在「云端 / 全部」里点 + 图标安装」；来源筛选后为空时提示「没有来自该来源的连接器」。
 
 云端条目为 0 **且** 本地条目也为 0 时（`connectorSource === 'none'` 且列表为空），连接器页整体走空态：「还没有连接器数据：点右上「刷新」从资源仓库同步，或点「新增连接器」手动添加」。此时副标题也不显示「0 个连接器」，而是提示「连接器需先同步资源仓库」。
 
@@ -189,7 +199,7 @@ https://gitee.com/zhangzexu/dsh-buddy-expert-hub-resource.git
 
 | 状态 | 卡片按钮 | 点击行为 |
 | --- | --- | --- |
-| 未安装 | 下载图标 | 保存定义到本地 |
+| 未安装 | 统一的 `+` 图标 | 保存定义到本地 |
 | 已安装 · 免认证 | 对话气泡 | 直接挂到会话 |
 | 已安装 · 需认证/参数 | `+` | 打开连接弹窗 → 写 profile + 加密凭据 |
 | 已连接 | 对话气泡 | 挂到会话 |
@@ -312,6 +322,38 @@ order: 300
 
 ---
 
+## 文件夹导入（添加技能 / 导入专家 / 导入专家团）
+
+三个 `+` 按钮打开同一个「文件夹导入」弹窗，只是 `type` 不同：**添加技能**（`skill`）、**导入专家**（`expert`）、**导入专家团**（`team`）。
+弹窗用 `<input type="file" webkitdirectory>` 选目录；非 Chromium 环境可用 `showDirectoryPicker()` 兜底，两者都不支持时给中文提示，不会静默失败。
+
+### 必需文件（不同的功能校验不同的格式）
+
+| 类型 | 目录根下必需文件 | 可选 / 兼容输入 |
+| --- | --- | --- |
+| 技能 `skill` | `SKILL.md`（frontmatter 建议写 `name`；解析不出时用目录名兜底，并在结果里标注） | `README.md` 与其它资源文件 |
+| 专家 `expert` | `expert.yml`（至少含 `id` / `display_name`）+ `role.md` | 或 `.codebuddy-plugin/plugin.json`（可解析、含 `name` / `displayName`），此时按兼容格式转换 |
+| 专家团 `team` | `expert.yml` + `role.md` + `team.json`（含 `teamInfo` 或 `members` 数组） | 或 `plugin.json` 里带团队信息（`expertType=team` / `members` / `teamInfo`），导入时生成 `team.json` |
+
+校验失败会逐条列出缺哪些文件；后端是权威校验方，前端只做同规则的轻量预检并把结果展示在弹窗里。
+
+### 两种导入模式
+
+1. **单条目模式**：先把所选目录整体当作一个条目校验，通过即导入这一个条目；
+2. **批量模式**：整体校验不通过时，把**一级子目录各当作一个条目**分别校验（只看第一层，不递归），成功的导入、失败的逐条列出中文原因；全部失败时 `ok:false` 并给出可读汇总（如「3 个子目录均校验失败」）。
+
+### 限制与落盘
+
+- 已知文本扩展名（`.md/.json/.yml/.yaml/.svg/.py/...`）按 `utf8` 读取，其余（含 `.png/.jpg/.webp` 与未知类型）按 `base64` 读取；
+- 单文件 ≤ 2MB、最多 200 个文件、解码后总计 ≤ 20MB，前后端双重限制；
+- 拒绝 `..`、绝对路径、Windows 盘符、反斜杠路径与符号链接，`path.relative` 二次校验；
+- 技能落 `$DSH_HOME/skills/<净化后的名字>/`（复用 `skillDirNameOf()`）；专家 / 专家团落 `$DSH_HOME/experts/<id>/`（DSH 原生 `expert.yml` / `role.md` / `avatar.*` / `team.json`）；
+- **绝不覆盖已存在目录**：同名返回 `already:true`，用户手工改过的内容保持不变。
+
+接口与响应见下方 `POST /import/folder`。
+
+---
+
 ## 接口表
 
 所有接口挂在 webServer 的 `/dsh-buddy-expert-hub` 前缀下，统一返回 `{ ok: true, ... }` 或 `{ ok: false, error }`。
@@ -334,6 +376,10 @@ order: 300
 | GET | `/local-avatar` | `id`（本地专家 id，`[A-Za-z0-9._-]+`）→ `~/.dsh/experts/<id>/avatar.*` |
 | POST | `/import` | body `{ type: 'expert'\|'team', id }` → 写 `$DSH_HOME/experts/<id>/` + `dsh-buddy-expert-hub/imported/<id>/bundle/`，返回 `{ ok, id, type, path, already, files, bundle }` |
 | GET | `/imported` | `{ ok, ids, items:[{id,type,displayName,description,avatar}], dir }`，扫描 `$DSH_HOME/experts/`（只认含 `expert.yml` 的目录）并与 `state.json` 记录合并去重 |
+| POST | `/import/item` | 单条目包（`.json.gz` / 明文 JSON，格式 `{format,type,id,name,dir,files:[{path,data,encoding}]}`）→ 只新增这一个条目。**接口保留**：条目详情的「导出」包仍可由它导入，但面板顶部「导入条目」按钮已删除 |
+| GET | `/export/item` | `type`(`expert`\|`team`\|`skill`) + `id` → 下载单个条目的 `.json.gz` 包 |
+| POST | `/import/folder` | **本轮新增**：浏览器选择文件夹导入。请求体 `{ type:'skill'\|'expert'\|'team', rootName:string, files:[{path,data,encoding}] }`，`encoding` 为 `utf8` 或 `base64`。响应 `{ ok:true, mode:'single'\|'batch', imported:[{id,name,type,dir,already?,notes?}], skipped:[{dir,reason}] }`；全部失败时 `{ ok:false, error, imported:[], skipped, mode }`。先按「所选目录本身就是一个条目」校验，不通过再按一级子目录批量导入；三种类型格式要求不同，见「文件夹导入」章节。安全与幂等：拒绝 `..` / 绝对路径 / 盘符 / 反斜杠 / 符号链接，单文件 ≤ 2MB、文件数 ≤ 200、总计 ≤ 20MB，已存在目录返回 `already:true` 不覆盖 |
+| POST | `/library/import` | 上传整包字节（gzip JSON），原子落盘后切换数据源 |
 
 > **`repoReady` 与 `indexReady` 是两个独立信号**：
 > 前者表示「数据目录可用」（`dataRoot` 已定位到某个含 `experts/` / `skills/` / `connectors/` 之一的目录；git 克隆与 `ntd-resource` 仍要求 `experts/` 非空），
