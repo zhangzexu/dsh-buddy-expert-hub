@@ -4,12 +4,12 @@ DeepSeek Harness（dsh）插件：把 WorkBuddy 的「专家 · 技能 · 连接
 
 左侧边栏多一行入口，点开后是一个四标签页面板：
 
-| 标签页 | 数据来源 | 数量（当前快照） |
+| 标签页 | 数据来源 | 数量 |
 | --- | --- | --- |
 | 专家 | `dsh-buddy-expert-hub-resource` 仓库 `experts/<dir>/.codebuddy-plugin/plugin.json`（`expertType=agent`）+ `~/.dsh/experts/` 本地已导入专家 | 随仓库变化 + 本地 |
 | 专家团 | 同上（`expertType=team`，含团队成员名单） | 随仓库变化 + 本地 |
 | 技能 | 数据根下的 `skills/<collection>/.../SKILL.md` | 随上游仓库变化，见下方说明 |
-| 连接器 | 本机 `~/.workbuddy/connectors-marketplace`（MCP / CLI） | 316 |
+| 连接器 | 资源仓库 `connectors/connectors.json`（单文件清单）+ `$DSH_HOME/dsh-buddy-expert-hub/connectors/` 本地已安装定义 | 随仓库变化 + 本地 |
 
 支持搜索、分页加载、详情查看、快捷提示复制、MCP 配置复制，以及把专家 / 专家团**导入**成 DSH 原生专家格式。
 
@@ -52,7 +52,7 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
 5. 专家 / 专家团详情底部有「导入」按钮，导入后按钮变为「已导入 ✓」并禁用；
 6. 已导入的专家会在列表**置顶**，卡片上带「本地」标识；
 7. 技能列表每页 60 条，滚动到底部或点「加载更多」继续加载；
-8. 右上「刷新」按钮触发一次资源仓库同步。
+8. 右上「刷新」按钮触发一次资源仓库同步（数据源是本机目录时改为重新读取该目录，不联网）。
 
 ---
 
@@ -62,25 +62,28 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
 
 | 顺序 | 目录 | 说明 |
 | --- | --- | --- |
-| 1 | `$DSH_HOME/dsh-buddy-expert-hub/repo` | 刷新（或首次没有其它数据源）时克隆的完整仓库，**只有它带 `skills/`** |
-| 2 | `$DSH_HOME/ntd-resource` | NTD 已同步的副本，**只读复用**，通常只有 `experts/` |
-| 3 | 都没有 | 懒加载时自动克隆到 `dsh-buddy-expert-hub/repo` |
+| 1 | 设置里配置的**本机资源目录** | 目录存在且含 `experts/` / `skills/` / `connectors/` 至少其一时优先使用；不执行任何 git 操作 |
+| 2 | 同步后缓存的数据根 | 通常是 `$DSH_HOME/dsh-buddy-expert-hub/repo`，索引缓存恢复时也会写入 |
+| 3 | `$DSH_HOME/ntd-resource` | NTD 已同步的副本，**只读复用**，通常只有 `experts/` |
+| 4 | 都没有 | 懒加载时自动克隆到 `dsh-buddy-expert-hub/repo` |
 
 - 有 `~/.dsh/ntd-resource` 时**不会**为了建索引而联网：专家立刻可用。
 - 那份副本没有 `skills/`，所以「技能」标签页会提示 **「技能数据尚未同步」** 并给一个「立即同步」按钮。
-- 点「立即同步」/ 右上「刷新」时，无论当前数据根是谁，都会对 `~/.dsh/dsh-buddy-expert-hub/repo` 执行克隆或 `git fetch --depth 1` + `reset`，成功后**把数据根切到它**。
+- git 数据源下，点「立即同步」/ 右上「刷新」时会对 `~/.dsh/dsh-buddy-expert-hub/repo` 执行克隆或 `git fetch --depth 1` + `reset`，成功后**把数据根切到它**；**本机目录模式下整条 git 路径都跳过**，改为重读目录并重建索引。
 - `ntd-resource` 只是历史遗留的**本机目录名**，与当前远程仓库名无关；全新安装没有它也能正常工作，详见下一节。
 
 ### 数据源位置
 
 | 内容 | 位置 |
 | --- | --- |
-| 专家 / 专家团 / 技能 | `https://gitee.com/zhangzexu/dsh-buddy-expert-hub-resource.git` |
+| 专家 / 专家团 / 技能 | 默认 `https://gitee.com/zhangzexu/dsh-buddy-expert-hub-resource.git`，也可在「设置」里改成任意本机资源目录 |
 | 本地已导入专家 | `$DSH_HOME/experts/<id>/`（DSH 原生格式，权威来源） |
-| 连接器 | 本机 `~/.workbuddy/connectors-marketplace/{connectors,icons}` |
-| 连接器兜底快照 | 插件内置 `data/connectors.json`（构建产物，316 条） |
+| 连接器（云端） | 数据根（资源仓库副本）`connectors/connectors.json` + `connectors/icons/<id>.<ext>` |
+| 连接器（本地已安装） | `$DSH_HOME/dsh-buddy-expert-hub/connectors/<dir>/connector.json` |
 
-连接器在运行时优先读本机市场目录；读不到时自动回落到 `data/connectors.json`，`/status` 的 `connectorSource` 字段会显示当前来源（`marketplace` / `snapshot` / `none`）。
+**插件不再内置任何连接器数据**：`data/` 目录已删除，`package.json` 的 `files` 也不再包含它。连接器只从上面两处读 —— 一处是资源仓库（云端），一处是本机已安装定义（本地）。
+
+`/status` 的 `connectorSource` 只有两个取值：`repo`（数据根里存在 `connectors/connectors.json`）/ `none`（还没同步或仓库里没有这份清单）。读不到仓库清单时 `counts.connectors` 只会统计本地已安装条目，面板会提示「连接器需先同步资源仓库」。
 
 ### 资源仓库与同步
 
@@ -92,26 +95,137 @@ https://gitee.com/zhangzexu/dsh-buddy-expert-hub-resource.git
 
 | 项 | 说明 |
 | --- | --- |
-| 默认值 | `lib/index.js` 的 `SOURCE_URL`；`/dsh-buddy-expert-hub/status` 返回 `sourceUrl` / `defaultUrl` / `usingDefault` |
-| 自定义 | 面板「设置」里可填 `https://` 或 `git@` 形式的仓库地址，写入 `state.json` 的 `settings.sourceUrl`，**下次同步生效**；留空回到默认地址。内网镜像或 fork 仓库用这个 |
-| 克隆目标 | `$DSH_HOME/dsh-buddy-expert-hub/repo`（只有完整仓库带 `skills/`） |
-| 同步方式 | 首次 `git clone --depth 1`，之后 `git fetch --depth 1` + `git reset --hard FETCH_HEAD`；点「立即同步」或右上「刷新」触发 |
-| 校验 | 地址只允许 `https://` 与 `git@` 两种形式，非法值会被拒并保留原设置 |
+| 默认值 | `lib/index.js` 的 `SOURCE_URL`；`/dsh-buddy-expert-hub/status` 返回 `sourceUrl` / `sourceKind` / `defaultUrl` / `usingDefault` |
+| 自定义 git 仓库 | 面板「设置」里可填 `https://` 或 `git@` 形式的仓库地址，写入 `state.json` 的 `settings.sourceUrl`，**下次同步生效**；留空回到默认地址。内网镜像或 fork 仓库用这个 |
+| 自定义本机目录 | 面板「设置」里可直接填本机目录（见下节），`sourceKind` 为 `local`；保存时校验目录。`dataRoot` 立刻重算；新数据源为本机目录时，旧索引立即作废并在下次请求自动重建（不联网、不需要点刷新）；切回 git 仓库时索引保持到下次同步，界面会提示「数据源已切换，点刷新以应用新数据源」 |
+| 克隆目标 | `$DSH_HOME/dsh-buddy-expert-hub/repo`（只有完整仓库带 `skills/`）；本机目录模式不会创建或改动它 |
+| 同步方式 | git 数据源：首次 `git clone --depth 1`，之后 `git fetch --depth 1` + `git reset --hard FETCH_HEAD`；点「立即同步」或右上「刷新」触发。本机目录：只重读目录并重建索引，**不联网、不执行任何 git 命令** |
+| 校验 | git 地址只接受 `https://` 与 `git@` 两种形式（不得含空白或 `..`）；本机目录必须是绝对地址，相对路径会被拒并提示填绝对路径；未知协议一律拒绝 |
 
-> `$DSH_HOME/ntd-resource` 是历史上 NTD 同步留下的**本机只读副本目录**，名字沿用旧称呼，与上面的远程地址无关。插件不会往里 clone / pull / 写文件；全新安装没有这个目录也能正常同步。仓库需包含 `experts/`、`skills/` 等目录，卸载插件也不会删除这些数据目录。
+`sourceKind` 只有两个取值：`git`（远程 git 仓库）/ `local`（本机资源目录）。`/settings` 与 `/status` 都会返回它。
+
+### 设置 / 数据源地址：使用本机目录
+
+「资源仓库地址」输入框除了 git 地址，也可以直接填**本机目录**，效果与 git 路径一致：插件把这个目录当数据根读，专家 / 专家团 / 技能 / 连接器 / 图标 / `/status` / 「刷新」全部照常工作。
+
+支持的写法：
+
+| 写法 | 示例 |
+| --- | --- |
+| Linux / macOS 绝对路径 | `/home/me/dsh-buddy-expert-hub-resource` |
+| Windows 盘符（正斜杠或反斜杠） | `D:\data\resource`、`D:/data/resource` |
+| Windows UNC | `\\server\share\resource` |
+| 用户主目录 | `~`、`~/dsh-buddy-expert-hub-resource` |
+| file URL | `file:///home/me/dsh-buddy-expert-hub-resource`、`file://D:/data/resource` |
+
+- 路径**可以含空格**，也可以含 `..`（例如 `/tmp/a/../b`），最终会归一成绝对路径再使用。
+- **不支持相对路径**（`./foo`、`../foo`、`foo`）：保存时返回 400，错误为「本机目录请填绝对路径（如 /home/me/dsh-buddy-expert-hub-resource 或 D:\\data\\resource）；相对路径不支持」。
+- 目录结构要求：与资源仓库相同，`experts/`、`skills/`、`connectors/` 三者中至少有一个是目录（只放 `connectors/connectors.json` + `connectors/icons/` 也能用）；专家包放 `experts/<id>/`，技能放 `skills/<collection>/<name>/SKILL.md`，连接器清单放 `connectors/connectors.json`、图标放 `connectors/icons/<id>.<ext>`。
+- 保存时会检查目录：不存在返回「本机目录不存在：…」，存在但三个子目录一个都没有返回「本机目录里没有 experts/、skills/ 或 connectors/ 中的任何一个：…」；**不会静默回落成 git 仓库**。
+- 本机模式下不 clone、不 fetch、不 `remote set-url`、不 reset，也不会在 `$DSH_HOME/dsh-buddy-expert-hub/repo` 下创建 `.git`。目录后来被删或变空时，同步会明确报「本机资源目录不可用：…请检查路径或在设置里改回仓库地址」，不会偷偷去克隆默认远程仓库。
+- 本机目录里的文件改动，点右上「**刷新**」即重新读取并重建索引，无需重启、无需联网。
+- **切换到另一个本机目录时**：保存会立刻重算 `dataRoot`，并因为数据根变了而作废旧索引（清内存索引、删 `index.json`）；下一次数据请求按既有懒加载自动重建（只读本地文件、不联网、不执行 git），**不需要点「刷新」**。重建期间数据接口返回 `busy` 占位，不会出现「连接器来自新目录、专家与技能还来自旧目录」的混合响应；重启后因为是新索引落盘，仍然是新目录。
+- **切回 git 仓库时**（填 `https://` / `git@` 地址或点「**恢复默认**」）：数据根同样立刻重算，但**索引保持到下次同步**，绝不为了重建而去克隆；`/status` 会返回 `indexDataRoot`（旧索引对应的目录）与 `indexStale: true`，界面在副标题下方提示「数据源已切换，点「刷新」以应用新数据源」。点右上「刷新」后提示消失。
+- git 地址 A 换成 git 地址 B 时数据根通常不变（仍是 `ntd-resource` 或插件 clone），此时**什么都不做**：不清索引、`indexStale` 为 `false`、不会因轮询触发一次意外的克隆；新地址按既有语义在下次同步时生效。
+
+> `$DSH_HOME/ntd-resource` 是历史上 NTD 同步留下的**本机只读副本目录**，名字沿用旧称呼，与上面的远程地址无关。插件不会往里 clone / pull / 写文件；全新安装没有这个目录也能正常同步。git 仓库需包含 `experts/`、`skills/` 等目录，卸载插件也不会删除这些数据目录。
 
 ### 连接器：连接与自动写入宿主 MCP 配置
 
-连接器按是否需要初始化分两类，判定依据是 WorkBuddy 市场元数据的 `auth_mode` 与 `token-schema.json`：
+连接器分三步：**发现 → 安装 → 连接**。安装只保存定义，连接才写宿主配置。
+
+#### 来源与优先级
+
+两层「发现位置」（条目字段 `origin`，表示这一条当前在哪里被扫到）：
+
+| 来源 | 位置 | origin |
+| --- | --- | --- |
+| 云端 | 资源仓库（数据根）`connectors/connectors.json`，随同步更新 | `cloud` |
+| 本地 | `$DSH_HOME/dsh-buddy-expert-hub/connectors/<dir>/connector.json` | `local` |
+
+同 id 时优先级 **local > cloud**（本地定义覆盖同名云端条目）。列表页顶部可切换「全部 / 已安装 / 云端」，`GET /connectors?origin=` 只接受这三个值，其它值（包括历史遗留的 `market`）一律按 `all` 处理。
+
+两种「定义来源」（定义字段 `source`，表示这条定义是谁写下来的，**装到本地后依然保留**）：
+
+| source | 含义 | 产生方式 |
+| --- | --- | --- |
+| `manual` | 本地自定义 | 在「+ 新增连接器」弹窗里手填；历史定义缺 `source` 字段时也按此处理 |
+| `cloud` | 云端下载 | 在「云端 / 全部」视图点下载图标，从资源仓库安装 |
+
+两层语义必须分清：`origin` 回答「现在在哪」，`source` 回答「从哪来」。所以「从云端下载后装到本地」的条目是 `origin=local` + `source=cloud`，卡片上显示「云端下载」而不是「本地自定义」。读取时**以定义文件里的 `source` 为准**（缺字段才用目录兜底：本地目录 `manual`、云端目录 `cloud`）。历史值 `market` 与更早误写的 `local` 一律归一为 `cloud`（它们都表示「不是用户手填的」），其它非法值（数字、空串、未知字符串）收敛为所在目录的兜底值。
+
+云端清单是**单文件** `connectors/connectors.json`（一个 JSON 数组，全部连接器收在一起，条目字段与手动新增一致）：
+
+- 传输类型**以 `config.mcpServers[<key>]` 的块结构为准，再退回顶层 `transport` / 块里的 `type`**：块里有 `command` → `stdio`，块里有 `url` 且没有 `command` → `streamable-http`。之所以结构优先：上游真实数据里有 12 条把 HTTP 服务标成了 `stdio`（块里只有 `{url, timeout}`，没有启动命令），只按顶层声明会把它们整条丢掉；`http` 与 `streamable-http` 同义，一并归一；`url` / `command` / `args` / `env` / `headers` 一律以 `config.mcpServers[<key>]` 为准（顶层 `url` 只是冗余副本）；
+- URL 允许 **`${VAR}` 占位模板**（连 scheme 位置也可以是占位符，例如 `"${SCHEMA}://${HOST}:${PORT}/api/v1/mcp/stream"`）：连接时会由用户填的参数求值，落盘阶段不做真实性校验，只要求「替换占位符后是 http(s) 地址」以拦住 `javascript:` / `file:` 这类危险 scheme；
+- `authMode` / `requiredParams` / `optionalParams` / `paramFields` / `setupSchema` / `needsSetup` / `iconExt` / `author` 原样保留；云端清单走**宽松解析**：只有「缺 id / 不是对象 / 读不出来」才跳过（记进 `/status` 的 `connectorSkipped`），字段不全的条目用 id 兜底名称后照收；整份文件缺失或不是数组时返回空列表；
+- **仓库里每一条都进列表，连不了的显式标出来**：`transport` 归一到四种值 —— `streamableHttp` / `streamable-http` / `http` 是同一个东西（MCP 的 Streamable HTTP 传输），一律 `streamable-http`；块里只有 `url`、没有 `command` 却声明成 `stdio` 的按结构纠正为 `streamable-http` 并打 `transportFixed`；`sse` / `cli` 保留原值。宿主 `mcp-client` 只能装载 `streamable-http` 与 `stdio`，因此 `cli`（没有 MCP 配置）、`sse`、以及地址里含 `${VAR}` 占位符的条目会带 `connectable: false` + 中文 `unsupportedReason`，卡片上置灰标「不可连接」、不给安装 / 连接入口（后端 `/connectors/install` 与 `/connectors/connect` 同样 400 拦住）。真实仓库 316 条实测：`streamable-http` 246（含纠正 12 + `http` 归一 4）/ `stdio` 16 / `cli` 45 / `sse` 9，`connectable` 255 条、`unsupported` 61 条（45 `cli` + 9 `sse` + 7 占位符地址），`connectorSkipped` 为 0 —— 列表显示 316 条、其中 255 条可连接是**正确结果**，不是解析失败；
+- 目录形态 `connectors/<id>/connector.json` 作为**回退**仍支持（结构见下方「手动新增」示例），只在单文件缺失或损坏时才扫描。
+- **地址含 `${VAR}` 占位符的条目在面板内没有任何连接入口**：`/connectors/connect`、`/connectors/provision`、`/connectors/provision/preview` 都会 400 拒绝（占位符不会被 `mcp-client` 配置求值，写进去就是一个跑不起来的地址）。要使用这类连接器，需手动编辑宿主 `cordis.patch.yml` 里对应的 `mcp-client` 条目，把 `${VAR}` 换成真实地址。
+
+#### 安装（保存定义）
+
+- 未安装的云端卡片显示 **下载图标**，点一下把定义复制到本地 `connectors/<dir>/`；不写 profile、不保存凭据
+- 同 id 已经安装过时，卡片不会再出现下载图标（安装接口返回 `already: true`）；想让云端版本覆盖本地版本，需先卸载再安装
+- 已安装卡片显示 **× 卸载**（移除本地定义并断开连接登记；profile 里的条目不会自动删除）
+- 已安装卡片名称右侧有 **来源徽标**：`本地自定义`（靛蓝）/ `云端下载`（蓝）
+- 「已安装」视图下多一行 **来源筛选**：`全部 / 本地自定义 / 云端下载`，每项带实时条数（纯前端过滤，切来源不重新拉数据）
+  - 按钮上的条数是**当前搜索结果内**的条数（“筛完还剩多少”的直觉口径，受关键词影响）；后端 `counts.sources` 是全量口径、不受关键词影响，前端不消费该字段
+  - 来源筛选与关键词同时生效且结果为空时，提示会说明「『本地自定义』里没有匹配「xxx」的」，避免把“被来源挡住”误读成“关键词不存在”
+- 顶部 **「+ 新增连接器」** 手动填写 MCP 配置：名称、描述、传输方式（Streamable HTTP / stdio）、URL 或 命令+参数+环境变量、请求头、必填参数名（留空则从 `${VAR}` 自动推断）
+- id 由名称派生（kebab-case），同 id 冲突自动加序号
+- 磁盘目录名由 id 决定，但**一个 id 只对应一个目录**：id 含路径分隔符等非法字符时净化成 `名字-哈希`；
+  若该目录已被**别的 id** 占用（例如某条自报 id 恰好等于别人的净化名，或 Windows / macOS 上仅大小写不同的 `Alpha` 与 `alpha`），
+  会自动改用 `名字-2`、`名字-3`… 另一个空位，**不会覆盖也不会互相误删**；所有候选用尽才返回可读错误「目录名冲突：该位置已被其他连接器占用，请换一个名称后重试」
+- 详情抽屉「更多」区块展示：来源中文名、安装状态、安装时间（`YYYY-MM-DD HH:mm`，本地时区）、本地定义文件绝对路径（仅已安装条目返回）
+  - 安装时间 = 这条连接器**第一次装上来的时间**：定义文件里存 `installedAt`，读取时沿用文件里的值（不会每次刷新都变成“刚刚”）；
+    同 id 覆盖写盘时保留最初的值；卸载后重装因为文件已删而重新计时；时间戳**越界**（≥ 8.64e15）时该行不渲染，**非数字**（如 `"abc"` / `null`）按未记录处理、取当前时间正常渲染
+
+已安装视图为空时提示「还没有安装任何连接器 —— 点右上「新增连接器」手动填一个，或在「云端 / 全部」里点下载图标安装」；来源筛选后为空时提示「没有来自该来源的连接器」。
+
+云端条目为 0 **且** 本地条目也为 0 时（`connectorSource === 'none'` 且列表为空），连接器页整体走空态：「还没有连接器数据：点右上「刷新」从资源仓库同步，或点「新增连接器」手动添加」。此时副标题也不显示「0 个连接器」，而是提示「连接器需先同步资源仓库」。
+
+#### 状态机
+
+| 状态 | 卡片按钮 | 点击行为 |
+| --- | --- | --- |
+| 未安装 | 下载图标 | 保存定义到本地 |
+| 已安装 · 免认证 | 对话气泡 | 直接挂到会话 |
+| 已安装 · 需认证/参数 | `+` | 打开连接弹窗 → 写 profile + 加密凭据 |
+| 已连接 | 对话气泡 | 挂到会话 |
+
+接口：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/connectors?origin=all\|installed\|cloud` | 两源合并列表，返回 `counts`。`origin=installed` 只看本地已安装；`cloud` 只看**云端层级里尚未安装**的；`all`（及任何非法值）返回全部 |
+| POST | `/connectors/install` | `{ id }`，从资源仓库安装定义到本地；`connectable === false` 的条目（`cli` / `sse` / 占位符地址）返回 400 并说明原因 |
+| POST | `/connectors/create` | 手动新增定义（字段同上） |
+| POST | `/connectors/uninstall` | `{ id }`，删本地定义并断开连接登记；`id` 需通过 `safeId()` 白名单，否则 400 |
+
+`counts` 两套口径并存（键名不冲突）：
+
+| 键 | 口径 |
+| --- | --- |
+| `all` / `installed` / `cloud` | 按 `installed` / `origin` 统计（历史口径，语义未变；`cloud` 是「当前能在云端扫到的条数」） |
+| `connectable` / `unsupported` | 按条目的 `connectable` 统计（`connectable + unsupported === all`）：列表是全量的，`cli` / `sse` / 占位符地址这些连不了的条目也在里面，只标「不可连接」 |
+| `sources.{manual,cloud}` | **只统计已安装条目**，按定义来源 `source` 聚合 |
+
+> `sources` 之所以是嵌套对象而不是三个扁平键：扁平的 `counts.cloud` 已经被「云端可见条数」占用，再放一个「来源=云端的已安装条数」会互相覆盖。
+
+已安装条目额外返回 `file`（定义文件绝对路径，位于 `$DSH_HOME/dsh-buddy-expert-hub/connectors/<id>/connector.json`）；未安装条目一律不带该字段，也不会泄漏 `searchText` / `params` / `credentials`。
+- 定义落盘前会用**严格模式**自检（保证「能写进磁盘的一定读得回来」，不留读不回的幽灵目录）；若目标 `connector.json` 已损坏（无法解析，例如手改 JSON 改坏或写盘中断），会先把它另存为 `connector.json.corrupt-<时间戳>` 再写入，**留档失败则拒绝写入**并提示，绝不静默覆盖你手写的内容。
+
+连接器按是否需要初始化分两类，判定依据是仓库条目里的 `authMode` 与 `requiredParams`（由资源仓库维护脚本从 WorkBuddy 市场元数据的 `auth_mode` / `token-schema.json` 生成后就固化在 `connectors.json` 里，运行时不再读市场目录）：
 
 | 类型 | 判定 | 卡片交互 |
 | --- | --- | --- |
-| 免连接 | `auth_mode` 为空 / `server-side` / `mcp`，且无必填参数 | **不显示 `+`**，直接是对话气泡，点击即挂到会话 |
+| 免连接 | `authMode` 为空 / `server-side` / `mcp`，且无必填参数 | **不显示 `+`**，直接是对话气泡，点击即挂到会话 |
 | 需连接 | `token` / `oauth` / `oneid-token`，或存在必填参数 | 首次点 `+` 打开连接弹窗，填写后确认 |
 
 点「确认写入并连接」后，插件会：
 
-1. **校验必填参数**：以 `token-schema.json` 的 `fields[].required` 为准，`required:false` 允许留空；
+1. **校验必填参数**：以条目的 `requiredParams` 为准（它由 `paramFields[].required` 反推，保证表单与后端校验同源），`required: false` 的字段允许留空；
 2. **本地加密保存**：写入 `$DSH_HOME/dsh-buddy-expert-hub/credentials.enc`（AES-256-GCM，文件权限 0600），**不碰系统环境变量**，Windows / Linux / macOS 行为一致；值不回显、不进日志、不进 prompt；
 3. **为三个 profile**（`desktop` / `web` / `hubtest`）的 `cordis.patch.yml` 追加一条 `- insert:` 片段：
    `name: "@deepseek-ai/dsh-mcp-client"`，`transport` 由 `streamableHttp` 转 `streamable-http`，
@@ -204,7 +318,10 @@ order: 300
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/status` | `{ ok, repoReady, indexReady, lastSync, counts:{experts,teams,skills,connectors}, localCounts:{experts,teams}, sourceUrl, dataRoot, hasSkills, connectorSource, skipped, busy, progress, lastError, lastErrorRaw, warnings, importedCount, baseDir, localExpertsDir }`；`counts.experts/teams` 为合并去重后的数量，与列表一致；`lastError` 是给人看的中文，`lastErrorRaw` 是原始错误堆栈 |
+| GET | `/status` | `{ ok, repoReady, indexReady, lastSync, counts:{experts,teams,skills,connectors,connectable,unsupported}, localCounts:{experts,teams}, sourceUrl, sourceKind, dataRoot, indexDataRoot, indexStale, hasSkills, connectorSource, connectorSkipped, skipped, busy, progress, lastError, lastErrorRaw, warnings, importedCount, baseDir, localExpertsDir }`；`counts.experts/teams` 为合并去重后的数量，与列表一致；`counts.connectors` 是**现算**的两源合并总条数（不进索引），`counts.connectable` / `counts.unsupported` 是其中宿主能装载 / 装载不了的条数（`connectable + unsupported === connectors`）；`connectorSource` 只有 `repo` / `none`；`connectorSkipped` 是**真正解析不了**（缺 id / 结构异常）的条数，正常数据下为 0 —— 它和「不可连接」不是一回事；`lastError` 是给人看的中文，`lastErrorRaw` 是原始错误堆栈；`sourceKind` 为 `git` / `local`，`local` 时 `dataRoot` 是设置里配置的本机目录；`indexDataRoot` 是当前索引对应的数据根（无索引时为空串），`indexStale` 只在「切到 git 数据源、数据根变化、旧索引仍保留」时为 `true`，前端据此提示点「刷新」 |
+| GET | `/settings` | `{ ok, sourceUrl, sourceKind, defaultUrl, usingDefault, skillhubUrl }`；`sourceKind` 同上 |
+| POST | `/settings` | body `{ sourceUrl, skillhubUrl? }` → `{ ok, sourceUrl, sourceKind, skillhubUrl }`。`sourceUrl` 可填 `https://` / `git@` 仓库地址或本机目录绝对地址；本机目录会校验存在性与 `experts/` / `skills/` / `connectors/` 结构，不合格返回 400 并给出中文原因；相对路径返回 400 且错误含「绝对路径」。数据根变化时按新数据源分流：**新源为本机目录** → 旧索引立即作废（`state.index` 清空 + 删 `index.json`），下次请求懒加载自动重建、不联网、不自动触发 git；**新源为 git** → 保留旧索引、不触发同步，`/status` 报 `indexStale: true` 由前端提示点「刷新」；**git 地址互换且数据根不变** → 什么都不做 |
+| POST | `/settings/reset` | 清除自定义地址、回到 `SOURCE_URL`，返回 `{ ok, sourceUrl, sourceKind: 'git', defaultUrl, usingDefault: true }`；数据根变化时按「新源为 git」处理，保留索引并置 `indexStale` |
 | POST | `/refresh` | 触发同步；默认立即返回 `{ started, busy }`，加 `?wait=1` 则等待完成后再返回状态。`progress` 每秒回写「已用时 Ns」 |
 | GET | `/experts` | `q` / `category` / `limit`(默认 200) / `offset` → `{ ok, total, localCount, items }` |
 | GET | `/teams` | 同上，只返回 `expertType=team` |
@@ -213,13 +330,13 @@ order: 300
 | GET | `/connectors` | `q` / `limit` / `offset` → `{ ok, total, items }` |
 | GET | `/detail` | `type`(`expert`\|`team`\|`skill`\|`connector`) + `id` → 单项完整信息 + `readme`（agent markdown / SKILL.md 正文前 2000 字）；专家优先查本地已导入目录 |
 | GET | `/asset` | `path`（相对数据根的 POSIX 路径）→ 图片二进制，按扩展名 + 魔数返回真实 MIME |
-| GET | `/icon` | `id`（连接器 id）→ 图标二进制，本机 icons 优先，回落插件内置 `data/icons/`，都没有返回 404 |
+| GET | `/icon` | `id`（连接器 id）→ 图标二进制，先查资源仓库 `<数据根>/connectors/icons/<id>.<ext>`，再查本地已安装定义目录，都没有返回 404（前端回落首字母色块） |
 | GET | `/local-avatar` | `id`（本地专家 id，`[A-Za-z0-9._-]+`）→ `~/.dsh/experts/<id>/avatar.*` |
 | POST | `/import` | body `{ type: 'expert'\|'team', id }` → 写 `$DSH_HOME/experts/<id>/` + `dsh-buddy-expert-hub/imported/<id>/bundle/`，返回 `{ ok, id, type, path, already, files, bundle }` |
 | GET | `/imported` | `{ ok, ids, items:[{id,type,displayName,description,avatar}], dir }`，扫描 `$DSH_HOME/experts/`（只认含 `expert.yml` 的目录）并与 `state.json` 记录合并去重 |
 
 > **`repoReady` 与 `indexReady` 是两个独立信号**：
-> 前者表示「数据目录可用」（`dataRoot` 已定位到某个含 `experts/` 的目录），
+> 前者表示「数据目录可用」（`dataRoot` 已定位到某个含 `experts/` / `skills/` / `connectors/` 之一的目录；git 克隆与 `ntd-resource` 仍要求 `experts/` 非空），
 > 后者表示「索引已构建完成、可以对外提供列表数据」。
 > 二者可以并存为 `repoReady:true` + `indexReady:false`：例如 `dsh-buddy-expert-hub` 目录被同名文件占用、
 > 索引写不下去时会回落到 `~/.dsh/ntd-resource` 继续读，但索引尚未落盘。
@@ -247,7 +364,7 @@ $DSH_HOME/                       # 默认 ~/.dsh
 
 合并是**字段级**的：同 id 时以本地包为骨架，但 `displayName / profession / description / tags / quickPrompts / categoryId / avatar / skills / members` 等任一侧缺失的字段会从仓库条目补齐 —— 导入后卡片的标签、快捷提示、职业不会丢失。`/status` 的 `counts.experts / counts.teams` 也按**合并去重后**的口径统计，与列表条数、Tab 徽标保持一致；另有 `localCounts` 单独给出本地条数。
 
-索引缓存带版本号（`index.version`）和 `dataRoot`；版本不匹配、或原数据根已消失时自动重建。
+索引缓存带版本号（`index.version`）和 `dataRoot`；版本不匹配、原数据根已消失、或配置了本机目录而缓存来自另一个数据根时自动重建。切到另一个本机目录时保存接口会主动清掉这份缓存（零联网重建），切回 git 仓库时则保留到下次同步并由 `/status` 的 `indexStale` 标记。
 
 ---
 
@@ -259,34 +376,50 @@ dsh-buddy-expert-hub/
 ├── cordis.patch.yml           # 插件装载补丁
 ├── lib/
 │   ├── index.js               # host 半：文件系统 / git / HTTP 路由
-│   └── client.js              # client 半：侧边栏图标 + 主面板
-├── data/connectors.json       # 连接器离线快照（构建产物）
-├── scripts/build-connectors.mjs
+│   ├── client.js              # client 半：侧边栏图标 + 主面板
+│   ├── connector-store.js     # 连接器定义层：本地 / 云端 两源合并
+│   ├── connector-meta.js      # 认证模式 / 必填参数 / WorkBuddy 登录态
+│   ├── connector-provision.js # 连接阶段：生成并写入宿主 mcp-client 片段
+│   ├── connector-secret.js    # 凭据 AES-256-GCM 本地加密
+│   └── frontmatter.js         # SKILL.md frontmatter 解析
+├── scripts/build-connectors.mjs   # 资源仓库维护工具（见下节）
 └── README.md
 ```
+
+**没有 `data/` 目录**：插件不再内置连接器清单与图标，`package.json` 的 `files` 只发布 `lib` / `cordis.patch.yml` / `README.md`。
 
 零 npm 依赖、零构建步骤：host 半是纯 ESM，client 半是一个由 `window.__ModuleLoader__` 加载的普通脚本，使用 `React.createElement` 而不用 JSX。
 
 ---
 
-## 重新生成连接器快照
+## 重新生成资源仓库的连接器清单
+
+`scripts/build-connectors.mjs` 是**资源仓库维护工具**，不是插件运行时的一部分 —— 普通用户不需要执行它，插件只读它产出的 `connectors/connectors.json`。
 
 ```bash
-node scripts/build-connectors.mjs
+node scripts/build-connectors.mjs [--out <file>] [--data-root <dir>]
 # 或
 npm run build:connectors
 ```
 
-脚本只读本机 `~/.workbuddy/connectors-marketplace`，输出 `data/connectors.json`。若目标机器没有该目录，脚本会跳过生成并保留既有快照。
+| 项 | 说明 |
+| --- | --- |
+| 输入 | 本机 WorkBuddy 连接器市场目录 `~/.workbuddy/connectors-marketplace/{connectors,icons}` 与 `.codebuddy-connector/connectors.json` 里的 `auth_mode` |
+| 输出 | `<数据根>/connectors/connectors.json`（单文件清单）+ `<数据根>/connectors/icons/<id>.<ext>`（图标） |
+| 数据根解析 | `--data-root` 显式给出 > `$DSH_HOME/ntd-resource` > `$DSH_HOME/dsh-buddy-expert-hub/repo`（后两者要求含非空 `experts/`） |
+| 失败行为 | 数据根不可用 / 找不到市场目录时打印中文错误并**以非 0 退出**（避免维护者误以为已经产出了新清单） |
+| `--out` | 指到别处时图标跟着清单走（`<out 所在目录>/icons`） |
+
+> `lib/connector-meta.js` 里的 `readAuthModeMap()` 只被这个维护脚本使用（读市场元数据作为上游输入）；插件运行时不再读任何市场目录。
 
 ---
 
 ## 自检
 
 ```bash
+npm run check            # 所有 lib/*.js 语法检查 + 发布清单自检
 node --check lib/index.js
 node --check lib/client.js
-node scripts/build-connectors.mjs
 ```
 
 ---
@@ -296,6 +429,9 @@ node scripts/build-connectors.mjs
 - `/asset` 只允许访问数据根内的文件：先做词法层 `path.resolve` 包含性检查，再对已存在的路径做 `realpath` 二次校验，阻断目录穿越与符号链接逃逸；
 - `/icon`、`/local-avatar`、`/import` 对 id 做 `^[A-Za-z0-9][A-Za-z0-9._-]*$` 白名单校验；
 - `/import` 的目标目录固定在 `$DSH_HOME/experts/` 下，源目录固定在本插件 clone 的 `repo/experts/` 下；
+- 连接器定义的 **id 来自不可信输入**（云端定义文件 / 请求体），绝不直接拼磁盘路径：写盘用 `diskNameOfId()` 净化为单段目录名（并校验最终路径仍在 `connectors/` 之内），删除前用 `isSafeSegmentName()` 硬校验、不合格直接 400 拒绝。曾经 `POST /connectors/install {"id":"../../x"}` 能写到 `connectors/` 之外，`POST /connectors/uninstall {"id":"../../victim"}` 能递归删掉 `$DSH_HOME` 下的任意目录；卸载路由另有一层 `safeId()` 白名单（与 `/attach`、`/icon` 同一套规则）。
+  界面上卸载这类条目时 toast 会给出指引：「该连接器 id 含非法字符（xxx），无法通过界面卸载；请手动删除 $DSH_HOME/dsh-buddy-expert-hub/connectors/ 下的对应目录」。
+  代价：如果某个云端定义自报的 id 本身含非法字符（只有恶意/脏定义才会这样），它会以净化后的目录名落盘、并且无法通过卸载接口删除 —— 需要手动删 `$DSH_HOME/dsh-buddy-expert-hub/connectors/` 下对应目录；
 - `~/.dsh/ntd-resource` 只读：插件不会往里 clone / pull / 写文件；
 - 所有路由处理都包在 try/catch 中，插件初始化也包在 try/catch 中 —— 任何异常都只会让接口返回错误，不会阻断 dsh web 启动。
 

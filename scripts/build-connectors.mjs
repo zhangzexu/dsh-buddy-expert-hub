@@ -1,56 +1,91 @@
 #!/usr/bin/env node
 /**
- * 构建连接器离线快照 `data/connectors.json`。
+ * 资源仓库维护工具：生成 `connectors/connectors.json` 并同步图标。
  *
- * 扫描本机 WorkBuddy 连接器市场目录：
+ * 输出位置是**资源仓库（当前数据根）**，不再写插件自己的 `data/`：
+ *   <数据根>/connectors/connectors.json     —— 单文件清单（JSON 数组）
+ *   <数据根>/connectors/icons/<id>.<ext>    —— 命中的品牌图标
+ *
+ * 输入是本机 WorkBuddy 连接器市场目录（维护者的上游数据源）：
  *   ~/.workbuddy/connectors-marketplace/connectors/<id>/mcp.json   —— MCP 类型连接器
  *   ~/.workbuddy/connectors-marketplace/connectors/<id>/cli.json   —— CLI 类型连接器
  *   ~/.workbuddy/connectors-marketplace/connectors/<id>/skills[/<skill>]/SKILL.md —— 取名称/描述/作者
  *   ~/.workbuddy/connectors-marketplace/icons/<id>.{svg,png,jpg,jpeg,webp}  —— 图标扩展名
  *
- * 同时把命中的图标文件复制到插件内置的 `data/icons/`，这样插件脱离本机市场目录
- * 也能显示品牌图标（`/icon` 会优先读市场目录，读不到再回落到内置目录）。
- *
- * 产物为纯数组，供插件在运行时缺少本机市场目录时回落使用。
+ * 插件运行时只读这里的产物（`lib/connector-store.js` 的 `listCloudDefinitions`），
+ * 因此本脚本只给资源仓库维护者用，普通用户不需要执行。
  * 零依赖，仅使用 node: 内置模块。
  *
- * 用法：node scripts/build-connectors.mjs [--out <file>]
+ * 用法：node scripts/build-connectors.mjs [--out <file>] [--data-root <dir>]
  */
 
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 // frontmatter 解析只有一份实现，与运行时 lib/index.js 共用（块标量坑踩过两次）
 import { parseFrontmatter } from '../lib/frontmatter.js'
-// 认证模式 / 参数元数据判定与运行时 lib/index.js 共用，避免快照与市场两条路径漂移
+// 认证模式 / 参数元数据判定与运行时 lib/index.js 共用，避免两条数据路径漂移
 import { computeNeedsSetup, connectorParamMeta, readAuthModeMap } from '../lib/connector-meta.js'
 
-const HERE = path.dirname(fileURLToPath(import.meta.url))
-const PLUGIN_ROOT = path.resolve(HERE, '..')
-const DEFAULT_OUT = path.join(PLUGIN_ROOT, 'data', 'connectors.json')
-const ICON_OUT_DIR = path.join(PLUGIN_ROOT, 'data', 'icons')
+/** 连接器清单在数据根内的相对位置。 */
+const CONNECTORS_RELATIVE = ['connectors', 'connectors.json']
 
 const ICON_EXTS = ['.svg', '.png', '.jpg', '.jpeg', '.webp']
 const MAX_NAME = 120
 const MAX_DESC = 600
 /**
  * 单个图标体积上限：2MB。
- * 超过的都只是几个设计工具导出的超大 SVG/PNG（最大 1.4MB），再大就不入包，
+ * 超过的都只是几个设计工具导出的超大 SVG/PNG（最大 1.4MB），再大就不入库，
  * 前端回落首字母色块。
  */
 const MAX_ICON_BYTES = 2 * 1024 * 1024
 
 /**
- * 解析 out 参数。
- * @returns {string} 目标文件绝对路径
+ * 读命令行里某个 `--flag <value>` 参数。
+ * @param {string} flag 参数名（含 `--`）
+ * @returns {string} 参数值；未给出返回空串
  */
-function resolveOutFile() {
+function argValue(flag) {
   const argv = process.argv.slice(2)
   for (let i = 0; i < argv.length; i += 1) {
-    if (argv[i] === '--out' && typeof argv[i + 1] === 'string') return path.resolve(argv[i + 1])
+    if (argv[i] === flag && typeof argv[i + 1] === 'string') return path.resolve(argv[i + 1])
   }
-  return DEFAULT_OUT
+  return ''
+}
+
+/**
+ * 判断目录下是否存在非空 `experts/`（与运行时 `dataRoot()` 同一判定）。
+ * @param {string} dir 候选数据根
+ * @returns {boolean} 是否可作为数据根
+ */
+function hasExpertsDir(dir) {
+  const expertsDir = path.join(dir, 'experts')
+  try {
+    return fs.statSync(expertsDir).isDirectory() && fs.readdirSync(expertsDir).length > 0
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 解析当前数据根（资源仓库副本），与运行时保持同一优先级：
+ *   1. `$DSH_HOME/ntd-resource`（NTD 已同步的只读副本）；
+ *   2. `$DSH_HOME/dsh-buddy-expert-hub/repo`（插件自己同步的副本）。
+ * `--data-root` 显式给出时优先使用它。
+ *
+ * @returns {string} 数据根绝对路径；都不可用时返回空串
+ */
+function resolveDataRoot() {
+  const explicit = argValue('--data-root')
+  if (explicit !== '') return fs.existsSync(explicit) ? explicit : ''
+  const home = typeof process.env.DSH_HOME === 'string' && process.env.DSH_HOME.trim() !== ''
+    ? process.env.DSH_HOME.trim()
+    : path.join(os.homedir(), '.dsh')
+  const ntd = path.join(home, 'ntd-resource')
+  if (hasExpertsDir(ntd)) return ntd
+  const own = path.join(home, 'dsh-buddy-expert-hub', 'repo')
+  if (hasExpertsDir(own)) return own
+  return ''
 }
 
 /**
@@ -108,15 +143,16 @@ function detectIconExt(iconsDir, id) {
 }
 
 /**
- * 把市场图标复制到插件内置目录，供离线场景使用。
- * @param {string} iconsDir 市场 icons 目录
+ * 把市场图标复制到资源仓库的 `connectors/icons/`，插件运行时从这里读图标。
+ * @param {string} sourceIconsDir 市场 icons 目录
+ * @param {string} targetIconsDir 资源仓库 icons 目录
  * @param {string} id 连接器 id
  * @param {string} ext 扩展名（含点）
  * @returns {'copied'|'skipped'|'missing'} 处理结果
  */
-function copyIcon(iconsDir, id, ext) {
+function copyIcon(sourceIconsDir, targetIconsDir, id, ext) {
   if (ext === '') return 'missing'
-  const source = path.join(iconsDir, id + ext)
+  const source = path.join(sourceIconsDir, id + ext)
   let stat
   try {
     stat = fs.statSync(source)
@@ -124,8 +160,8 @@ function copyIcon(iconsDir, id, ext) {
     return 'missing'
   }
   if (!stat.isFile() || stat.size > MAX_ICON_BYTES) return 'skipped'
-  fs.mkdirSync(ICON_OUT_DIR, { recursive: true })
-  fs.copyFileSync(source, path.join(ICON_OUT_DIR, id + ext))
+  fs.mkdirSync(targetIconsDir, { recursive: true })
+  fs.copyFileSync(source, path.join(targetIconsDir, id + ext))
   return 'copied'
 }
 
@@ -171,11 +207,12 @@ function tidy(text, max) {
  * 构建单个连接器条目。
  * @param {string} connectorsDir 市场 connectors 目录
  * @param {string} iconsDir 市场 icons 目录
+ * @param {string} targetIconsDir 资源仓库 icons 目录（图标的落地位置）
  * @param {string} id 连接器 id
  * @param {Map<string, string>} authModes id → auth_mode 映射
  * @returns {Record<string, any>|null} 条目或 null（无法识别时）
  */
-function buildConnectorEntry(connectorsDir, iconsDir, id, authModes) {
+function buildConnectorEntry(connectorsDir, iconsDir, targetIconsDir, id, authModes) {
   const connectorDir = path.join(connectorsDir, id)
   const stat = fs.statSync(connectorDir)
   if (!stat.isDirectory()) return null
@@ -204,11 +241,11 @@ function buildConnectorEntry(connectorsDir, iconsDir, id, authModes) {
   }
 
   const iconExt = detectIconExt(iconsDir, id)
-  // 图标可用才写进快照：没复制成功就不留 iconExt，避免前端一直发 404 请求。
-  const iconState = copyIcon(iconsDir, id, iconExt)
+  // 图标复制成功才写进清单：否则前端会一直发 404 请求。
+  const iconState = copyIcon(iconsDir, targetIconsDir, id, iconExt)
 
   // 认证模式来自市场元数据；参数以 token-schema.json 为权威，mcp.json 的 ${VAR} 作补充。
-  // 只提取变量名与展示文案，绝不把任何实际值写进快照。
+  // 只提取变量名与展示文案，绝不把任何实际值写进清单。
   const authMode = authModes.get(id) || ''
   const paramMeta = connectorParamMeta(config, connectorDir)
   const needsSetup = computeNeedsSetup(authMode, paramMeta.requiredParams)
@@ -232,25 +269,44 @@ function buildConnectorEntry(connectorsDir, iconsDir, id, authModes) {
 }
 
 /**
- * 主流程：扫描市场目录并写入快照。
+ * 主流程：扫描市场目录，把清单与图标写进资源仓库（当前数据根）。
+ *
+ * 数据根不可用时给出中文可读错误并以非 0 退出（资源仓库维护者必须能一眼看出
+ * 「我还没同步仓库」而不是以为脚本成功跑完了）。
+ *
  * @returns {number} 写入的条目数
  */
 function main() {
-  const outFile = resolveOutFile()
+  const dataRoot = resolveDataRoot()
+  if (dataRoot === '') {
+    process.stderr.write('[build-connectors] 未找到资源仓库数据根。\n')
+    process.stderr.write('[build-connectors] 请先同步资源仓库（插件面板右上「刷新」），或显式指定 --data-root <目录>。\n')
+    process.exit(1)
+  }
+  const connectorsDirInRepo = path.join(dataRoot, CONNECTORS_RELATIVE[0])
+  const targetIconsDir = path.join(connectorsDirInRepo, 'icons')
+  const outFile = argValue('--out') !== ''
+    ? argValue('--out')
+    : path.join(connectorsDirInRepo, CONNECTORS_RELATIVE[1])
+  /* `--out` 指到别处时，图标跟着清单一起走（<out 所在目录>/icons）。 */
+  const iconsOutDir = path.dirname(outFile) === connectorsDirInRepo
+    ? targetIconsDir
+    : path.join(path.dirname(outFile), 'icons')
+
   const marketDir = path.join(os.homedir(), '.workbuddy', 'connectors-marketplace')
-  const connectorsDir = path.join(marketDir, 'connectors')
-  const iconsDir = path.join(marketDir, 'icons')
+  const marketConnectorsDir = path.join(marketDir, 'connectors')
+  const marketIconsDir = path.join(marketDir, 'icons')
   // 元数据在 .codebuddy-connector/connectors.json；缺失时全部按「无认证模式」处理。
   const authModes = readAuthModeMap(marketDir)
 
-  if (!fs.existsSync(connectorsDir)) {
-    process.stderr.write('[build-connectors] 未找到连接器市场目录：' + connectorsDir + '\n')
-    process.stderr.write('[build-connectors] 跳过生成，保留既有快照（若存在）。\n')
-    return fs.existsSync(outFile) ? readJsonSafe(outFile)?.length ?? 0 : 0
+  if (!fs.existsSync(marketConnectorsDir)) {
+    process.stderr.write('[build-connectors] 未找到本机连接器市场目录：' + marketConnectorsDir + '\n')
+    process.stderr.write('[build-connectors] 没有可导入的上游数据，本次不写任何文件。\n')
+    process.exit(1)
   }
 
   const ids = fs
-    .readdirSync(connectorsDir, { withFileTypes: true })
+    .readdirSync(marketConnectorsDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort()
@@ -259,7 +315,7 @@ function main() {
   const items = []
   for (const id of ids) {
     try {
-      const entry = buildConnectorEntry(connectorsDir, iconsDir, id, authModes)
+      const entry = buildConnectorEntry(marketConnectorsDir, marketIconsDir, iconsOutDir, id, authModes)
       if (entry !== null) items.push(entry)
     } catch (error) {
       process.stderr.write('[build-connectors] 跳过 ' + id + '：' + String((error && error.message) || error) + '\n')
@@ -278,11 +334,12 @@ function main() {
   const withSchema = items.filter((item) => item.setupSchema !== null).length
   process.stdout.write('[build-connectors] 扫描到目录 ' + ids.length + ' 个，写入条目 ' + items.length + ' 条\n')
   process.stdout.write(
-    '[build-connectors] 有描述 ' + withDescription + ' · 有作者 ' + withAuthor + ' · 图标已内置 ' + withIcon +
+    '[build-connectors] 有描述 ' + withDescription + ' · 有作者 ' + withAuthor + ' · 图标已入库 ' + withIcon +
     ' · 需连接 ' + withSetup + ' · 含必填参数 ' + withRequired + ' · 含选填参数 ' + withOptional +
     ' · 带配置说明 ' + withSchema + '\n',
   )
-  process.stdout.write('[build-connectors] 图标目录：' + ICON_OUT_DIR + '\n')
+  process.stdout.write('[build-connectors] 数据根：' + dataRoot + '\n')
+  process.stdout.write('[build-connectors] 图标目录：' + iconsOutDir + '\n')
   process.stdout.write('[build-connectors] 输出：' + outFile + '\n')
   return items.length
 }

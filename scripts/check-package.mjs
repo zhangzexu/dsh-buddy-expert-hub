@@ -8,9 +8,10 @@
  *
  * 判据（任一不满足即退出码 1）：
  *  1. `lib/` 下的每个 .js 都被 `files` 里的某条规则覆盖（整目录 `lib` 或精确文件名）；
- *  2. 入口与清单文件存在且被覆盖：`lib/index.js`、`lib/client.js`、`cordis.patch.yml`、
- *     `data/connectors.json`；
- *  3. `data/icons` 被覆盖（连接器图标随包发布）。
+ *  2. 入口与清单文件存在且被覆盖：`lib/index.js`、`lib/client.js`、`cordis.patch.yml`。
+ *
+ * 说明：插件**不再内置任何连接器数据**（原来的 `data/connectors.json` 与 `data/icons`
+ * 已删除，连接器改从资源仓库 `connectors/` 读取），因此这里不再校验 `data/` 目录。
  *
  * 用法：node scripts/check-package.mjs [--verbose]
  * 零依赖，仅使用 node: 内置模块。
@@ -81,14 +82,11 @@ for (const relative of libFiles) {
 if (libFiles.length === 0) failures.push('lib/ 下没有找到任何 .js 文件（路径异常？）')
 
 // 2. 必需的入口 / 清单
-for (const required of ['lib/index.js', 'lib/client.js', 'cordis.patch.yml', 'data/connectors.json']) {
+for (const required of ['lib/index.js', 'lib/client.js', 'cordis.patch.yml']) {
   const absolute = path.join(PLUGIN_ROOT, required)
   if (!fs.existsSync(absolute)) failures.push('缺少发布必需文件：' + required)
   if (!isCovered(required, files)) failures.push('files 未覆盖发布必需文件：' + required)
 }
-
-// 3. 图标目录随包发布（可以暂时为空，但不允许被排除）
-if (!isCovered('data/icons/placeholder', files)) failures.push('files 未覆盖 data/icons')
 
 if (verbose) {
   console.log('files =', JSON.stringify(files))
