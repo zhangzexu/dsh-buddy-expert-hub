@@ -1,0 +1,25 @@
+{
+  "name": "skill-workbuddy-pdf",
+  "version": "5.9.3-wb.42398134.gd4692421.h480e8d1fee0f",
+  "description": "WorkBuddy bundled skill resource: workbuddy-pdf.",
+  "author": {
+    "name": "WorkBuddy"
+  },
+  "category": "skill",
+  "keywords": [
+    "workbuddy",
+    "builtin-skill",
+    "workbuddy-pdf",
+    "pdf"
+  ],
+  "workbuddy": {
+    "kind": "builtin-skill",
+    "legacyResourceName": "workbuddy-pdf",
+    "bundleSegments": [
+      "plugins",
+      "workbuddy-builtin",
+      "skills",
+      "workbuddy-pdf"
+    ]
+  }
+}

@@ -1,0 +1,440 @@
+[
+  {
+    "id": 39,
+    "name": "Image Generation",
+    "icon": "mouse",
+    "mode": "design",
+    "promptTitles": [
+      "Graffiti Chase Ad",
+      "Parasitic Helmet",
+      "WorkBuddy Magazine Cover",
+      "Workplace Mood Poster"
+    ],
+    "prompts": [
+      "Create a playful, bright, high-key commercial advertising visual for [brand/product]. [Subject] runs happily in front of a seamless light-gray backdrop, frozen mid-stride with one leg lifted and a naturally radiant smile.\n\nThe subject wears loose casual clothing that matches the brand tone, in soft neutrals or vivid brand colors. Behind them, a simple black hand-drawn cartoon stick figure grabs and pulls the subject's clothes backward, stretching the fabric in an exaggerated, elastic way as if trying to stop them from running forward. The graffiti character blends naturally into the real scene, with motion lines and a humorous expression.\n\nThe subject holds [product/brand prop], letting the product sit naturally in the story while remaining clearly recognizable. Suitable for product launches, brand campaigns, social ads, e-commerce hero visuals, and holiday marketing.\n\nMinimal composition, clean studio lighting, soft shadows, ultra-sharp focus, realistic skin and material texture, vivid yet natural color, playful editorial photography, premium commercial advertising quality, photorealistic, high detail.",
+      "Close-up of an abandoned rusted tactical helmet, visor glass cracked, interior completely filled with glowing bioluminescent fungi and exotic tropical orchids, vines penetrating the metal shell like blood vessels, complex moss textures covering the surface, parasitic plants, Annihilation film style, mutated nature, surrealism, soft volumetric light, dust and spores floating in the air, 8K resolution, extreme detail, Unreal Engine 5 render",
+      "A magazine cover titled Workbuddy, April/May 2026 combined issue, minimal light-gray studio backdrop, a red Shiba Inu wearing an orange zip-up hoodie, body in a surreal forced-perspective distortion: hind legs over-extended forward, head and forebody unusually small on the right side, looking back at the camera with a smug, playful expression, fluffy realistic fur texture, high-fashion editorial style, soft clean studio light, sharp focus, large bold deep-navy sans-serif masthead at the top, white and orange magazine coverlines distributed across the frame with witty dog-themed copy, commercial fashion magazine cover aesthetic, 8K, ultra-realistic, high detail, shallow depth of field",
+      "A workplace-emotion poster with an exaggerated scene and bold, eye-catching type.\nScene: a modern minimalist office, matte off-white walls, dark-gray carpet with fine short-pile texture, a clean white filing cabinet on the right.\n\nHero: a young person face-down asleep on a light-gray office printer in a fully relaxed pose, conveying exhaustion and casual rest. They wear a mustard-yellow plaid long-sleeve cotton shirt with natural wrinkles; white shorts with blue and red abstract patterns, thin fabric, vivid prints; paired with matte white mid-calf cotton socks. The printer is a light-gray office device with a fine matte plastic shell and a tech-feeling control panel.\n\nType in red-and-black, mixed Chinese-English layout:\n\nMain copy “工作累了就睡会” and “Workbuddy 来帮你” as ultra-bold red vertical type, huge, dominating the composition.\n“WANT TO SLEEP” as bold English copy.\nTop: “Workbuddy 就是好” and “倒头就睡”.\nBottom: “20260615” and “WORK Unbound Thinking”.\n\nOverall style: workplace-decompression graphic poster with a strong type hierarchy. Combine short-pile carpet texture, soft fabric, and matte device surfaces. The composition conveys a young, unbound attitude at work. Striking red-black type and the relaxed figure jointly dominate the frame. Professional poster photography mixed with graphic design."
+    ],
+    "target": "all"
+  },
+  {
+    "id": 40,
+    "name": "Video Generation",
+    "icon": "video",
+    "mode": "design",
+    "promptTitles": [
+      "Youth Campus Drama",
+      "Anthropomorphic Fun Clip",
+      "AAA Adventure Film",
+      "Poster Comes Alive"
+    ],
+    "prompts": [
+      "Taiwanese drama style, 16:9 landscape, a school hallway on a spring morning, crowds flowing, warm sunlight slanting in through corridor windows, creating a fresh, bright, youthful campus atmosphere.\nChen Youchen (high-school boy, white shirt with dark trousers, short neat hair, warm smile) accidentally knocks down Lin Yiqing's books (high-school girl, white shirt with dark pleated skirt, long black hair, fresh natural presence), then crouches to pick them up, looks up, smiles, and introduces himself: “欸，不好意思啦，我叫陈宥辰，你叫什么名字？”\nLin Yiqing replies softly: “林以晴。”\nChen Youchen smiles: “以晴，好好听喔。”\nWhen the camera looks at the boy's face from the girl's POV, add obvious cinematic lens flare and soft glowing orbs; sunlight produces natural halos and hazy highlights in front of the lens. Overall Japanese-drama cinematic texture, film grain, shallow depth of field, soft natural light, authentic campus film feel.\nNo subtitles, no text overlays, Taiwanese-accented Mandarin dialogue.",
+      "Anthropomorphic short video of an ancient Chinese carved stone drum gate-pier (men dun). Photorealistic style; perfectly preserve the hard, rough texture of gray-white stone, weathering, and real lighting. Opening: the gate-pier stands still on the ground. Then it suddenly comes alive: do NOT spawn extra cartoon elements out of thin air! Using its own structure, the heavy circular stone drum in the middle suddenly unlocks from the square base with a click and rolls forward cheerfully like a wheel for several turns; at the same time, the small stone beast carved on top of the drum frantically paddles its short stone legs on the rolling drum surface like a balance-beam act, creating extreme contrast and circus-like comedy. Suddenly someone approaches; the little beast slams the brakes, the circular drum reverse-rolls back into place at speed, clicks flush into the square base, and the beast instantly freezes into its original seated pose — the whole thing returns to a heavy, motionless gate-pier. All motion must perfectly retain the original stone texture and carved detail, fully integrated. Cute and playful overall, large motion amplitude. Camera naturally follows the roll, mostly medium close-ups. Realistic, detailed, one continuous shot, no people, no subtitles.",
+      "A torrential rain in a primitive deep-mountain rainforest, millennia-old abandoned tomb with wet moss-covered stone walls, a female explorer with both hands bound in coarse hemp, body hanging in mid-air falling while climbing the rock face, rain pouring across the sky, blue rain-fog through the forest, damp secret-realm ruins, main palette of cool cyan-blue rain-fog ambient light, faint local warm bounce on skin, volumetric scattering on rain streaks, heavy rain-night mist, mirror reflections on pooled rock, low-key late-night lighting, thick slippery cyan-green moss covering everything, waterlogged seeping rock, mud-soaked fabric, transparent flowing rain-streak particles, seepage stains on walls, AAA adventure-film widescreen, 8K ultra-HD IMAX quality, Unreal Engine 5 ray tracing, film grain, cinematic grade, extreme close-up, 24mm wide-angle close shot, f/2.2 shallow DOF, low-angle upward, first-person rock-wall foreground composition, body full of falling tension, motion-blurred rain streaks, extreme moss detail on foreground stone, tense crisis-escape atmosphere",
+      "I will provide a poster image (if I haven't sent one yet, ask me for an image or invent one, e.g. premium cosmetics). Produce a 10-second \"poster comes alive\" video:\n\nCall the video generation tool in \"first-frame image-to-video\" mode. Use the poster I provide as frame 0 (fully reference the first frame: keep composition, subject position and pose, background layers, color grade, light direction, and all layout type), duration 10 seconds, aspect ratio matching the poster, save as 02_poster_alive.mp4.\n\nImportant:\n1. The prompt below is a generic template for any poster. Pass it to the video generation tool verbatim — do not rewrite, summarize, translate, or add/remove descriptions based on the poster;\n2. <Picture 1> in the prompt refers to this poster; leave it as-is.\n\nPrompt:\nFor the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.\n\nintegrated_multimodal_description: [Shot 1] Live-action cinematic quality. The frame starts fully from the poster <Picture 1>, completely preserving its composition, the subject's position and pose, background layers, color grade, light direction, and the position, letterforms, and size of all layout type. At the opening instant it is still a completely still printed piece; extremely fine paper texture and matte reflection are visible. Then the frame comes alive in three layers: first the background layer, where all light-emitting elements begin a breathing pulse of brightness, tiny illuminated particles appear in the air and drift slowly, and background depth opens slightly in shallow DOF; next the subject layer, where parts that air can move — fabric edges, hair, hanging elements, or lightweight materials — are blown by a sideward airflow; the subject extremely slowly comes alive from stillness, with a tiny shift of weight, gaze moving from the original direction toward the lens and gradually focusing; finally the type layer, where the edges of layout type shed fine light-dust that drifts upward, while the type itself stays in place with letterforms and sharpness fully unchanged. The camera dollies slowly forward a small amount. [Shot 2] At 00:06.000, cut to a medium close-up of the subject, camera locked off, shallow DOF turning the background into soft bokeh; the subject completes one natural micro-action — a blink, a breath lifting the shoulders, or a natural drop of material. The previously drifting type-dust streaks across the foreground and re-gathers backward; the poster's original layout type faintly reappears in the defocused background, position and letterforms matching <Picture 1>. The frame freezes as the subject's motion settles and fades to black.\n\noverall_soundscape: Opening is an extremely short paper-friction and dry matte-print texture sound. Then environmental bed noise matching the picture fades in from silence. A sideward airflow brings slight material friction and fabric billow; mid-section has a very light breath. At the freeze, all ambient sound collapses within half a second.\n\nnon_diegetic_music: A low-frequency synth drone beds the track slowly; mid-section adds sparse piano notes and a gradually swelling string layer, peaking one beat before the freeze then cutting off abruptly.\n\n[Delivery]\n1. After generation, send me the video file path;\n2. If generation fails, retry once automatically, then tell me the failure reason;\n3. If you lack a video generation tool, tell me directly — do not invent results."
+    ],
+    "target": "all"
+  },
+  {
+    "id": 41,
+    "name": "Brand Design",
+    "icon": "paint",
+    "mode": "design",
+    "promptTitles": [
+      "Brand Lettering Design",
+      "Coffee Brand Packaging Set",
+      "Tea Brand Visual System",
+      "Makeup Brand Poster"
+    ],
+    "prompts": [
+      "Generate a 4:3 trendy party-style artistic lettering design. The content is the Chinese \"胡来主义\", typeset with the English \"Reckless by Design\". Vary type sizes with a staggered layout. Strokes are thick and striking, forms exaggerated and distorted, some strokes with playful arcs or unique bends, creating a lively, reckless, high-energy party mood. Black background, green accents, clean backdrop, white type, master-level work.",
+      "Design a 16:9 coffee-brand series packaging display. Subject: a packaging set (tote / paper cup / bread bag / carton / tray), all printed with the sans-serif logo \"ROASTLAB\", repeated to reinforce brand memory. Supporting elements are coffee-related graphic symbols. Combine top-down and slight-oblique angles to simulate a product display. Grid layout, subjects arranged in a staggered Z-path, mixing horizontal stacks and vertical displays. Light-gray solid background, no texture, blue-black-white contrast plus khaki plus a sky-blue tote. Modern minimalism: Swiss graphic design, all elements strictly aligned, type exclusively sans-serif.",
+      "Design a landscape 16:9 visual-system proposal board for the black-tea brand \"岚间红\". Warm-gray base, all cards tiled with even gaps.\nAll illustrations are red monochrome woodcut, with fine hatching and stippling for light and shade, no gradients; cream paper with visible texture. Chinese in serif Song, English in small-caps serif.\nOn the left, six square step cards in two rows of three, identical layout: small \"泡茶六步骤\" at top-left, woodcut illustration in the center, large italic number plus Chinese-English step name at bottom-left. In order: 01 \"烧水\" BOIL WATER iron kettle steaming on a stove; 02 \"洗杯\" WASHING CUP pouring from kettle into a tea bowl; 03 \"投茶\" ADD TEA teaspoon dropping tea into a gaiwan; 04 \"冲泡\" BREW pouring from high above; 05 \"倒茶\" POUR TEA pouring from kettle into gaiwan; 06 \"奉茶\" SERVE TEA both hands offering the gaiwan.\nOn the right, two side-by-side vertical brand posters, same layout and style, different content; both have \"岚间红\" type at top-right — one is a palm holding a tea leaf, the other a still life of teapot, gaiwan, and bamboo leaves.",
+      "Design a vertical 3:4 makeup-brand poster in an edible-aesthetic style. Center: a lip glaze half-embedded in dense cherry ice cream, surrounded by fresh cherries and cream, with cherry pieces and cream crumbs suspended and falling. High-saturation monochromatic cherry-red palette using only high-contrast pink and true red, juicy and tempting. Top: sans-serif uppercase brand name \"CHERRISH\"; below: handwritten script Chinese tagline \"「樱」然心动\". Center-symmetric composition, commercial-advertising photography quality."
+    ],
+    "target": "all"
+  },
+  {
+    "id": 32,
+    "name": "Visual Posters",
+    "unified_id": 121,
+    "icon": "mouse",
+    "mode": "design",
+    "plugins": [
+      {
+        "id": 0,
+        "name": "ardot-design-generator",
+        "marketplaceName": "cb_teams_marketplace"
+      }
+    ],
+    "promptTitles": [
+      "City Walk活动海报",
+      "城市景观旅行海报",
+      "酒吧派对海报",
+      "跑鞋品牌宣传海报",
+      "摄影展览海报",
+      "全球峰会海报"
+    ],
+    "prompts": [
+      "请帮我生成一个上海淮海路City walk的活动海报\n中文标题:「淮海路 CITY WALK」，\n下方副标题:「梧桐树下的慢时光」。\n活动详情：活动时间 10月18日（周六）14:00\n集合地点: 地铁1号线黄陂南路站1号口\n招募对象: 都市青年/白领/摄影爱好者",
+      "学院派版式设计海报，3D+微景观，厚涂技法(厚薄差异塑造立体感)，居中斜构图的一抹不规则暖色天蓝，暖色天蓝上是大连相关元素(星海广场、金石滩、有轨电车、滨海路、港口夜景、晚霞)，极简俯视图，大面积留白，米白纹理纸质背景;\n主标题:\"ROMANTICCOASTAL CITY\"，艺术字体醒目;\n副标题:\"SEA & STYLE BLENDED\"，与主标题大师级排版;\n装饰性文案:\"COASTAL GLOW\"\"WHERE BEACHES MEET SKYSCRAPERS, ROMANCEBLOOMS.\"\"RELAXING VIBE\"\"WALK WATERFRONT, BREATHE SEA AIR-WHERE PEACE PREVAILS.\"; 左上角小字:\"POSTER DESIGN\"。\n文案皆为衬线体，装饰文案分段整合，配合标题大师级排版。",
+      "【复古画报】\n请设计一款鸡尾酒吧活动主题海报\n系列名：GRAND OPENING\n主标题：THE VELVET HOUR\n副标题：Cocktail Bar · Live Jazz Night\n活动日期：EVERY FRIDAY\n场地：The Velvet Room\n时间：8PM - 2AM\n描述信息：An intimate night of cocktails and live jazz",
+      "品牌STRIDE，主标OWN THE PACE。海岸公路跑步者低角度广角冲刺，荧光黄绿跑鞋为唯一强调色，环境天蓝。\n巨型暖奶油块状字置于主体后方，白色编辑微文案与大号032锚定网格。4色2字体，高对比商业摄影写实，所有文字进安全区不重叠不出血。",
+      "「在场」当代摄影双年展（参考 Steidl Gordon Parks 黑白档案册）\n主标：Presence — A Contemporary Photography Biennial \n副标：31 photographers · 7 cities · one question \n信息层：2026 年 9 月 10 日 – 11 月 30 日 · PSA 1F AI \n生图 Prompt：一张从地面仰拍的城市人行道照片，拍摄对象是一双正在行走的普通黑色皮鞋，皮鞋踏在湿润的灰色柏油路面上，路面积水里倒映着模糊的城市灯光与一个过路人的下半身轮廓。整个画面只有下半身的鞋子、腿、和地面的水洼反射，没有人脸，没有故事感，只有匿名感。黑白街头摄影，高反差，胶片颗粒粗犷，像 Garry Winogrand 1960 年代的纽约街拍。\n整张海报的设计风格为 Editorial Design 编辑设计、纪实摄影；排版采用 12 栏网格，主体占 65%，标题底部居中，大写衬线，字号 96pt，留白 30%。\n字体建议：中文思源宋体 Medium（衬线带纪实质感）；英文 Times New Roman Bold；展览信息用全大写 Helvetica。",
+      "TIDEWAY 新加坡全球峰会海报\n1080×1620 portrait 冷峻电影感海报（P08 TextureFull）——eyebrow「JUL 18 — 20, 2026 · SINGAPORE」、主标栈「TIDEWAY / Global / Summit / 2026」堆叠（右上紫色「11 / EDITION」徽章）、中文副标「出海的第 11 年 · 来自 47 个国家的 1,200 位创始人」、meta「2026.07.18 — 07.20 · 滨海湾金沙 · 新加坡 · tideway.com」；AI 生图「现代货轮钢铁船首从画面右下角极低角度切开墨蓝色深海，推开海水在清晨冷调天光下凝成一道干净利落的白色弧线，海平线开阔安静，天空冷蓝到浅灰渐变无云，真实海面摄影，电影感构图，石青与冷白主调，船体锐利海水厚重，凌厉有力量不浪漫化不鸡汤，2:3 portrait」；字体 Inter Black 130/170/180（主标栈）；锁色 #0A0E1A / #1B3A57 / #E8F0FA / #A1A1AA / #7C3AED 单点紫电；4 区块 y 分区 110 / 170-880 / 1080-1250 / 1400-1600；叠顶+底+左晕影三块渐变蒙层；文字 ≥ 28px，hero 是图不是字。"
+    ],
+    "promptStyleTemplateIds": [
+      "00127",
+      "00123",
+      "00121",
+      null,
+      null,
+      null
+    ],
+    "target": "all"
+  },
+  {
+    "id": 38,
+    "name": "Operations Poster",
+    "unified_id": 123,
+    "icon": "video",
+    "mode": "design",
+    "plugins": [
+      {
+        "id": 0,
+        "name": "ardot-design-generator",
+        "marketplaceName": "cb_teams_marketplace"
+      }
+    ],
+    "promptTitles": [
+      "新品发布直播海报",
+      "双人访谈预告海报",
+      "电商大促宣发海报",
+      "公开课直播海报"
+    ],
+    "prompts": [
+      "制作一张科技新品线上发布直播海报。\n主题「下一代 AI 助手全球首发」\n相关内容：「全新交互 / 端侧智能 / 开放生态」三个看点\n其他信息：2026 年 8 月 18 日 20:00、视频号与官网同步直播产品负责人林舟",
+      "制作一张双人访谈直播预告海报。\n栏目名「创始人面对面」\n本期主题「从 0 到 1 打造全球化产品」\n嘉宾：产品创始人- 周宁，投资人- 陈晓\n直播时间：周四 19:30。预留直播平台与预约提示位置。",
+      "制作一张电商大促直播宣传海报，画面中需包含主播人物。\n主题「夏日焕新直播间」\n时间：今晚 20:00 开播\n关键词：爆款直降、限时秒杀和直播间专属礼赠。",
+      "制作一张在线课程公开课直播海报。\n课程主题：「AI 时代的个人知识管理」，\n讲师：知识管理顾问-苏禾\n时间：9 月 6 日 20:00\n核心看点：信息筛选、知识连接和 AI 工作流"
+    ],
+    "promptStyleTemplateIds": [
+      "operation_04",
+      "operation_05",
+      "00261",
+      "00260"
+    ],
+    "target": "all"
+  },
+  {
+    "id": 31,
+    "name": "PPT Design",
+    "unified_id": 117,
+    "icon": "slide",
+    "mode": "design",
+    "plugins": [
+      {
+        "id": 0,
+        "name": "ardot-design-generator",
+        "marketplaceName": "cb_teams_marketplace"
+      }
+    ],
+    "promptTitles": [
+      "旅游攻略",
+      "AI 教育行业分析",
+      "中国历史五千年研究",
+      "Harness Engineering 技术趋势研究",
+      "可穿戴设备用户调研与洞察"
+    ],
+    "prompts": [
+      "请围绕「西藏旅游攻略：从高原城市到雪山圣湖的深度旅行指南」制作一份实用型旅行攻略 PPT，主动搜索并整理最新公开资料、交通信息、景区政策、旅行季节与相关进入要求，系统介绍拉萨、林芝、日喀则、山南、纳木错、羊卓雍措、珠峰大本营、阿里等核心目的地。重点回答四个问题：如何安全进入高原 → 如何选择路线 → 如何控制海拔爬升与旅行节奏 → 如何获得最佳自然与人文体验。分析不同目的地适合人群、最佳月份、交通方式、海拔、住宿、预算、行程节奏、装备、高原适应和文化礼仪，并设计 7 天 / 10 天 / 14 天三种典型路线。涉及开放时间、边防证、交通、预约、珠峰与阿里等政策时必须搜索并注明最新官方来源与时间。整体控制在 10–12 页，不做景点列表式 PPT，大量使用 SVG 原生绘制旅行信息图，包括西藏旅行全景目的地地图、拉萨→林芝→山南→日喀则→珠峰路线图、不同线路关系树、海拔变化曲线、月份×天气×景观矩阵、交通选择图、高原适应流程、装备分类 Mind Map、旅行难度×自然景观×人文体验矩阵。路线地图中应明确表达地点、线路方向、距离、预计车程、海拔及关键住宿节点；海拔图需要与每日行程联动，使用户能直观看到不同路线的高度变化和风险。主动使用 AI 生成雪山、公路、圣湖、寺庙、高原荒原、旅行者等高质量目的地配图，但图片必须服务于路线和体验说明，而不是成为普通旅游宣传画册。",
+      "请围绕「AI 教育赛道行业分析：从辅助教学工具到智能教育基础设施」制作一份专业行业研究型 PPT，主动搜索并整理 2025–2026 年最新公开资料、市场数据、政策、融资信息和真实案例，系统研究全球及中国 AI Education 产业，覆盖 AI Tutor、教师 Copilot、智能备课、作业批改与评测、个性化学习、内容生成、语言学习、K12、高等教育、职业教育、企业培训、教育 Agent、学习数据分析和教育基础模型等核心赛道；重点研究 Khan Academy / Khanmigo、Duolingo、Coursera、Quizlet、MagicSchool、Google、Microsoft 及中国代表性企业和产品，分析市场规模、用户需求、产业结构、商业模式、竞争格局、获客与付费逻辑、技术壁垒、监管和数据隐私，并判断未来 3–5 年最值得关注的投资、产品与创业机会。整体采用“Executive Summary → 市场变化 → 用户与需求 → 产业结构 → AI 教学工作流 → 技术架构 → 竞争格局 → 商业模式 → 风险 → 机会判断”的叙事结构，控制在 12–15 页，每页使用结论型 Insight Headline，不使用“市场规模”“竞争格局”这种目录式标题。大量使用 SVG 原生绘制 Mind Map、产业地图与咨询式 Diagram，至少包含 AI 教育全景赛道地图、教师—学生—学校—平台—模型关系图、备课→教学→练习→评测→反馈→学习规划闭环、传统教育 vs AI-native 教育价值链、AI Tutor 技术架构、教育 Agent 能力树、商业模式与付费方关系图、市场成熟度 × 增长潜力机会矩阵。SVG 不得简单把所有信息塞进相同圆角卡片，应根据信息关系组合节点、分组边界、箭头、括号、路径、层级树、核心节点和背景区域。图表旁必须直接给出 1–3 个商业 Insight。需要时主动生成真实未来教育场景 AI 配图，但分析和图表始终优先于装饰图片。",
+      "请围绕「中国历史：五千年文明的 13 页浓缩脉络」制作一份高密度、强结构化的历史研究型 PPT，用 13 页建立中国历史从先秦到当代的整体认知框架，不要简单进行朝代和事件罗列，而要围绕国家形成、制度演进、社会结构、思想文化、技术与经济、疆域变化、民族互动和对外交流八条关系建立统一叙事。固定页序：P1 中国历史五千年总时间轴；P2 夏商周：早期国家形成；P3 春秋战国：诸侯竞争与百家争鸣；P4 秦汉：大一统国家与帝国制度建立；P5 魏晋南北朝：分裂、迁徙、民族融合与思想转型；P6 隋唐：重新统一、开放与世界性帝国；P7 宋代：文官政治、商业革命与科技发展；P8 辽金元：多民族政权与欧亚交流；P9 明代：中央集权、海贸与全球联系；P10 清代：帝国扩张、人口增长与近代危机；P11 晚清至民国：革命与现代国家转型；P12 1949 至今：工业化、改革开放与现代中国；P13 中国历史长期演进的六条主线总结。大量使用 SVG 原生绘制时间轴、Mind Map、关系树、制度演进图、疆域示意图、思想谱系、经济迁移图、民族互动网络与对外交流路径，重点绘制“分封制 → 郡县制 → 三省六部 → 科举 → 内阁 → 军机处”的制度演进、“诸子百家”思想关系树、“丝绸之路 + 海上贸易”网络、“北方政治中心 → 江南经济中心”迁移过程、“统一 → 分裂 → 再统一”的历史周期，以及历代国家治理结构与财政、军事、人才选拔体系之间的关系。每页应以一张主关系图作为核心，而不是大量文字框。需要视觉材料时主动生成青铜器、城市、建筑、丝路、商业、文献和考古复原等 AI 配图，并保持史学与博物馆语境，避免影视剧式人物画面。",
+      "请围绕「Harness Engineering：从 AI Coding 到 Agent-First Software Engineering」制作一份专业技术趋势研究型 PPT，主动搜索并整理 2025–2026 年公开资料、官方实践与真实案例，解释 Harness Engineering 的定义、兴起背景，以及为什么 Coding Agent 能力增强后，工程核心正在从 Prompt / Context 设计进一步转向设计 Agent 能够长期可靠运行的完整工程环境。系统拆解 AI Harness 的核心模块，包括任务与规则定义、Context、Memory、代码库结构、Tools、Permissions、Sandbox、测试、Validation、CI/CD、Observability、Feedback Loop、错误恢复、Human Review 与 Quality Gate。结合 Codex、Claude Code、OpenAI Harness Engineering 等案例，解释 Harness 如何让 Coding Agent 从“生成代码”升级到“自主完成 → 验证 → 发现问题 → 修复 → 再验证”的工程闭环。进一步对比 Prompt Engineering → Context Engineering → Harness Engineering，并分析工程师角色如何从直接编码转向设计 Environment + Constraints + Tools + Feedback + Verification。整体控制在 10–12 页，以架构图、Agent Loop、工作流、演进关系、案例拆解、系统层级图和对比图为主。大量使用 SVG 原生绘制技术 Diagram，包括完整 Harness Loop：User Intent → Spec → Context → Agent → Tool Calls → Code Change → Test → Verification → Feedback → Agent，以及 Context Layer、Memory Layer、Tool Layer、Runtime / Sandbox、Validation Layer、Observability、Human Gate 等系统层级。节点不应全部采用相同卡片，可混合系统边界、虚线 Sandbox、Terminal Window、文件树、箭头、循环路径、Gate、状态节点、日志流和测试结果等技术图形。重点清楚表达“Harness 不是一个单独 Tool，而是围绕 Agent 建立的运行环境与反馈系统”。所有关键概念、案例与架构判断注明可靠来源。",
+      "请围绕「可穿戴设备用户调研与洞察：从身体数据到日常行为体验」制作一份专业的用户研究型 PPT，\n重点研究智能手表、智能手环、智能戒指、耳戴设备、运动与健康监测设备等可穿戴产品的真实使用行为与体验，不要停留在“功能偏好调查”，而要系统回答“用户为什么佩戴 → 在什么场景使用 → 哪些数据真正有价值 → 哪些提醒和功能造成负担 → 为什么会持续使用或最终弃用 → 哪些体验缺口可以转化为下一代产品机会”。整体控制在 10–12 页，建议采用“Research Objective → Research Method → Wearable User Landscape → Usage Scenarios → Behavioral Segmentation → Key Findings → Needs & Pain Points → User Journey → Data Trust & Notification Behavior → Insight Synthesis → Opportunity Areas → Product Implications”的叙事结构。若有真实访谈、问卷、用户评论或行为数据，应优先基于真实材料进行分析；若缺少一手数据，可主动搜索公开行业报告、App Store/电商评论、Reddit/社区讨论、产品评测与代表性品牌案例作为辅助，并明确区分真实调研数据、外部研究和推断假设。用户分群不要只按年龄、性别和职业划分，应重点根据使用动机、佩戴频率、健康意识、运动习惯、数据关注程度、设备依赖程度与隐私敏感度形成 Behavioral Segmentation，例如健康管理型、运动绩效型、轻量记录型、通知效率型、尝鲜科技型和弃用风险型用户。重点分析睡眠监测、运动记录、心率与健康数据、压力/恢复状态、消息提醒、支付与身份、导航、AI 助手等场景，并识别佩戴舒适度、充电频率、数据准确性、数据理解成本、通知焦虑、隐私信任、跨设备同步、长期佩戴动力等核心痛点。大量使用 SVG 原生绘制用户研究信息图，包括可穿戴使用场景 Mind Map、用户分群二维矩阵、一天佩戴行为时间轴、设备触点地图、健康数据理解路径、Notification → Attention → Action 行为链、用户旅程与情绪曲线、功能使用频率 × 价值感矩阵、数据可信度 × 行动意愿矩阵、持续佩戴驱动因素关系图、弃用原因树、Pain Point × Impact Matrix 与 Opportunity Map。User Journey 应按照“触发 → 佩戴 → 数据采集 → 查看 → 理解 → 决策 → 行动 → 长期反馈”组织，重点寻找从“设备记录数据”到“用户真正改变行为”之间的断点。每个核心 Insight 建议采用“Evidence → Behavior → Why → Insight → Opportunity”结构，例如不要只写“用户不看健康数据”，而应进一步判断是数据过多、解释不足、缺乏行动建议还是信任度不足，并转化为具体产品机会。最终收敛出 3–6 个可执行方向，例如更低负担的无感交互、从数据展示转向行动建议、AI 个性化健康解释、更智能的通知优先级、跨设备连续体验、更轻量舒适的长期佩戴机制等，并进一步映射到产品策略、功能优先级和后续验证计划。视觉风格、配色、字体、摄影处理、装饰语言、图表色系和基础版式严格继承当前绑定 Style MD，主题 Prompt 仅决定研究内容、信息结构、Diagram 类型与所需 AI 图像语义。"
+    ],
+    "promptStyleTemplateIds": [
+      "00216",
+      "00214",
+      "00224",
+      "00210",
+      "00229"
+    ],
+    "target": "all"
+  },
+  {
+    "id": 30,
+    "name": "Web Design",
+    "unified_id": 113,
+    "icon": "web",
+    "mode": "design",
+    "plugins": [
+      {
+        "id": 0,
+        "name": "ardot-design-generator",
+        "marketplaceName": "cb_teams_marketplace"
+      }
+    ],
+    "promptTitles": [
+      "AI Trends Site",
+      "Sneaker Culture Site",
+      "Neo-Brutalism Site"
+    ],
+    "prompts": [
+      "Create a website themed 'AI Development Trends · 2025-2026 Latest Trend Analysis'. The visuals follow Linear aesthetics with an engineering, cool, austere style. Content covers six core slices: the leap to Agent-ization, the collapse of inference costs, multimodal fusion, the explosion of on-device intelligence, deep cultivation of vertical industries, and governance and alignment. Include a set of key data (market size, enterprise adoption rate, annual decline in Token prices), a simplified diagram of the China-US-EU tripolar landscape, and five key predictions for 2026 (labeled with high/medium/low confidence). Data sources refer to Stanford HAI, McKinsey, a16z, Gartner, and IDC via online search.",
+      "Design a sneaker culture introduction website page, including a Hero section, a timeline of iconic sneaker evolution, street culture stories, and signature brand collaborations — streetwear, bold, and full of attitude.",
+      "Design a creative design website page from a Neo-Brutalism designer's perspective, combining brutalism's hard edges with saturated candy color blocks, bold outlines, and offset shadows. Visual design concept: thick borders, large rounded corners or hard-angled blocks, saturated pink/yellow/blue/green, bold sans-serif or monospace fonts; prominent offset shadows. Use sticker/hand-drawn elements to add playfulness while keeping layout divisions clear. Material and texture: solid fills, noise/stripe backgrounds, sticker/graffiti symbols; shadows are short but with clear offset, borders 2-4px. Avoid excessive glass and gradients. Overall mood: bold, playful yet orderly, like an interface made of colorful building blocks."
+    ],
+    "target": "all"
+  },
+  {
+    "id": 33,
+    "name": "Mobile App",
+    "unified_id": 114,
+    "icon": "phone",
+    "mode": "design",
+    "plugins": [
+      {
+        "id": 0,
+        "name": "ardot-design-generator",
+        "marketplaceName": "cb_teams_marketplace"
+      }
+    ],
+    "promptTitles": [
+      "Fitness App Design",
+      "Community Discovery",
+      "Y2K Social App"
+    ],
+    "prompts": [
+      "Design a fitness App. Create a complete user registration flow and a workout data dashboard page for a fitness tracking App, with charts that display daily exercise data.",
+      "Referencing Xiaohongshu's (Little Red Book) design style, help me design a discovery page for a content community App, featuring a waterfall card layout and search/filter functionality.",
+      "Design a youth-oriented city check-in social App called 'CityGo' with a bold, vibrant, Y2K retro-futuristic style. The primary colors are fluorescent green, electric purple, and bright yellow, with extensive use of bold sans-serif fonts and irregular sticker elements. The home page features a city map scattered with bubbles marking user-captured check-in spots; tapping a bubble opens a 3x3 photo grid. The post interface supports adding hand-drawn doodles, stickers, and glitch-art filters to photos. All buttons are large rounded pill shapes with a bouncy tap animation. The overall feel is like a digital doodle-and-sticker book."
+    ],
+    "target": "all"
+  },
+  {
+    "id": 34,
+    "name": "Design System",
+    "icon": "paint",
+    "mode": "design",
+    "plugins": [
+      {
+        "id": 0,
+        "name": "ardot-design-generator",
+        "marketplaceName": "cb_teams_marketplace"
+      }
+    ],
+    "promptTitles": [
+      "Complete Design System",
+      "Admin Component Library",
+      "Design Token System"
+    ],
+    "prompts": [
+      "Help me build a complete Design System, including a color system, typography hierarchy, spacing rules, and foundational component specification documentation.",
+      "Referencing Ant Design's style, design a component library specification for my admin management system, including button, form, table, and modal components.",
+      "Create a Design Token system for a mobile App that supports light/dark theme switching, and output a complete variable table for colors, border radii, and shadows."
+    ],
+    "target": "all"
+  },
+  {
+    "id": 35,
+    "name": "Web App",
+    "icon": "tools",
+    "mode": "design",
+    "plugins": [
+      {
+        "id": 0,
+        "name": "ardot-design-generator",
+        "marketplaceName": "cb_teams_marketplace"
+      }
+    ],
+    "promptTitles": [
+      "Project Management",
+      "Resume Builder",
+      "Data Analytics Platform"
+    ],
+    "prompts": [
+      "Design a complete interface for a project management WebApp, including a dashboard overview, task kanban, team member management, and project settings pages. Style inspired by Linear — clean and efficient.",
+      "Design a resume-building Web App called 'Resume.io' with a clean, efficient, WYSIWYG style. Use a split-screen layout: the left side is the form editing area (collapsible panels for personal info, education, work experience, skills, etc.), and the right side displays a live preview of an A4-sized resume (with realistic shadows). The top bar allows switching between 6 template styles (minimalist black-and-white, business blue, designer colorful, academic serif, etc.), and the top-right corner has 'Download PDF' and 'Share Link' buttons. The preview on the right updates in real time as users edit, with modified fields briefly highlighted. The overall goal is to let users produce a high-quality resume within 10 minutes.",
+      "Design a SaaS data analytics platform WebApp interface, including data source connections, a visualization chart editor, report generation, and permission management modules. Professional business color scheme."
+    ],
+    "target": "all"
+  },
+  {
+    "id": 37,
+    "name": "Icons & Illustrations",
+    "unified_id": 120,
+    "icon": "mouse",
+    "mode": "design",
+    "plugins": [
+      {
+        "id": 0,
+        "name": "ardot-design-generator",
+        "marketplaceName": "cb_teams_marketplace"
+      }
+    ],
+    "promptTitles": [
+      "Admin Line Icons",
+      "Kids Edu Illustrations",
+      "Flat Finance Icons"
+    ],
+    "prompts": [
+      "Help me design a set of 24 linear-style general-purpose icons suitable for an admin management system, covering common scenarios such as Home, Users, Settings, and Data.",
+      "Design a set of cute-style illustrated icons for a children's education App, covering 12 scenes across the themes of reading, math, music, and science.",
+      "Design a set of flat-style financial icons covering 16 scenarios such as payment, billing, wallet, transfer, and wealth management, with a unified color scheme."
+    ],
+    "target": "all"
+  },
+  {
+    "id": 44,
+    "unified_id": 123,
+    "name": "Latest News",
+    "icon": "wb-view",
+    "mode": "working",
+    "interactionModes": [
+      "quick"
+    ],
+    "promptTitles": [
+      "Today's top stories",
+      "Recent weather changes",
+      "New rules for daily life",
+      "Trending topics",
+      "Heartwarming news"
+    ],
+    "prompts": [
+      "Summarize the three most noteworthy news stories today in plain language.",
+      "Tell me how the weather has changed recently and what to watch out for.",
+      "Explain recent new regulations that affect ordinary people.",
+      "Tell me what topics people have been discussing lately.",
+      "Share a few warm and interesting small news stories from recently."
+    ],
+    "target": "all"
+  },
+  {
+    "id": 45,
+    "unified_id": 124,
+    "name": "Writing Help",
+    "icon": "wb-ai-edit",
+    "mode": "working",
+    "interactionModes": [
+      "quick"
+    ],
+    "promptTitles": [
+      "Write a leave message",
+      "Politely follow up",
+      "Write a birthday wish",
+      "Write an apology text",
+      "Write a social post"
+    ],
+    "prompts": [
+      "Write a short leave-of-absence message to send to my manager.",
+      "Write a polite message reminding someone to finish on time.",
+      "Write a natural, not-awkward birthday wish for a friend.",
+      "Write a sincere apology text that is not overly formal.",
+      "Write a short social media post based on today's mood."
+    ],
+    "target": "all"
+  },
+  {
+    "id": 46,
+    "unified_id": 125,
+    "name": "Daily Translation",
+    "icon": "wb-translate",
+    "mode": "working",
+    "interactionModes": [
+      "quick"
+    ],
+    "promptTitles": [
+      "What does this mean",
+      "Translate a menu",
+      "Read a delivery update",
+      "Summarize this email",
+      "Ask for directions"
+    ],
+    "prompts": [
+      "Translate this English sentence into natural, easy-to-understand Chinese.",
+      "Translate this menu and explain what each dish is.",
+      "Translate this delivery update and tell me where my package is.",
+      "Tell me in simple terms what this email is mainly about.",
+      "Teach me how to ask how to get somewhere in simple English."
+    ],
+    "target": "all"
+  },
+  {
+    "id": 47,
+    "unified_id": 126,
+    "name": "Everyday Know-how",
+    "icon": "search",
+    "mode": "working",
+    "interactionModes": [
+      "quick"
+    ],
+    "promptTitles": [
+      "Why odd-numbered stairs",
+      "Keep eggs fresh longer",
+      "Fix shrunken clothes",
+      "Best phone charge level",
+      "Why onions make you cry"
+    ],
+    "prompts": [
+      "Why do staircases usually have an odd number of steps like 7, 9 or 11?",
+      "How should eggs be stored so they stay fresh longer?",
+      "My clothes shrank in the wash. Any simple ways to fix them?",
+      "What charge level is best for protecting my phone battery?",
+      "Why does cutting onions make you cry, and how can I avoid it?"
+    ],
+    "target": "all"
+  },
+  {
+    "id": 48,
+    "unified_id": 127,
+    "name": "Work Tips",
+    "icon": "powerpoint",
+    "mode": "working",
+    "interactionModes": [
+      "quick"
+    ],
+    "promptTitles": [
+      "Plan my workday",
+      "Nervous in meetings",
+      "Capture key points fast",
+      "Decline extra tasks",
+      "Organize too many files"
+    ],
+    "prompts": [
+      "When there is a lot to do, how should I order my tasks for the day?",
+      "I get nervous speaking up in meetings. Any simple ways to ease that?",
+      "How do I quickly note down what really matters while someone is talking?",
+      "When my plate is full, how do I politely decline extra last-minute tasks?",
+      "My computer has more and more files. How should I sort them to find things easily?"
+    ],
+    "target": "all"
+  },
+  {
+    "id": 49,
+    "unified_id": 128,
+    "name": "Travel Guide",
+    "icon": "wb-publish",
+    "mode": "working",
+    "interactionModes": [
+      "quick"
+    ],
+    "promptTitles": [
+      "Relaxing weekend ideas",
+      "First high-speed rail trip",
+      "Pack for a 3-day trip",
+      "What to bring to the beach",
+      "Avoid tourist crowds"
+    ],
+    "prompts": [
+      "Recommend short, low-effort trips that are good for relaxing on a weekend.",
+      "It is my first time taking a high-speed train. What should I prepare and note?",
+      "What should I bring for a three-day trip, and how do I pack light?",
+      "What practical items should I prepare for a day at the beach?",
+      "How do I pick travel dates to avoid long queues and crowds?"
+    ],
+    "target": "all"
+  }
+]

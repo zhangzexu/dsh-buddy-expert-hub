@@ -1,0 +1,24 @@
+{
+  "name": "skill-buddy-multimodal-generation",
+  "version": "5.9.3-wb.42398134.gd4692421.h480e8d1fee0f",
+  "description": "WorkBuddy bundled skill resource: buddy-multimodal-generation.",
+  "author": {
+    "name": "WorkBuddy"
+  },
+  "category": "skill",
+  "keywords": [
+    "workbuddy",
+    "builtin-skill",
+    "buddy-multimodal-generation"
+  ],
+  "workbuddy": {
+    "kind": "builtin-skill",
+    "legacyResourceName": "buddy-multimodal-generation",
+    "bundleSegments": [
+      "plugins",
+      "workbuddy-builtin",
+      "skills",
+      "buddy-multimodal-generation"
+    ]
+  }
+}

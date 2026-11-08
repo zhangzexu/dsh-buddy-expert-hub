@@ -1,0 +1,11 @@
+{
+  "name": "builtin-teams-todo",
+  "version": "${WORKBUDDY_BUILD_VERSION}",
+  "mcpServers": {
+    "teams-todo": {
+      "type": "http",
+      "url": "${TEAMS_TODO_MCP_URL:-http://wb-issues.agent-gateway.auth-proxy.local/_internal/issues/todo-mcp}",
+      "defer_loading": true
+    }
+  }
+}

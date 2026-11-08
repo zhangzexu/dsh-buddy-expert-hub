@@ -1,0 +1,15 @@
+{
+  "name": "ardot",
+  "version": "5.9.3-wb.42398134.gd4692421.h480e8d1fee0f",
+  "description": "WorkBuddy Ardot design capabilities: shared design guidance, intent routing, UI, slides, posters, livestream posters, and design-to-code skills.",
+  "author": {
+    "name": "WorkBuddy"
+  },
+  "category": "设计工具",
+  "keywords": [
+    "workbuddy",
+    "ardot",
+    "design"
+  ],
+  "skills": "./skills"
+}

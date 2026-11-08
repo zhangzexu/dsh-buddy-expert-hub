@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "templateId": "workbuddy-native-basic",
+  "templateVersion": "1.0.0",
+  "framework": "native-wechat",
+  "files": [
+    {
+      "path": "app.js",
+      "sha256": "9b6231194d41fa3a24c86fc2c27400d5b3ea84436638113221a73005c150e4b7"
+    },
+    {
+      "path": "app.json",
+      "sha256": "902e8794f1510f52a92fcddbf3d84c16b30fbfffe9f0927cefd69ce08f8c81f0"
+    },
+    {
+      "path": "app.wxss",
+      "sha256": "7a9d09349ffbf2d68f1d8da226f0912c24ce0e272a6693c24f73190b027a736e"
+    },
+    {
+      "path": "pages/index/index.js",
+      "sha256": "bb8a29dc556555109ef163739f31c52dc0301005ca118213872d72fa7e758031"
+    },
+    {
+      "path": "pages/index/index.json",
+      "sha256": "08724d0425d244e3340c90f1b9af2e3da6888cd65600dc2bfe492e2296db72dd"
+    },
+    {
+      "path": "pages/index/index.wxml",
+      "sha256": "5a2d51adcc8b5a187c57d2e565622b728d37e5280e4fc7c38f118b39305d474c"
+    },
+    {
+      "path": "pages/index/index.wxss",
+      "sha256": "e07cd4b1c7ae86515ee69c0564afa40b761dc5f856730163f695d4c1a3a1888e"
+    },
+    {
+      "path": "project.config.json",
+      "sha256": "2da6535f0904cfe6625301b78df4acc04e0c7543ec0573fd03ede5cead90f300"
+    },
+    {
+      "path": "sitemap.json",
+      "sha256": "297727bd696d6f1a27a000b695e0f4adfc4496a456c2bba82bb1448b4eb2f70d"
+    }
+  ]
+}

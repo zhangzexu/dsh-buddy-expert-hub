@@ -1,0 +1,17 @@
+{
+  "name": "tencent-docs-plugin",
+  "version": "${WORKBUDDY_BUILD_VERSION}",
+  "description": "腾讯文档私有化/专享版 MCP 插件，封装 tencent-private-docs skill，支持在私有化/专享版环境创建/编辑/管理在线文档、智能表格、幻灯片、思维导图等",
+  "author": {
+    "name": "tencent-docs",
+    "email": "tencent-docs@tencent.com"
+  },
+  "homepage": "https://${TENCENT_DOCS_DOMAIN}/home",
+  "repository": "https://git.woa.com/docx/docx-online",
+  "keywords": ["tencent-docs", "private", "mcp", "office", "collaboration", "smartcanvas", "smartsheet", "slide"],
+  "category": "开发工具",
+  "skills": [],
+  "commands": [],
+  "agents": [],
+  "hooks": ""
+}

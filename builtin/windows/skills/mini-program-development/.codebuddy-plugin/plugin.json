@@ -1,0 +1,25 @@
+{
+  "name": "skill-mini-program-development",
+  "version": "5.9.3-wb.42398134.gd4692421.h480e8d1fee0f",
+  "description": "WorkBuddy bundled skill resource: mini-program-development.",
+  "author": {
+    "name": "WorkBuddy"
+  },
+  "category": "skill",
+  "keywords": [
+    "workbuddy",
+    "builtin-skill",
+    "mini-program-development",
+    "wechat-mini-program"
+  ],
+  "workbuddy": {
+    "kind": "builtin-skill",
+    "legacyResourceName": "mini-program-development",
+    "bundleSegments": [
+      "plugins",
+      "workbuddy-builtin",
+      "skills",
+      "mini-program-development"
+    ]
+  }
+}

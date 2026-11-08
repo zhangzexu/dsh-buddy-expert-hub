@@ -1,0 +1,14 @@
+{
+  "name": "builtin-calendar",
+  "version": "${WORKBUDDY_BUILD_VERSION}",
+  "mcpServers": {
+    "calendar": {
+      "type": "http",
+      "url": "${CALENDAR_MCP_URL:-http://wb-calendar.agent-gateway.auth-proxy.local/_internal/calendar/mcp}",
+      "defer_loading": true
+    }
+  },
+  "skills": [
+    "./skills/calendar-management"
+  ]
+}
