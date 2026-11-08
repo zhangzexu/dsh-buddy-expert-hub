@@ -93,7 +93,9 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
 
 **插件不再内置任何连接器数据**：`data/` 目录已删除，`package.json` 的 `files` 也不再包含它。连接器只从上面两处读 —— 一处是资源仓库（云端），一处是本机已安装定义（本地）。
 
-`/status` 的 `connectorSource` 只有两个取值：`repo`（数据根里存在 `connectors/connectors.json`）/ `none`（还没同步或仓库里没有这份清单）。读不到仓库清单时 `counts.connectors` 只会统计本地已安装条目，面板会提示「连接器需先同步资源仓库」。
+`/status` 的 `connectorSource` 有三个取值：`repo`（数据根里存在 `connectors/connectors.json`）/ `none`（还没同步或仓库里没有这份清单）/ `library`（本地资料库模式，连接器来自导出包快照）。常规模式读不到仓库清单时 `counts.connectors` 只会统计本地已安装条目，面板会提示「连接器需先同步资源仓库」。
+
+**本地资料库模式的连接器口径**：`GET /export` 会把当前「云端 + 本地」合并后的连接器快照写进导出包的 `connectors` 数组；`POST /library/import` 把它存进索引（`libraryConnectors`），此后 `/connectors`、`/status.counts.connectors`、`/detail?type=connector`、`/export` 全部只读这份快照，不再扫旧数据根，也不会把后来新增的本机定义掺进来 —— 避免「专家 / 技能来自新包、连接器来自旧仓库」的新旧混算。恒等式 `connectable + unsupported === connectors` 在该模式下同样成立。
 
 ### 资源仓库与同步
 
@@ -107,7 +109,7 @@ https://gitee.com/zhangzexu/dsh-buddy-expert-hub-resource.git
 | --- | --- |
 | 默认值 | `lib/index.js` 的 `SOURCE_URL`；`/dsh-buddy-expert-hub/status` 返回 `sourceUrl` / `sourceKind` / `defaultUrl` / `usingDefault` |
 | 自定义 git 仓库 | 面板「设置」里可填 `https://` 或 `git@` 形式的仓库地址，写入 `state.json` 的 `settings.sourceUrl`，**下次同步生效**；留空回到默认地址。内网镜像或 fork 仓库用这个 |
-| 自定义本机目录 | 面板「设置」里可直接填本机目录（见下节），`sourceKind` 为 `local`；保存时校验目录。`dataRoot` 立刻重算；新数据源为本机目录时，旧索引立即作废并在下次请求自动重建（不联网、不需要点刷新）；切回 git 仓库时索引保持到下次同步，界面会提示「数据源已切换，点刷新以应用新数据源」 |
+| 自定义本机目录 | 面板「设置」里可直接填本机目录（见下节），`sourceKind` 为 `local`；保存时校验目录。`dataRoot` 立刻重算；新数据源为本机目录时，旧索引立即作废并在下次请求自动重建（不联网、不需要点刷新）；切回 git 仓库时索引保持到下次同步，界面会提示「数据源已切换，点刷新以应用新数据源」（**重启后仍提示**，见下节） |
 | 克隆目标 | `$DSH_HOME/dsh-buddy-expert-hub/repo`（只有完整仓库带 `skills/`）；本机目录模式不会创建或改动它 |
 | 同步方式 | git 数据源：首次 `git clone --depth 1`，之后 `git fetch --depth 1` + `git reset --hard FETCH_HEAD`；点「立即同步」或右上「刷新」触发。本机目录：只重读目录并重建索引，**不联网、不执行任何 git 命令** |
 | 校验 | git 地址只接受 `https://` 与 `git@` 两种形式（不得含空白或 `..`）；本机目录必须是绝对地址，相对路径会被拒并提示填绝对路径；未知协议一律拒绝 |
@@ -136,7 +138,9 @@ https://gitee.com/zhangzexu/dsh-buddy-expert-hub-resource.git
 - 本机目录里的文件改动，点右上「**刷新**」即重新读取并重建索引，无需重启、无需联网。
 - **切换到另一个本机目录时**：保存会立刻重算 `dataRoot`，并因为数据根变了而作废旧索引（清内存索引、删 `index.json`）；下一次数据请求按既有懒加载自动重建（只读本地文件、不联网、不执行 git），**不需要点「刷新」**。重建期间数据接口返回 `busy` 占位，不会出现「连接器来自新目录、专家与技能还来自旧目录」的混合响应；重启后因为是新索引落盘，仍然是新目录。
 - **切回 git 仓库时**（填 `https://` / `git@` 地址或点「**恢复默认**」）：数据根同样立刻重算，但**索引保持到下次同步**，绝不为了重建而去克隆；`/status` 会返回 `indexDataRoot`（旧索引对应的目录）与 `indexStale: true`，界面在副标题下方提示「数据源已切换，点「刷新」以应用新数据源」。点右上「刷新」后提示消失。
+- **切回 git 后重启的行为**（曾有一版「重启后配置永不生效」的缺陷，已修）：「待刷新」状态会持久化到 `state.json` 的 `indexSwitchPending` 字段。冷启动时若配置为 git、但 `index.json.dataRoot` 仍指向之前的本机目录，这份缓存会被判作废并删除，`dataRoot` 绝不会回落到本机目录；同时 `indexStale: true` 与 `indexDataRoot` 仍然返回，前端**重启后照样提示点「刷新」**。抑制标志还会挡住 `requireIndex()` 的自动懒同步，**冷启动不会偷偷触发一次 30MB 克隆**。点「刷新」后：按 git 根重建索引、`indexStale` 变 `false`、`dataRoot` 指向 git 根、`indexSwitchPending` 清为 `false`。
 - git 地址 A 换成 git 地址 B 时数据根通常不变（仍是 `ntd-resource` 或插件 clone），此时**什么都不做**：不清索引、`indexStale` 为 `false`、不会因轮询触发一次意外的克隆；新地址按既有语义在下次同步时生效。
+- **刷新失败不再报成功**：`git fetch` / `reset` 失败（离线、坏远端、Git 不可用）时 `/refresh?wait=1` 返回 `ok:false` 与中文错误，`lastSync` 不更新、`index.json` 被删除、`indexReady` 为 `false`、旧计数不再展示，避免「失败后下一个请求把旧索引装回内存」的旧索引复活。失败后自动同步被抑制（不会每轮轮询重试一次克隆），**只有用户主动点「刷新」才重试**；成功后一切恢复正常。
 
 > `$DSH_HOME/ntd-resource` 是历史上 NTD 同步留下的**本机只读副本目录**，名字沿用旧称呼，与上面的远程地址无关。插件不会往里 clone / pull / 写文件；全新安装没有这个目录也能正常同步。git 仓库需包含 `experts/`、`skills/` 等目录，卸载插件也不会删除这些数据目录。
 
@@ -177,7 +181,7 @@ https://gitee.com/zhangzexu/dsh-buddy-expert-hub-resource.git
 
 - 未安装的云端卡片显示统一的 **`+` 图标**（与 SkillHub 商店的 `+` 同款 `dshe-add-btn`，无文字、无 `title`），点一下把定义复制到本地 `connectors/<dir>/`；不写 profile、不保存凭据
 - 同 id 已经安装过时，卡片不会再出现 `+` 图标（安装接口返回 `already: true`）；想让云端版本覆盖本地版本，需先卸载再安装
-- 已安装卡片显示 **× 卸载**（移除本地定义并断开连接登记；profile 里的条目不会自动删除）
+- 已安装卡片显示 **× 卸载**（移除本地定义并断开连接登记；profile 里的条目不会自动删除）。卸载成功后后端按具体 id 清掉所有会话中该连接器注入的上下文，响应回报 `detachedSessions`（清理的会话数）与中文 `detachNote`；前端广播 `dsh-buddy-expert-hub:attachments-changed` 让 dock 立即对账，其它已挂载连接器不受影响
 - 已安装卡片名称右侧有 **来源徽标**：`本地自定义`（靛蓝）/ `云端下载`（蓝）
 - 「已安装」视图下多一行 **来源筛选**：`全部 / 本地自定义 / 云端下载`，每项带实时条数（纯前端过滤，切来源不重新拉数据）
   - 按钮上的条数是**当前搜索结果内**的条数（“筛完还剩多少”的直觉口径，受关键词影响）；后端 `counts.sources` 是全量口径、不受关键词影响，前端不消费该字段
@@ -360,9 +364,9 @@ order: 300
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/status` | `{ ok, repoReady, indexReady, lastSync, counts:{experts,teams,skills,connectors,connectable,unsupported}, localCounts:{experts,teams}, sourceUrl, sourceKind, dataRoot, indexDataRoot, indexStale, hasSkills, connectorSource, connectorSkipped, skipped, busy, progress, lastError, lastErrorRaw, warnings, importedCount, baseDir, localExpertsDir }`；`counts.experts/teams` 为合并去重后的数量，与列表一致；`counts.connectors` 是**现算**的两源合并总条数（不进索引），`counts.connectable` / `counts.unsupported` 是其中宿主能装载 / 装载不了的条数（`connectable + unsupported === connectors`）；`connectorSource` 只有 `repo` / `none`；`connectorSkipped` 是**真正解析不了**（缺 id / 结构异常）的条数，正常数据下为 0 —— 它和「不可连接」不是一回事；`lastError` 是给人看的中文，`lastErrorRaw` 是原始错误堆栈；`sourceKind` 为 `git` / `local`，`local` 时 `dataRoot` 是设置里配置的本机目录；`indexDataRoot` 是当前索引对应的数据根（无索引时为空串），`indexStale` 只在「切到 git 数据源、数据根变化、旧索引仍保留」时为 `true`，前端据此提示点「刷新」 |
+| GET | `/status` | `{ ok, repoReady, indexReady, lastSync, counts:{experts,teams,skills,connectors,connectable,unsupported}, localCounts:{experts,teams}, sourceUrl, sourceKind, dataRoot, indexDataRoot, indexStale, library, hasSkills, connectorSource, connectorSkipped, skipped, busy, progress, lastError, lastErrorRaw, warnings, importedCount, baseDir, localExpertsDir }`（本轮**没有新增 `/status` 字段**；新增的 `indexSwitchPending` 只写进 `state.json`，不对外暴露）；`counts.experts/teams` 为合并去重后的数量，与列表一致；`counts.connectors` 是**现算**的两源合并总条数（常规模式不进索引；本地资料库模式改用导出包快照），`counts.connectable` / `counts.unsupported` 是其中宿主能装载 / 装载不了的条数（`connectable + unsupported === connectors`）；`connectorSource` 为 `repo` / `none` / `library`；`connectorSkipped` 是**真正解析不了**（缺 id / 结构异常）的条数，正常数据下为 0 —— 它和「不可连接」不是一回事；`lastError` 是给人看的中文，`lastErrorRaw` 是原始错误堆栈；`sourceKind` 为 `git` / `local`，`local` 时 `dataRoot` 是设置里配置的本机目录；`busy` 是**真实的同步中状态**（不是恒 `true`）；`indexDataRoot` 是当前索引对应的数据根，`indexStale` 在「切到 git 数据源、数据根变化」时为 `true` —— 包含冷启动作废旧缓存、当前无索引的情况（此时 `indexDataRoot` 取 `state.json` 里记录的旧根），前端据此提示点「刷新」 |
 | GET | `/settings` | `{ ok, sourceUrl, sourceKind, defaultUrl, usingDefault, skillhubUrl }`；`sourceKind` 同上 |
-| POST | `/settings` | body `{ sourceUrl, skillhubUrl? }` → `{ ok, sourceUrl, sourceKind, skillhubUrl }`。`sourceUrl` 可填 `https://` / `git@` 仓库地址或本机目录绝对地址；本机目录会校验存在性与 `experts/` / `skills/` / `connectors/` 结构，不合格返回 400 并给出中文原因；相对路径返回 400 且错误含「绝对路径」。数据根变化时按新数据源分流：**新源为本机目录** → 旧索引立即作废（`state.index` 清空 + 删 `index.json`），下次请求懒加载自动重建、不联网、不自动触发 git；**新源为 git** → 保留旧索引、不触发同步，`/status` 报 `indexStale: true` 由前端提示点「刷新」；**git 地址互换且数据根不变** → 什么都不做 |
+| POST | `/settings` | body `{ sourceUrl, skillhubUrl? }` → `{ ok, sourceUrl, sourceKind, skillhubUrl }`。`sourceUrl` 可填 `https://` / `git@` 仓库地址或本机目录绝对地址；本机目录会校验存在性与 `experts/` / `skills/` / `connectors/` 结构，不合格返回 400 并给出中文原因；相对路径返回 400 且错误含「绝对路径」。数据根变化时按新数据源分流：**新源为本机目录** → 旧索引立即作废（`state.index` 清空 + 删 `index.json`），下次请求懒加载自动重建、不联网、不自动触发 git；**新源为 git** → 保留旧索引、不触发同步，`/status` 报 `indexStale: true` 由前端提示点「刷新」，并把 `indexSwitchPending: true` 写进 `state.json`（重启后仍提示、仍不自动克隆）；**git 地址互换且数据根不变** → 什么都不做 |
 | POST | `/settings/reset` | 清除自定义地址、回到 `SOURCE_URL`，返回 `{ ok, sourceUrl, sourceKind: 'git', defaultUrl, usingDefault: true }`；数据根变化时按「新源为 git」处理，保留索引并置 `indexStale` |
 | POST | `/refresh` | 触发同步；默认立即返回 `{ started, busy }`，加 `?wait=1` 则等待完成后再返回状态。`progress` 每秒回写「已用时 Ns」 |
 | GET | `/experts` | `q` / `category` / `limit`(默认 200) / `offset` → `{ ok, total, localCount, items }` |
@@ -377,7 +381,7 @@ order: 300
 | POST | `/import` | body `{ type: 'expert'\|'team', id }` → 写 `$DSH_HOME/experts/<id>/` + `dsh-buddy-expert-hub/imported/<id>/bundle/`，返回 `{ ok, id, type, path, already, files, bundle }` |
 | GET | `/imported` | `{ ok, ids, items:[{id,type,displayName,description,avatar}], dir }`，扫描 `$DSH_HOME/experts/`（只认含 `expert.yml` 的目录）并与 `state.json` 记录合并去重 |
 | POST | `/import/item` | 单条目包（`.json.gz` / 明文 JSON，格式 `{format,type,id,name,dir,files:[{path,data,encoding}]}`）→ 只新增这一个条目。**接口保留**：条目详情的「导出」包仍可由它导入，但面板顶部「导入条目」按钮已删除 |
-| GET | `/export/item` | `type`(`expert`\|`team`\|`skill`) + `id` → 下载单个条目的 `.json.gz` 包 |
+| GET | `/export/item` | `type`(`expert`\|`team`\|`skill`) + `id` → 下载单个条目的 `.json.gz` 包。专家 / 专家团的 `id` 先过 `safeId()` 单段目录名白名单，再用「词法前缀 + `realpathSync`」双重校验目录，目录穿越与符号链接逃逸一律 400/404；技能 `id` 是 `skills/<集合>/<名字>` 形式的相对路径，保留 `index.skills.find` + `safeRepoPath` 的既有链路。错误文案只回显 id，不回显绝对路径 |
 | POST | `/import/folder` | **本轮新增**：浏览器选择文件夹导入。请求体 `{ type:'skill'\|'expert'\|'team', rootName:string, files:[{path,data,encoding}] }`，`encoding` 为 `utf8` 或 `base64`。响应 `{ ok:true, mode:'single'\|'batch', imported:[{id,name,type,dir,already?,notes?}], skipped:[{dir,reason}] }`；全部失败时 `{ ok:false, error, imported:[], skipped, mode }`。先按「所选目录本身就是一个条目」校验，不通过再按一级子目录批量导入；三种类型格式要求不同，见「文件夹导入」章节。安全与幂等：拒绝 `..` / 绝对路径 / 盘符 / 反斜杠 / 符号链接，单文件 ≤ 2MB、文件数 ≤ 200、总计 ≤ 20MB，已存在目录返回 `already:true` 不覆盖 |
 | POST | `/library/import` | 上传整包字节（gzip JSON），原子落盘后切换数据源 |
 
@@ -389,7 +393,7 @@ order: 300
 > 前端只依赖 `indexReady` 判断能否渲染列表，`repoReady` 仅用于诊断。
 
 
-索引不可用且正在同步时，数据类接口返回 `{ ok: false, busy: true, indexReady: false, message }`，前端据此显示「首次同步中，请稍候…」并轮询 `/status`。
+索引不可用时，数据类接口返回 `{ ok: false, busy, indexReady: false, error, message }`：`busy` 取**真实同步状态**（同步已失败即为 `false`），`error` 与 `message` 内容相同、同时提供，前端两条取值链都不会拿到空白文案。首次同步、同步失败、以及「切到 git 待刷新」三种情况给出不同提示，其中待刷新时提示「数据源已切换，点「刷新」以应用新数据源」。自动同步在「待刷新」或「上次同步失败」期间被抑制，只有用户主动点「刷新」才会重试。
 
 ---
 
@@ -410,7 +414,7 @@ $DSH_HOME/                       # 默认 ~/.dsh
 
 合并是**字段级**的：同 id 时以本地包为骨架，但 `displayName / profession / description / tags / quickPrompts / categoryId / avatar / skills / members` 等任一侧缺失的字段会从仓库条目补齐 —— 导入后卡片的标签、快捷提示、职业不会丢失。`/status` 的 `counts.experts / counts.teams` 也按**合并去重后**的口径统计，与列表条数、Tab 徽标保持一致；另有 `localCounts` 单独给出本地条数。
 
-索引缓存带版本号（`index.version`）和 `dataRoot`；版本不匹配、原数据根已消失、或配置了本机目录而缓存来自另一个数据根时自动重建。切到另一个本机目录时保存接口会主动清掉这份缓存（零联网重建），切回 git 仓库时则保留到下次同步并由 `/status` 的 `indexStale` 标记。
+索引缓存带版本号（`index.version`）和 `dataRoot`；版本不匹配、原数据根已消失、配置了本机目录而缓存来自另一个数据根、或**配置为 git 而缓存仍绑在本机目录**时自动作废（后者还会删掉这份缓存并置持久化的待刷新标志）。切到另一个本机目录时保存接口会主动清掉这份缓存（零联网重建）；切回 git 仓库时同进程内保留到下次同步并由 `/status` 的 `indexStale` 标记，**重启后则判缓存作废，但提示不丢、也不会自动克隆**。
 
 ---
 
@@ -472,6 +476,9 @@ node --check lib/client.js
 
 ## 安全说明
 
+- **本机同源门禁（防 DNS rebinding / CSRF）**：所有请求在路由分发之前先过 `localRequestGuard()`。`Host` 只接受 `localhost` / `127.0.0.1` / `::1`（可带端口，含 `[::1]:port`）；带 `Origin` 时其 host 必须是上述本地 host 且与 `Host` 一致；`Sec-Fetch-Site: cross-site` 一律 403，`cross-origin` 且不同源也 403。**允许没有 Origin 的同源请求**（插件自己的 fetch、curl、验收脚本都依赖这条），不强制非 GET 请求带自定义头；被拒时统一返回 403 `{ ok:false, error:'请求来源不被允许' }`，不泄漏内部信息。这样 `text/plain` 的 CORS-safelisted 跨站表单无法再触发 `/settings`、`/connectors/create`、`/import/folder`、`/library/import`。
+- **单条目导出防目录穿越**：`GET /export/item` 的专家 / 专家团 `id` 走 `safeId()` 白名单 + `safeRepoDirReal()`（词法前缀 + `realpathSync`）双重校验，曾经 `id=../../../..` 能让 `path.join(root,'experts',id)` 逃到盘符根、把最多 400 个仓库外文件打进 gzip 下载包（可读 `~/.ssh/id_rsa` / `credentials.enc` / `state.json`）。技能 `id` 是相对路径形式，继续由 `index.skills.find` + `safeRepoPath` 兜住；404 文案只回显 id，不回显绝对路径。
+- **连接器配置片段防 `!!js` 注入（宿主 RCE）**：写入宿主 `cordis.patch.yml` 的 `!!js` 表达式不再把用户文本塞进模板字面量。文本按 `${VAR}` 占位符切成片段，字面量一律变成 JS 字符串常量（含注入嫌疑字符时整体 `\uXXXX` 转义），变量片段才是 `buildSecretExpr()` 生成的「读取本地加密凭据」表达式，用 `+` 拼接。用户输入永远只是字符串内容，反引号、非白名单 `${...}`、反斜杠都不再有机会被宿主求值；占位符替换功能不打折，凭据值始终只存在于加密的 `credentials.enc` 里，不会明文进 YAML。
 - `/asset` 只允许访问数据根内的文件：先做词法层 `path.resolve` 包含性检查，再对已存在的路径做 `realpath` 二次校验，阻断目录穿越与符号链接逃逸；
 - `/icon`、`/local-avatar`、`/import` 对 id 做 `^[A-Za-z0-9][A-Za-z0-9._-]*$` 白名单校验；
 - `/import` 的目标目录固定在 `$DSH_HOME/experts/` 下，源目录固定在本插件 clone 的 `repo/experts/` 下；
@@ -480,6 +487,7 @@ node --check lib/client.js
   代价：如果某个云端定义自报的 id 本身含非法字符（只有恶意/脏定义才会这样），它会以净化后的目录名落盘、并且无法通过卸载接口删除 —— 需要手动删 `$DSH_HOME/dsh-buddy-expert-hub/connectors/` 下对应目录；
 - `~/.dsh/ntd-resource` 只读：插件不会往里 clone / pull / 写文件；
 - 所有路由处理都包在 try/catch 中，插件初始化也包在 try/catch 中 —— 任何异常都只会让接口返回错误，不会阻断 dsh web 启动。
+- **卸载或删除条目时自动清理注入的上下文**：dock 点「×」/ 输入框选择器取消选中走 `/detach`，disposer 先撤销宿主 `systemPrompt.section()` 返回的独立注册（函数 / 对象 / void / Promise 形态都兼容，注册期直接返回 rejected Promise 时立即吞掉，不产生未捕获异常）再撤销 inject fiber；面板卸载连接器按具体 id（不用 null 全拆）清掉所有会话里该连接器的挂载与 pending，响应回报 `detachedSessions` 与中文 `detachNote`。`/attachments` 在索引缓存可用时一次算好源集合、遍历全部会话的注册表自愈清掉源已消失的专家 / 连接器（专家与连接器分表处理，id 撞名互不干扰，连续两次结果一致）；索引不可用（`loadIndexCache()` 返回 null，如首次启动 / 同步中途）或 `state.busy` 为 true 时一律跳过自愈、零 dispose，原样保留挂载，避免误清。**已知边界**：手动删仓库专家目录但索引缓存未重建时不会立刻自愈（源判定按旧索引），需点「刷新」重建索引；切到 git 数据源且 `indexSwitchPending` 时旧索引保留，自愈不检查该标志；同步失败且用户不点「刷新」时索引长期不可用，自愈长期跳过（宁可不清也不误清）。
 
 ---
 
