@@ -1,1 +1,13 @@
 .idea/
+
+# 内置资源只跟踪「技能」与技能自带 scripts：插件运行时目录与 mcps/ 属于宿主资源
+# （约 70MB），本插件不读，不该进仓库与发布包。
+builtin/*/mcps/
+builtin/*/builtin-plugins/*/dist/
+builtin/*/builtin-plugins/*/bin/
+builtin/*/builtin-plugins/*/prebuilds/
+builtin/*/builtin-plugins/*/core/
+builtin/*/builtin-plugins/*/agents/
+builtin/*/builtin-plugins/*/hooks/
+builtin/*/builtin-plugins/*/mcp/
+builtin/*/builtin-plugins/*/node_modules/

@@ -13,6 +13,8 @@ DeepSeek Harness（dsh）插件：把 WorkBuddy 的「专家 · 技能 · 连接
 
 支持搜索、分页加载、详情查看、快捷提示复制、MCP 配置复制，把专家 / 专家团**导入**成 DSH 原生专家格式，以及通过各标签页工具栏的 `+` 按钮**从文件夹**添加技能 / 导入专家 / 导入专家团（带格式校验、批量模式与幂等不覆盖）。
 
+输入框工具栏的**专家按钮**只列**已安装**的专家 / 专家团 / 技能 / 连接器；设置里还有一个「启用内置技能」开关，可把插件包内的内置技能一次性装进本地技能库（按系统取 `builtin/windows` 或 `builtin/linux`，装完在插件界面不可见，关闭开关即移除）。
+
 适用运行时：**dsh 0.1.5-rc.1**（`main` 为 keyed 插槽、`sidebar.panellist` 为 list 插槽，注册时只传 `label` 不传 `locale`）。
 
 ---
@@ -63,6 +65,66 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
 8. 已导入的专家会在列表**置顶**，卡片上带「本地」标识；
 9. 技能列表每页 60 条，滚动到底部或点「加载更多」继续加载；技能的两个子分组是「仓库技能 / SkillHub 商店」，不再有「已安装」子分组；
 10. 右上「刷新」按钮触发一次资源仓库同步（数据源是本机目录时改为重新读取该目录，不联网）。
+
+### 在对话里引用技能（`/` 指令）
+
+技能引用发送后，用户消息里**只显示 `/技能名`**，不会把整篇 `SKILL.md` 提示词塞进发送内容：
+
+- 触发字符**只有 `/`**：在输入框输入 `/`，从「技能」分组里选已安装且开启的技能。**插件不再注册 `@` 触发源** —— `@` 完全回归宿主原生的「文件或对话」候选，插件不会往里面塞专家 / 专家团 / 技能 / 连接器任何条目；这四类一律从输入框工具栏的**专家按钮**（自绘紧凑选择器）里选。这里说的是**输入触发符**的口径，不代表下面三个引用入口被删掉。
+- 指令名取自 `/skills/installed` 返回的 `dir`，也就是宿主原生技能目录名（由 `SKILL.md` frontmatter 的 `name` 净化而来），**不是**资源仓库里的相对路径 `skills/<集合>/<名字>`。
+- 宿主启动时会扫描 `$DSH_HOME/skills/<dir>/SKILL.md` 并在需要时**按需加载**，插件再把整篇正文内联进用户消息是重复且有害的（发送时看到整篇提示词、白白消耗 token）。因此 `codec.serialize` 对技能只返回 `/技能名`，不再内联 `SKILL.md` 正文、指令段或资源目录指针；正文交给宿主原生 skill 机制。
+- **技能引用有三个入口，三者发送后统一为 `/技能名`、都不会内联正文**：① 输入框 `/` 菜单（主路径，技能候选只在这里出现）；② 列表页技能卡片的「引用」气泡；③ 工具栏自绘紧凑选择器（`conversation.input.overlay` 的「技能」分类，它不是 `@` 触发源，故仍保留）。三者都会先命中已安装记录、统一插入结构化引用 `skill:<dir>`，由同一份 `codec` 展开成 `/技能名`；旧草稿里残留的 `skill:skills/<集合>/<名字>` 会取末段净化成合法指令名后降级输出，不会报错。
+- 三个入口的技能引用都要求**已安装且开启**：未安装提示先点卡片上的 `+` 安装，已关闭提示到「已安装」里开启；关闭的技能宿主扫描不到，自然也不会出现在 `/` 菜单里。工具栏自绘选择器的「技能」分类仍按 `/pick` 列出仓库技能，但选中未安装 / 已关闭技能时只给上述中文提示，**不再产出降级指令名**。
+- **连接器不变**：仍是会话常驻（`/attach` → dock chip）+ 发送时内联 MCP 配置；专家 / 专家团仍走 `/attach` 单选语义。三条链路互不影响。
+- 宿主契约：`/` 同时是宿主内置 slash-menu 的触发符。插件注册前会探测 `inputTriggers`（`registerSource` 是否可用、是否已有同名源或占用 `/` 的源）；注册被拒时先尝试自定义前缀 `/skill`，两者都被拒则明确告警「宿主不允许 / 触发源，需要宿主侧配合；技能引用暂不可用」，**绝不静默把技能退回 `@` 菜单**。注册结果可在控制台用 `__expertHubDiag().skillTrigger` 查看；`__expertHubDiag().atTrigger` 会如实写着 `@` 源已注销。
+
+### 输入框专家按钮：只列已安装
+
+点击输入框工具栏的专家按钮后，二级列表**只列本机已安装的条目**（请求带 `installed=1`，过滤在服务端做）：
+
+- 专家 / 专家团：只保留本地已导入的条目（`local: true` / `source: 'local'`）；
+- 技能：只保留 `$DSH_HOME/skills/` 里真实存在的技能（含已关闭的，选中时给「已关闭」中文提示），**内置技能开关装进来的那批不列**；
+- 连接器：只保留本地已定义 / 已安装的连接器（`origin: 'local'` 或 `installed: true`）；
+- 某一类一条都没有时，给出可读中文 + 一个「打开面板安装」按钮，直接跳到侧栏面板去装；
+- 技能条目由后端额外下发 `dir`（宿主原生技能名）与 `enabled`，前端不再二次解析 `/skills/installed`；老响应缺这两个字段时回落到本地快照。
+
+> 面板自身的列表页（四个 Tab）**不受影响**，仍然是「全部 / 已安装 / 云端」三视图；`installed=1` 只作用于输入框选择器与显式传参的调用方。
+
+### 内置技能（设置里一个开关）
+
+设置弹窗里有「**启用内置技能**」开关（`role="switch"` + 原生 `checkbox`，浅色主题）：
+
+- 开启 = 把插件包内**两个来源**的技能**全部安装**到 `$DSH_HOME/skills/`；关闭 = 把它们**全部移除**：
+  - `builtin/<platform>/skills/*` —— 随包发布的独立技能（Windows 当前 **24** 个、Linux 当前 **27** 个，数量取决于随包目录内容）；
+  - `builtin/<platform>/builtin-plugins/<插件>/skills/*` —— 内置插件里**自包含**的技能（Windows 当前 **11** 个、Linux 当前 **5** 个；纳入前要先过滤，见下一条）。
+- 平台目录：`win32 → builtin/windows`，其它平台（darwin / linux 等）→ `builtin/linux`；目录不存在或为空时按「0 个技能」处理，开关仍可点、不报错；
+- **插件技能为什么要筛**：内置插件里的技能大多依赖**所属插件的运行时**（`mcp__*` 工具、`ToolSearch` 发现的工具、`editor_sdk` 本地服务、插件根的 `core/ agents/ hooks/ shared/ dist/ bin/ prebuilds/`，或不在自己目录里的 `scripts/...`）。这些技能单独复制到 `$DSH_HOME/skills` 会变成「列表里看得见、一调用就报工具不存在」，比不装更糟。所以只纳入**完全自包含**的技能，判定原则是**宁可少装，不装坏技能**。
+  读 `SKILL.md`，命中任一即排除，共 9 条规则、判定顺序固定（返回第一条命中的原因）：
+
+  | # | 判据 | 中文原因 |
+  | --- | --- | --- |
+  | 1 | 目录里没有 `SKILL.md` | `缺少 SKILL.md` |
+  | 2 | 文本含 `mcp`（不区分大小写） | `依赖 MCP 能力` |
+  | 3 | 文本含 `ToolSearch` | `依赖 ToolSearch 发现的工具` |
+  | 4 | 文本含 `editor_sdk`（不区分大小写） | `依赖 editor_sdk 本地服务` |
+  | 5 | `allowed-tools:` 后跟实际值 | `声明了 allowed-tools 限制` |
+  | 6 | `../Xxx`（`../` 后接 ASCII 字母） | `引用了插件上级目录` |
+  | 7 | `core/` `agents/` `hooks/` `shared/` `dist/` `bin/` `prebuilds/` | `引用插件内目录` |
+  | 8 | `Plugin` / `插件` 字样 | `依赖插件运行时` |
+  | 9 | 提到的每个 `scripts/<相对路径>` 不在本技能目录内 | `引用的脚本不在技能目录内` |
+
+  > 这套规则只作用于**插件来源**；`builtin/<platform>/skills` 是宿主发布的独立技能包，原样安装、不做文本筛查 —— 实测顶层技能里也有不少命中上述关键字（例如正文里出现 `bin/`、`不要 ToolSearch`、`mcp__miora__*` 这类说明或工具名），按规则筛会大量误杀。
+
+  > 规则 1 里 `allowed-tools:` 后面为空**不算**命中（内置插件里多个技能故意留空占位）；规则 5 只查文件存在性，不做语义解析。
+  > 当前实测（Windows）：**11 个纳入**（`ardot` 的 `ardot-design-to-code` / `ardot-poster` / `ardot-slides` / `ardot-ui-design` / `design-router` / `livestream-poster`，`workbuddy-docx` 的 `design-token` / `doc-typeset` / `generate-fillable-contract-html` / `html-review`，`workbuddy-pptx` 的 `workbuddy-pptx`），**15 个排除**（`ardot-design-core`、`calendar-management`、`library-office-edit`、`tencent-docs`、`tencent-saas-docs`、`tencent-private-docs`、`weixinpay-feedback` / `-pay` / `-register`、`brief-compose`、`format-extract`、`html-to-doc`、`tdoc-orchestrator`、`workbuddy-sheet-generation`、`workbuddy-sheetagent`），合计可装 **35**（24 + 11）。Linux 目录当前为顶层 27 + 插件 5 = **32** 可装、插件来源排除 11。这些数字随随包目录内容变化，以 `GET /builtin/skills` 的 `counts` 为准。排除明细连原因一起在 `excluded` 里可见。计算是**运行期按规则算**的，不是写死名单：插件目录里增删技能或改 `SKILL.md`，名单跟着变。
+- **为什么不做「整包安装插件」**：CodeBuddy 插件包（`builtin-plugins/<插件>/`）里没有 dsh 的 bundle 入口，宿主也不认这种目录结构；宿主的插件注册表是 `~/.workbuddy/plugins` 下的私有格式，直接往里写会与宿主自己的插件清扫/版本管理冲突（重装、清理、升级都可能把它删掉或改坏）。所以内置插件只作为**技能来源**被读取，不改写成宿主插件。
+- 装进去的每个目录内会写一个 `.builtin-skill.json` 标记（`{from, platform, sourceDir, origin, plugin, installedAt}`），**只有带这个标记的目录才会被移除**；
+- **不覆盖同名技能**：目标目录已存在但没有标记（用户自己装的）→ 跳过，并在 `skipped` 里写明「同名技能已存在，未覆盖」，用户文件逐字节不动；
+- **重名处理**：`builtin/<platform>/skills` 先占目录名，插件来源撞名时追加 `-2`、`-3`；
+- **幂等**：重复开启 = 覆盖升级，计入 `updated`；重复关闭 = 没有可移除的就删 0 个；
+- **这些技能在插件界面完全不可见**：`/skills/installed` 与 `/pick?installed=1` 都会把它们排除（宿主启动时仍会原生扫描 `$DSH_HOME/skills` 正常加载它们）；
+- **启动不自动安装**：只由用户显式开关触发。若已开启但目录被手动删掉，再关一次或再开一次即可恢复；
+- 复制限制（单文件 ≤ 2MB / 单技能 ≤ 40MB / 单技能 ≤ 400 文件，跳过符号链接），超限的技能整体失败并记入 `skipped`，不影响其它技能（插件来源超限的会在筛选阶段就排除，原因 `体积超过复制上限`）。
 
 ---
 
@@ -351,7 +413,7 @@ order: 300
 - 已知文本扩展名（`.md/.json/.yml/.yaml/.svg/.py/...`）按 `utf8` 读取，其余（含 `.png/.jpg/.webp` 与未知类型）按 `base64` 读取；
 - 单文件 ≤ 2MB、最多 200 个文件、解码后总计 ≤ 20MB，前后端双重限制；
 - 拒绝 `..`、绝对路径、Windows 盘符、反斜杠路径与符号链接，`path.relative` 二次校验；
-- 技能落 `$DSH_HOME/skills/<净化后的名字>/`（复用 `skillDirNameOf()`）；专家 / 专家团落 `$DSH_HOME/experts/<id>/`（DSH 原生 `expert.yml` / `role.md` / `avatar.*` / `team.json`）；
+- 技能落 `$DSH_HOME/skills/<净化后的名字>/`（复用 `skillDirNameOf()`），这正是宿主启动时扫描的**原生技能目录**：装好并开启后，对话里用 `/<净化后的名字>` 即可让宿主按需加载它的 `SKILL.md`，插件不会再内联正文；专家 / 专家团落 `$DSH_HOME/experts/<id>/`（DSH 原生 `expert.yml` / `role.md` / `avatar.*` / `team.json`）；
 - **绝不覆盖已存在目录**：同名返回 `already:true`，用户手工改过的内容保持不变。
 
 接口与响应见下方 `POST /import/folder`。
@@ -365,7 +427,7 @@ order: 300
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/status` | `{ ok, repoReady, indexReady, lastSync, counts:{experts,teams,skills,connectors,connectable,unsupported}, localCounts:{experts,teams}, sourceUrl, sourceKind, dataRoot, indexDataRoot, indexStale, library, hasSkills, connectorSource, connectorSkipped, skipped, busy, progress, lastError, lastErrorRaw, warnings, importedCount, baseDir, localExpertsDir }`（本轮**没有新增 `/status` 字段**；新增的 `indexSwitchPending` 只写进 `state.json`，不对外暴露）；`counts.experts/teams` 为合并去重后的数量，与列表一致；`counts.connectors` 是**现算**的两源合并总条数（常规模式不进索引；本地资料库模式改用导出包快照），`counts.connectable` / `counts.unsupported` 是其中宿主能装载 / 装载不了的条数（`connectable + unsupported === connectors`）；`connectorSource` 为 `repo` / `none` / `library`；`connectorSkipped` 是**真正解析不了**（缺 id / 结构异常）的条数，正常数据下为 0 —— 它和「不可连接」不是一回事；`lastError` 是给人看的中文，`lastErrorRaw` 是原始错误堆栈；`sourceKind` 为 `git` / `local`，`local` 时 `dataRoot` 是设置里配置的本机目录；`busy` 是**真实的同步中状态**（不是恒 `true`）；`indexDataRoot` 是当前索引对应的数据根，`indexStale` 在「切到 git 数据源、数据根变化」时为 `true` —— 包含冷启动作废旧缓存、当前无索引的情况（此时 `indexDataRoot` 取 `state.json` 里记录的旧根），前端据此提示点「刷新」 |
-| GET | `/settings` | `{ ok, sourceUrl, sourceKind, defaultUrl, usingDefault, skillhubUrl }`；`sourceKind` 同上 |
+| GET | `/settings` | `{ ok, sourceUrl, sourceKind, defaultUrl, usingDefault, skillhubUrl, builtinSkills, builtinPlatform, builtinSkillCount, builtinSkillPluginCount, builtinSkillExcluded }`；`sourceKind` 同上。`builtinSkills` 是内置技能开关状态（旧 `state.json` 无该字段时缺省 `false`），`builtinPlatform` 为 `windows` / `linux`，`builtinSkillCount` 是插件包内当前平台**可用技能总数**（设置弹窗用它渲染「N 个技能」），`builtinSkillPluginCount` 是其中来自内置插件的自包含技能数，`builtinSkillExcluded` 是内置插件里因依赖插件运行时未纳入的数量（后两个只用于开关描述里的补充说明，缺字段时前端只显示总数） |
 | POST | `/settings` | body `{ sourceUrl, skillhubUrl? }` → `{ ok, sourceUrl, sourceKind, skillhubUrl }`。`sourceUrl` 可填 `https://` / `git@` 仓库地址或本机目录绝对地址；本机目录会校验存在性与 `experts/` / `skills/` / `connectors/` 结构，不合格返回 400 并给出中文原因；相对路径返回 400 且错误含「绝对路径」。数据根变化时按新数据源分流：**新源为本机目录** → 旧索引立即作废（`state.index` 清空 + 删 `index.json`），下次请求懒加载自动重建、不联网、不自动触发 git；**新源为 git** → 保留旧索引、不触发同步，`/status` 报 `indexStale: true` 由前端提示点「刷新」，并把 `indexSwitchPending: true` 写进 `state.json`（重启后仍提示、仍不自动克隆）；**git 地址互换且数据根不变** → 什么都不做 |
 | POST | `/settings/reset` | 清除自定义地址、回到 `SOURCE_URL`，返回 `{ ok, sourceUrl, sourceKind: 'git', defaultUrl, usingDefault: true }`；数据根变化时按「新源为 git」处理，保留索引并置 `indexStale` |
 | POST | `/refresh` | 触发同步；默认立即返回 `{ started, busy }`，加 `?wait=1` 则等待完成后再返回状态。`progress` 每秒回写「已用时 Ns」 |
@@ -373,6 +435,10 @@ order: 300
 | GET | `/teams` | 同上，只返回 `expertType=team` |
 | GET | `/categories` | 专家分类聚合 `[{ id, count, label }]` |
 | GET | `/skills` | `q` / `collection` / `limit`(默认 60) / `offset` → `{ ok, total, items, collections }`；`collections` 的计数按**当前过滤结果**重算（搜索时组头显示的是命中数，不是集合全量）；数据源无 `skills/` 时返回 `{ ok:false, code:'skills-missing', error:'技能数据尚未同步，请点击刷新' }` |
+| GET | `/skills/installed` | 列出 `$DSH_HOME/skills/`（含 `skills-disabled/`）里的已安装技能：`{ ok, items:[{ dir, name, description, source, enabled, slug, installedAt, path }] }`。`dir` 是宿主原生技能名，`/` 菜单只取 `enabled === true` 的项并把它当 `/` 指令名；关闭态目录宿主扫描不到。**内置技能开关装进来的目录（含 `.builtin-skill.json` 标记）不在此列表里出现** |
+| GET | `/pick` | 输入框选择器候选源，返回 `{ ok, keyword, installedOnly, groups:[{ kind, title, total, items }] }`（agent / team / skill / connector 四组）。`installed=1`（等价写法 `scope=installed`）只返回**已安装**条目：专家 / 团队看 `local === true` 或 `source === 'local'`；技能看本地技能库（`dir` / frontmatter `name` / `slug` / 仓库 `id` 末段任一命中，且排除内置技能开关装的那批），并额外下发 `dir` 与 `enabled`；连接器看 `origin === 'local'` 或 `installed === true`。过滤后 `group.total` 是**过滤后**的数量。不带参数时行为与此前完全一致（全量） |
+| GET | `/builtin/skills` | 内置技能总开关概览（**只给设置弹窗显示数量与排除说明用**，不是给用户浏览技能列表）：`{ ok, platform, enabled, root, pluginsRoot, available:[{ dir, name, description, installed, origin, plugin }], excluded:[{ plugin, dir, reason }], excludedTruncated, counts:{ available, installed, plugin, excluded } }`。`available` 是真正可安装的那批（`origin`：`'skills'` = `builtin/<platform>/skills`，`'plugin'` = 内置插件里的自包含技能，`plugin` 为所属插件目录名，顶层来源为空串）；`excluded` 是内置插件里因依赖插件运行时**未纳入**的技能及中文原因（**最多 30 条**，超出置 `excludedTruncated: true`，`counts.excluded` 始终是真总数）；`counts.plugin` 是 `origin === 'plugin'` 的条数 |
+| POST | `/builtin/skills/toggle` | body `{ enabled: boolean }`（非布尔返回 400，GET 返回 405）。开启 → 全量安装 `available` 里的技能（`excluded` 永不安装）并置 `state.settings.builtinSkills = true`，响应带 `{ total, installed, updated, skipped:[{dir,reason}] }`（`total` = 可用总数，当前 35）；关闭 → 只移除带标记的目录并置 `false`，响应带 `{ removed:[dir] }`。两种响应都带最新 `counts` |
 | GET | `/connectors` | `q` / `limit` / `offset` → `{ ok, total, items }` |
 | GET | `/detail` | `type`(`expert`\|`team`\|`skill`\|`connector`) + `id` → 单项完整信息 + `readme`（agent markdown / SKILL.md 正文前 2000 字）；专家优先查本地已导入目录 |
 | GET | `/asset` | `path`（相对数据根的 POSIX 路径）→ 图片二进制，按扩展名 + 魔数返回真实 MIME |
@@ -403,11 +469,13 @@ order: 300
 $DSH_HOME/                       # 默认 ~/.dsh
 ├── ntd-resource/                # NTD 已同步副本（只读复用，可能无 skills/）
 ├── experts/<id>/                 # 本地专家（DSH 原生格式，导入落点 & 权威来源）
+├── skills/<dir>/                 # 本地技能库（宿主原生扫描；内置开关装进来的带 .builtin-skill.json）
+├── skills-disabled/<dir>/        # 被「关闭」的技能（移出 skills/，宿主扫描不到）
 └── dsh-buddy-expert-hub/
     ├── repo/                     # 插件自己的浅克隆（带 skills/）
     ├── imported/<id>/bundle/     # 导入时额外保留的 WorkBuddy 原始目录
     ├── index.json                # 索引缓存（重启后直接读取）
-    └── state.json                # { lastSync, dataRoot, importedIds }
+    └── state.json                # { lastSync, dataRoot, importedIds, settings:{ sourceUrl, skillhubUrl, builtinSkills } }
 ```
 
 本地专家会被**合并进「专家 / 专家团」列表并置顶**（`local: true`、`source: 'local'`），卡片带「本地」标识，详情页「导入」按钮为禁用态「已导入 ✓」。
@@ -432,11 +500,15 @@ dsh-buddy-expert-hub/
 │   ├── connector-provision.js # 连接阶段：生成并写入宿主 mcp-client 片段
 │   ├── connector-secret.js    # 凭据 AES-256-GCM 本地加密
 │   └── frontmatter.js         # SKILL.md frontmatter 解析
+├── builtin/                   # 内置技能（随包发布的只读资源，必须进 files）
+│   ├── windows/skills/<dir>/  # 来源一：Windows 平台内置技能（每个含 SKILL.md）
+│   ├── windows/builtin-plugins/<插件>/skills/<dir>/  # 来源二：内置插件里的技能（只装自包含的，见「内置技能」一节）
+│   └── linux/                  # 其它平台（darwin / linux）：结构同 windows，内容随包不同（当前 27 个独立技能 + 5 个插件技能）
 ├── scripts/build-connectors.mjs   # 资源仓库维护工具（见下节）
 └── README.md
 ```
 
-**没有 `data/` 目录**：插件不再内置连接器清单与图标，`package.json` 的 `files` 只发布 `lib` / `cordis.patch.yml` / `README.md`。
+**没有 `data/` 目录**：插件不再内置连接器清单与图标，`package.json` 的 `files` 发布 `lib` / `builtin` / `cordis.patch.yml` / `README.md`；`scripts/check-package.mjs` 会断言 `builtin` 已进 `files`（漏了就会出现「开启内置技能后 0 个技能」）。
 
 零 npm 依赖、零构建步骤：host 半是纯 ESM，client 半是一个由 `window.__ModuleLoader__` 加载的普通脚本，使用 `React.createElement` 而不用 JSX。
 
