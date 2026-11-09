@@ -1,0 +1,11 @@
+{
+  "name": "Excel 表格处理",
+  "installedAt": 1794121851149,
+  "source": "marketplace",
+  "version": "1.2.0",
+  "skillId": "skill_2096528888507297792",
+  "description_zh": "创建、编辑、分析 Excel 表格：公式、图表、透视表与格式设置。",
+  "description_en": "Creates, edits, and analyzes Excel files: formulas, charts, pivot tables, formatting.",
+  "iconSource": "letter:auto",
+  "installedContentHash": "sha256:8bde3962ddd0e450c4c9862f66ae35759b3fd7c5eb08600ba894700196f520f9"
+}

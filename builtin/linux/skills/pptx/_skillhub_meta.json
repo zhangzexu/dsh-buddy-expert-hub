@@ -1,0 +1,13 @@
+{
+  "name": "PPT 演示文稿",
+  "installedAt": 1794121855774,
+  "source": "marketplace",
+  "version": "1.2.0",
+  "skillId": "skill_2096525080079265792",
+  "description_zh": "创建、读取、编辑 .pptx/.potx 演示文稿：幻灯片、版式、备注与模板。",
+  "description_en": "Creates, reads, and edits .pptx/.potx decks: slides, layouts, speaker notes, and templates.",
+  "iconSource": "https://openplatform-cdn.codebuddy.cn/public/skills/icons/pptx-generator.svg",
+  "installedContentHash": "sha256:875247f4ddd2fad0941a1ab880cc45affd28a1dd2b3910b3079b3d051cfe4bec",
+  "iconLocalPath": "/home/zzx/.workbuddy/skills/pptx/_icon.svg",
+  "iconDownloadedFrom": "https://openplatform-cdn.codebuddy.cn/public/skills/icons/pptx-generator.svg"
+}

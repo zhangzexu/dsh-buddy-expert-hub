@@ -1,155 +1,155 @@
 ---
 name: tencent-docs-routing
-description: Load this Skill before handling local Office/WPS files such as doc/docx/dot/wps/wpt, xls/xlsx/xlt/csv/tsv, or ppt/pptx/pps/pot, and before creating a new local document, spreadsheet, or presentation. Load first whenever the user uploads, mentions, previews, edits, or asks to create such a local file, to decide whether to use the local office editing Skill, the local spreadsheet agent, the spreadsheet generation Skill, or the PPT generation Skill. Text-based outputs such as speech scripts, talking points, copywriting, summaries, reports, or meeting minutes should default to local DOCX unless the user explicitly specifies another local format such as markdown or plain text. Other file types are out of scope.
-author: Tencent Docs
-version: "0.1.3"
+description: Office 文档能力的统一入口路由。当用户要新建 / 生成 / 读取 / 编辑 / 美化 / 转换 DOCX、XLSX、PPTX，或提到报告、合同、表格、演示文稿、套模板、参考某份文档排版时，先判定唯一的主技能，然后**立即加载该技能并按其流程执行**。本技能只做路由判定与加载，不直接产出文件。
+category: workflow
+version: "2.0.0"
+tags: [routing, office, docx, xlsx, pptx, orchestration]
+user-invocable: true
+disable-model-invocation: false
 ---
 
-# Local Office/WPS Routing
+# 文档能力路由（v2.0.0）
 
-> **This is the gate you MUST read before handling local Office/WPS files — doc/docx/dot/wps/wpt, xls/xlsx/xlt/csv/tsv, or ppt/pptx/pps/pot — AND before generating/creating any new local document, spreadsheet, or presentation.** This Skill only describes local file operations. It routes **content** work only — reading a document's content into context, editing, creating, transforming, and the like. Simply opening, previewing, or presenting a document for the user to *view* is the host's preview/present surface, not content work — call the host preview/present tool directly instead of routing it through this Skill.
+本技能是**路由层**：把用户的文档诉求映射到本环境真实存在的技能，并把执行权交给它。
+路由层自身不生成文件、不排版、不转换、不猜测产物落点。
 
-## Host document context
+---
 
-The host injects a `<tencent_docs_editor_context>` block that surfaces local documents (e.g. `<active_document type="local" .../>`, `<local_files>`). Route each surfaced document by the file-type rules below.
+## §0 铁律：路由必须落到加载
 
-If the context block already injected a `file_id` for a document, follow the **Injected `file_id`** rule in [file_id resolution](#file_id-resolution-local-documents).
+**判定出目标技能 ≠ 完成路由。判完之后必须接着加载它。**
 
-## Supported Local Formats
+「加载」= 读取目标技能目录下的 `SKILL.md` 全文，并严格按其中规定的流程、参数与门禁执行，直到交付真实产物或如实报告失败。
 
-Use these extensions to decide whether this routing Skill applies:
+- ✅ **正确**：识别到「帮我写一份季度经营分析报告」→ 判定主技能 `tdoc-orchestrator` → 读取它的 `SKILL.md` → 按 S1 创作 / S2 排版 / S3 转换逐阶段执行 → 交付 `.docx`。
+- ✅ **正确**：识别到「把这份数据做成柱状图表格」→ 判定主技能 `xlsx` → 读取它的 `SKILL.md` → 按其流程产出 `.xlsx`。
+- ❌ **错误**：只在回复里说「这个需求需要 `tdoc-orchestrator`」就停下，没有读取该技能、没有执行任何一步。
+- ❌ **错误**：列出 2~3 个「可能相关」的技能名让用户自己选，然后结束回合。
+- ❌ **错误**：判定后直接自己手写一段 HTML / 拼一个文件应付，绕过目标技能的既定流程。
 
-| Type | Supported local file extensions |
+> **只说出技能名而不加载 = 路由未完成**，等同于没有响应用户诉求。
+
+### 一次只加载一个主技能
+
+- 每轮只判定并加载 **一个**主技能；不要把多个主技能同时拉起来。
+- 需求横跨多段能力时，由**主技能内部**按自己的流程再加载下一级能力，路由层不越级拼装。
+  - 例如 `tdoc-orchestrator` 内部依次为 `design-token` → `doc-typeset` → `html-review` → `html-to-docx`；这些是主技能内部的编排，不是路由层的并行选择。
+- 若确有多个互不隶属的独立诉求（例如「既要做一份报告，又要做一份演示文稿」），**分多轮依次处理**：先完成第一个主技能并交付，再回到路由判定处理第二个。
+
+---
+
+## §1 支持的格式与主技能
+
+| 格式 | 典型扩展名 | 主技能 | 说明 |
+|---|---|---|---|
+| Word 文档 | `.docx` / `.doc` | `docx` | 本地 Word 的读取、编辑、校验与渲染 |
+| 电子表格 | `.xlsx` / `.xls` / `.csv` | `xlsx` | 表格的新建、读取、编辑、公式与校验 |
+| 演示文稿 | `.pptx` / `.ppt` | `pptx` | 本地 PPTX 的读取与编辑 |
+| 演示文稿生成 | `.pptx` | `pptx-generator` | 从主题 / 大纲 / 数据生成整套演示文稿 |
+| 长文档创作与转换 | `.docx` | `tdoc-orchestrator` | 创作 → 排版 → 质量门禁 → 转换的编排主技能 |
+| 短篇文档 | `.docx` | `brief-compose` | 1000 字以内的短篇快速成稿 |
+| 待填合同 HTML | `.html` | `generate-fillable-contract-html` | 生成带书签占位的可填写合同 |
+| 排版质量门禁 | `.html` | `html-review` | 对 HTML 做确定性评分与门禁 |
+| 参考文档格式提取 | `.docx` → `.html` | `format-extract` | 提取标题层级、表格、缩进、字体等结构信息，产出语义化 HTML 供套版分析 |
+
+---
+
+## §2 路由判定表
+
+### §2.1 新建 / 生成类
+
+| 用户诉求 | 主技能 | 备注 |
+|---|---|---|
+| 写报告 / 写方案 / 写论文 / 长文创作 / 套模板生成正式文档 | `tdoc-orchestrator` | 走完整三阶段编排 |
+| 1000 字以内的短篇（通知、简短说明） | `brief-compose` | 短篇快速通道 |
+| 生成可填写的合同模板 | `generate-fillable-contract-html` | 产出 HTML 占位文档 |
+| 从主题 / 大纲 / 数据生成整套演示文稿 | `pptx-generator` | 走读设计系统 → 写设计说明 → 生成 → 门禁 |
+| 新建 / 生成一个电子表格 | `xlsx` | 表格数据、公式、样式 |
+| 新建一个空白或简单的 Word 文档 | `docx` | 轻量本地文档 |
+| 已有一份 HTML 想转 `.docx` | `html-to-docx` | 转换环节能力 |
+
+> **纯文本类产出默认 DOCX**：用户只说「写一份…」「整理成文档」「出个报告」而未指定格式时，默认按长文档处理，主技能为 `tdoc-orchestrator`，交付 `.docx`；仅当明确出现「表格 / 数据表 / Excel」「PPT / 演示 / 幻灯片」时才切换到 `xlsx` / `pptx-generator`。
+
+### §2.2 读取 / 编辑类
+
+| 用户诉求 | 主技能 | 备注 |
+|---|---|---|
+| 打开、读取、修改本机已有的 `.docx` | `docx` | 本地文件读写 |
+| 打开、读取、修改本机已有的 `.xlsx` / `.csv` | `xlsx` | 含公式重算与校验 |
+| 打开、读取、修改本机已有的 `.pptx` | `pptx` | 本地文件编辑 |
+| 参考某份 DOCX 的排版风格去套用 / 提取格式 | `tdoc-orchestrator` | 编排内先用 `format-extract` 把参考 docx 提成语义化 HTML，再据此排版生成 |
+| 检查一份 HTML 的排版是否达标 | `html-review` | 输出评分与整改项 |
+
+### §2.3 边界情形
+
+| 情形 | 判定 | 理由 |
+|---|---|---|
+| 「把这份文档美化一下」 | `tdoc-orchestrator` | 美化 = 重新排版并转换，属于创作编排，不是就地编辑 |
+| 「把第三段改成…」 | `docx` | 就地编辑既有文件，不重排版 |
+| 用户上传了参考材料（PDF / DOCX / 表格）要据此生成新文档 | 先判定产物类型主技能，再由主技能内部决定如何读取材料 | 路由层不单独为「读材料」再开一个主技能 |
+| 已有 XLSX 里再加一个 sheet | `xlsx` | 就地编辑，不新建 |
+| 已有 XLSX 的数据要做成一页图表放进报告 | `tdoc-orchestrator` | 产物是文档，表格只作为输入 |
+| 只是问「该用哪个技能」而不要求产物 | 给出唯一判定 + 立即加载 | 铁律同样适用，不能只答名字 |
+| 目标技能明确不存在或环境不具备 | 走 §6 失败降级 | 如实告知，禁止伪造产物 |
+
+---
+
+## §3 一句话速查
+
+- 写长文档 → `tdoc-orchestrator`；写短篇 → `brief-compose`；填合同 → `generate-fillable-contract-html`。
+- 表格 → `xlsx`；演示文稿生成 → `pptx-generator`；本地 PPTX 编辑 → `pptx`。
+- 编辑已有 Word → `docx`；HTML 门禁 → `html-review`；HTML 转 Word → `html-to-docx`。
+- 参考排版提取 → `format-extract`（`.docx` → 语义化 HTML），套版走 `tdoc-orchestrator`。
+- **判完就加载，别停在名字上。**
+
+---
+
+## §4 五条判定原则
+
+1. **按产物定主技能，不按动词定**：看用户最终要拿到什么文件，而不是「写 / 改 / 看」哪个动作。
+2. **一次一个**：见 §0「一次只加载一个主技能」；多诉求分轮处理。
+3. **就地编辑优先本地技能**：只改既有文件内容，用 `docx` / `xlsx` / `pptx`；要重排版、重生成，用编排或生成类主技能。
+4. **未指定格式默认 DOCX**：见 §2.1 的纯文本默认规则。
+5. **不确定就追问，但只问一轮**：确实无法判定时，用下面的模板一次性问清，拿到答案后立即回到判定并加载。
+
+> **追问模板**
+> 「为了选对处理方式，请一次性告诉我：① 最终想要的文件类型（Word / 表格 / 演示文稿）；② 是新建一份，还是修改已有文件；③ 若是修改，请给出文件路径。未说明的部分我按『新建 Word 文档』处理。」
+
+---
+
+## §5 交付与预览
+
+- 主技能按其自身流程产出真实文件；路由层不替代它生成、不改写它的产物。
+- 交付时向用户说明：产物的绝对路径、文件类型、由哪个主技能产出。
+- 若主技能规定了预览或质量门禁（例如 `html-review` 评分、`pptx-generator` 门禁），必须等门禁通过后再交付；未通过则按主技能的整改流程处理。
+- 不把中间产物当成最终交付物。
+
+---
+
+## §6 失败降级（禁止伪造产物）
+
+| 失败场景 | 处理 |
 |---|---|
-| doc | `.doc` `.dot` `.wps` `.wpt` `.docx` `.dotx` `.docm` `.dotm` |
-| sheet | `.xls` `.xlt` `.xlsx` `.xltx` `.xlsm` `.xltm` `.csv` `.tsv` |
-| slide | `.ppt` `.pps` `.pot` `.pptx` `.ppsx` `.potx` `.pptm` `.ppsm` `.potm` |
+| 判定出的主技能目录 / `SKILL.md` 不存在 | 如实告知「本环境缺少该能力」，列出已尝试的路径，**不加载替代品硬凑** |
+| 主技能执行报错、依赖缺失 | 按主技能自身给出的环境自举步骤处理一次；仍失败则如实报告 stderr 要点与退出码 |
+| 质量门禁未通过 | 按主技能的整改上限修复；超限则如实告知未达标项，不谎报通过 |
+| 用户诉求超出本环境能力 | 明确说明做不到，给出可执行的替代建议（例如换一种格式重述需求） |
 
-Macro-enabled files (`.docm` `.dotm` `.xlsm` `.xltm` `.pptm` `.ppsm` `.potm`) can be opened as their corresponding doc/sheet/slide type, but macros are not executed. WPS-specific `.et` `.ett` `.dps` `.dpt` are not supported; ask the user to save them as `.xlsx` or `.pptx` first.
+> **一律禁止**伪造文件、伪造门禁结果、假装已加载或假装已交付。静默失败比明确失败更糟。
 
-## New Local File Creation
+---
 
-When the user asks to **generate / create / produce** a new document, spreadsheet, or presentation, produce a local Office/WPS-type file and route by file type.
+## §7 变更记录
 
-### Format classification (prerequisite step)
+`2.0.0` 全文重写。目标技能名全量替换为本环境真实存在的目录；新增 §0「路由必须落到加载」铁律与「一次只加载一个主技能」约束；补充纯文本默认 DOCX 规则、边界情形、追问模板与失败降级纪律。
 
-When the output the user requests is essentially structured textual content — such as speech scripts, talking points, copywriting, summaries, reports, or meeting minutes — always classify it as a doc first, then apply the local DOCX creation path.
-Do not default to Markdown or plain text.
-Only when the user explicitly specifies another local non-DOCX format (e.g. "generate markdown" or "plain text is fine") is this rule overridden.
-This rule does not affect outputs that clearly belong to sheet (e.g. "make a spreadsheet") or ppt (e.g. "make a PPT").
+旧名 → 新名对照（仅此处保留旧名，正文 §0–§6 不再使用）：
 
-## Existing Local Documents
-
-> Note: This section applies to **existing local** documents that need to be read or edited. For **new** document creation, see "New Local File Creation" above.
-
-Every task resolves by file type and task nature:
-
-1. **Local doc/slide single-file edits** → load the **`tencent-local-office-edit`** Skill and operate through it.
-2. **Local PPT creation from source materials** → use the **`tencent-pptx`** Skill.
-3. **Local DOCX/Word creation from scratch, or an abstract whole-document beautification of an existing DOCX/Word file** → use the **`tencent-docx`** plugin (from-scratch creation → `full_pipeline`; whole-document abstract beautification → `beauty_only`). See the DOCX/Word sections below for the exact triggers and out-of-scope cases.
-4. **Creating a new workbook** — the user's intent is to produce a brand-new `.xlsx` file at a **new file path** (independent from any source file), regardless of whether reference materials (including source spreadsheet files used strictly as read-only references) are attached → use the **`tencent-docs-sheet-generation`** Skill. See "Creating a new workbook" below.
-5. **Any task that touches an existing workbook** — editing existing cells, **adding / removing / renaming sheets inside it**, analyzing, aggregating, cleaning, reformatting, or otherwise modifying the source workbook in place (the source `.xlsx` file itself is the deliverable) → follow the sheet routing rules below (never `tencent-docs-sheet-generation`).
-
-## Creating a new PPT from source materials
-
-When the user's intent is to create a new PPT based on source materials (e.g. DOCX, XLSX, PPT, PDF, etc.), strictly use the `tencent-pptx` Skill. This Skill has efficient built-in material parsing and processing capabilities; avoid parsing those materials by any other means.
-
-## Creating a new workbook
-
-Whenever the user asks to **produce a new workbook** — signaled by authoring verbs such as 生成 / 制作 / 新建 / 做一份…表 / 整理成 Excel / 汇总成一份新表 applied to a spreadsheet — strictly use the `tencent-docs-sheet-generation` Skill. The decisive condition is the **user's intent to produce a brand-new `.xlsx` file at a new file path**, not whether reference materials are attached: the content requirement may be pure text, or it may reference local materials — supported local reference types are PDF, DOCX, PPTX, and source spreadsheet files (`.xlsx` / `.xls` / `.csv` / `.tsv`) used strictly as read-only content references. When a source spreadsheet is supplied, apply the **intent test** below to distinguish "produce a NEW `.xlsx` file from these numbers" (route here) from "modify this workbook in place — including adding a new sheet inside it" (route to the sheet routes below). In every case hand the raw requirement and any referenced materials to the Skill and let it parse them; do **not** pre-parse those supported materials by any other means.
-
-### Intent test (only when a source spreadsheet is supplied)
-
-Route to `tencent-docs-sheet-generation` **only if all** of the following hold:
-- **New-file wording**: the user asks for a **new `.xlsx` file** (a separate workbook on disk) — e.g. "根据这个 xlsx **再生成一份新表**", "帮我基于这份 csv **整理成一份**销售统计表", "把这份数据做成一张**新的**汇总表". Look for verbs like 生成 / 新建 / 做一份 / 整理成 / 输出 / 另存 combined with a "new / another / separate" qualifier applied to **the file**, not to a sheet inside an existing workbook.
-- **Read-only source**: the source workbook is used purely as a content reference; its own cells and sheet structure are not modified.
-- **Deliverable is an independent file**: the primary deliverable is a fresh `.xlsx` at a **new file path different from the source**, not an in-place modification of the source workbook. **Adding a new sheet inside the existing workbook is an in-place edit, not generation** — it stays with the sheet routes below. Analysis output counts as generation **only when** the user explicitly asks for it as a separate NEW file (e.g. "汇总成一份新表"); the same analysis expressed as edits, annotations, or an added sheet inside the source is an edit, not generation.
-
-If the intent test fails (any modify-in-place / add-sheet-to-source / analyze-source / clean-source wording), do **not** route here — fall through to the sheet routing rules below.
-
-Out of scope (do **not** send here):
-- The user's intent is to modify the source workbook in place — e.g. "改这份 xlsx", "在这个表里加一列", "在这个工作簿里加一个汇总 sheet", "透视一下这份数据", "帮我清洗这个 csv". These stay on the sheet routes below (`tencent-docs-sheetagent` for data-dependent work, the `tencent-local-office-edit` Skill for deterministic edits).
-- The requested output is not a spreadsheet (doc / ppt / text) — follow its own creation route above.
-- The only reference material is a type this Skill cannot parse — e.g. an **image**, an archive, or any format other than PDF/DOCX/PPTX/XLSX/XLS/CSV/TSV. Do **not** hand such material to the Skill. Instead read its content into a plain-text requirement yourself first (e.g. read the numbers out of an image), then route that resulting pure-text request here as a normal workbook creation. If no usable content can be extracted, tell the user which inputs are supported (plain text, or PDF/DOCX/PPTX/XLSX/XLS/CSV/TSV references) rather than routing here.
-
-## Local DOCX/Word creation from scratch
-
-Whenever the user asks to **produce a new DOCX/Word file from zero** — signaled by authoring verbs such as 生成 / 写 / 起草 / 撰写 / 新建 / 重写 (重写 is treated as from-scratch creation here) applied to a document — strictly use the `tencent-docx` plugin. This is not restricted to specialized verticals: it covers ordinary everyday documents as well as recognizable professional genres such as research report (研报), annual report (年报), academic paper (论文), official/government document (公文), contract (合同), business report (商务报告), meeting minutes (会议纪要). In every case the plugin produces a complete document with an auto-generated cover page and professional, context-appropriate layout/typography; avoid assembling such documents by any other means.
-
-This route is for **from-scratch creation only**: the plugin does **not** ingest source materials (DOCX, XLSX, PPT, PDF, etc.). If the user supplies source materials to be turned into a document, do not route here — fall back to the standard DOCX/Word creation path via the `tencent-local-office-edit` Skill. Editing an existing DOCX/Word file likewise stays with `tencent-local-office-edit`.
-
-Concretely, the Orchestrator inside `tencent-docx` MUST decide `full_pipeline` directly at Stage 0 — no deliberation, no extra intent probing, no detour through lighter stages.
-
-## Whole-document beautification of an existing DOCX (abstract styling)
-
-When the user has already provided a single content document A AND asks for an **abstract, whole-document** beautification — expressions like "美化一下" / "更专业" / "更好看" / "排版优化" that require the AI to make design decisions without naming specific style values — AND **no** separate independent style-reference document B is attached, AND the request does **not** scope the beautification to a specific part of the document (e.g. "美化这个表格" / "美化这一段" / "调整第 X 节的样式"), use the `tencent-docx` plugin.
-
-In this case the Orchestrator inside `tencent-docx` MUST decide `beauty_only` directly at Stage 0 — no deliberation, no extra intent probing, no detour through other stages.
-
-Out of scope for this route (do **not** send here):
-- The user provided a style-reference document B alongside A (that is a different routing decision, not this one).
-- The user scoped the beautification to a specific fragment — a named table, a paragraph, a section, a page, etc. Localized style edits stay with the `tencent-local-office-edit` Skill.
-- The user specified concrete style values (fonts, sizes, colors, spacing, etc.) — that is a direct edit, not an abstract beautification.
-
-## Sheet Files (spreadsheets)
-
-**Prerequisite**: this section only handles tasks where the source workbook **is modified in place** — editing cells, adding / removing / renaming sheets inside it, analyzing, pivoting, cleaning, reformatting, or any other transformation whose deliverable is the source `.xlsx` file itself. Tasks whose intent is to produce a **new `.xlsx` file at a new path** — including those with a source spreadsheet used only as a read-only reference — belong to `tencent-docs-sheet-generation`; see "Creating a new workbook" above (and its intent test) for the routing rule and examples.
-
-Resolve local sheet tasks by task nature. The `tencent-local-office-edit` Skill is allowed only for a small, bounded set of deterministic edits; complex or data-dependent local tasks MUST use `tencent-docs-sheetagent`.
-
-**Decide from the request TEXT alone, never from the data.** Apply this one test to the user's wording:
-
-> Is the request a direct, deterministic edit — its operation type is fixed by the wording (format / border / merge / insert-delete rows·cols·cells / row-height·col-width / filter / sort / sheet add-delete-move / a formula written into a named cell) — and its target is either an explicit address or a label you can pin down by a single match?
-
-- **Yes** → operate through the `tencent-local-office-edit` Skill.
-- **Other sheet content work** → `tencent-docs-sheetagent`. No deliberation, no investigation.
-
-Match the work to the tool:
-
-| Route here | When the local sheet task is |
-|------------|------------------|
-| `tencent-local-office-edit` Skill | A semantically unambiguous read/write completing in **a small, bounded set of deterministic calls** — e.g. reading or writing one specific cell/range, sorting one column (operate through the Skill) |
-| `tencent-docs-sheetagent` | Data analysis · aggregation · pivot · stats, cross-sheet linkage, formula building, data cleaning, conditional formatting across ranges, or anything needing you to understand the data before deciding how to edit. For these local tasks, use `tencent-docs-sheetagent`; do not handle them through the `tencent-local-office-edit` Skill |
-
-For local sheet files, the `tencent-local-office-edit` Skill is a right route for any direct, deterministic edit that passes the routing test above. Locating is reading the file only to find where the operation applies or what its current state is. This covers any lookup whose answer is a determinate address or value the file already contains. It is allowed on the local route and does not push the task to `tencent-docs-sheetagent`. Understanding the data — reading values to decide what the edit should be: what a previous edit did, why something renders wrong, which rows qualify under a condition you must infer, or how to aggregate / compare / clean — is the data-dependence test failing, and goes to `tencent-docs-sheetagent`. Diagnosis, comparison, and verification are the subagent's job, exactly like data discovery — they are not part of routing. Delegating means **invoking the `tencent-docs-sheetagent` skill first** — call the Skill tool with the name `tencent-docs-sheetagent` — and spawning the `sheet-agent` subagent only as it instructs; do **not** spawn `sheet-agent` directly, even though the subagent is visible on the Agent tool. `tencent-docs-sheetagent` counts as unavailable **only** if that Skill call itself fails with a not-found / unknown-skill error; only then fall back to the `tencent-local-office-edit` Skill.
-
-**Atomic sheetagent delegation:** For one user request, if a local sheet task should enter `tencent-docs-sheetagent`, hand it the entire spreadsheet task — do not split the request by doing preparatory reads, partial writes, formatting, or cleanup through the `tencent-local-office-edit` Skill and then delegating only the remaining work. The only local calls allowed before delegating are the ones [file_id resolution](#file_id-resolution-local-documents) needs — nothing that touches document content. Note that tasks whose intent is to **produce a new `.xlsx` file at a new path** are not sheetagent tasks at all; they belong to `tencent-docs-sheet-generation` per the intent test above. Adding a sheet inside an existing workbook, on the other hand, **stays with sheetagent** — that is an in-place edit, not generation. Once `tencent-docs-sheetagent` is the route (or even a candidate), resolve the `file_id`, then **invoke the `tencent-docs-sheetagent` skill and follow its delegation contract** — do not spawn the `sheet-agent` subagent directly — forwarding the resolved `file_id`, the absolute path, and the user's request verbatim; the subagent only consumes a live `file_id` and must not open files or resolve paths itself. If the task involves another spreadsheet (e.g. comparing with, or restoring formats from, an original file), resolve that file's `file_id` the same way and pass **both** ids with their paths — do not read or inspect either file's content yourself. Saving after the subagent finishes stays with you, not the subagent — per the `tencent-local-office-edit` flow.
-
-Between resolving the `file_id` and delegating, make **no other** local call. Do not call `sheet_get_sheet_info`, do not read cells or ranges, do not pre-locate the data, and do not "look at the data first to understand it" — data discovery (sheets, headers, ranges) is the subagent's job, and any pre-reading splits the task (see [Atomic sheetagent delegation](#sheet-files-spreadsheets) above). If a plan you formed before reading this Skill included "read the data, then delegate", drop the read step. If the subagent rejects the `file_id` you passed, re-check it per [file_id resolution](#file_id-resolution-local-documents) and re-delegate; do **not** switch to reading the data yourself.
-
-### Examples
-
-> These illustrate the *pattern* — judge a request by which description fits, not by whether its wording matches an example.
-
-**Examples → local `tencent-local-office-edit` Skill**
-- Read / write / format a named cell or range — e.g. "Read A1:D10", "Set B2 to 100", "Bold A1"
-- A deterministic operation whose target is a concrete, addressable part of the sheet  — e.g. "Sort the 'Price' column ascending", "Set all column widths to 120px"
-
-**Examples → `tencent-docs-sheet-generation` Skill (intent = produce a new `.xlsx` file)**
-- Pure-text requirement — e.g. "做一份 6 月销售统计表", "帮我生成一张项目排期表".
-- Content referenced from a non-spreadsheet material — e.g. "根据这份 PDF 整理成一个 Excel 表格", "把这个 Word 里的数据做成表格" (hand the material to the Skill; do not pre-parse it).
-- Content referenced from a **source spreadsheet** used strictly as read-only reference, output is a **separate new `.xlsx` file** — e.g. "根据这个 xlsx **再生成一份新表**", "基于这份 csv **另出一张**汇总表" (intent test passes: user wants a NEW file, not to modify the source).
-
-**Examples → local `tencent-docs-sheetagent`**
-- Editing / analyzing / pivoting / cleaning **the source workbook itself** — e.g. "在这个 xlsx 里加一列合计", "透视这份数据", "帮我清洗这个 csv"; the source `.xlsx` is the deliverable, not a content reference.
-- **Adding / removing / renaming sheets inside an existing workbook** — e.g. "在这个 xlsx 里加一个汇总 sheet", "给这份工作簿再加一张月度对比表", "删掉这个表里的空白 sheet"; the workbook is modified in place, so this is an edit, not generation.
-- **Any** pivot-table create or edit — e.g. "Build a pivot table"; it always requires reading the source data first.
-- Ambiguous scope that needs judgment — e.g. "Clean up this table".
-- Layout restructuring on the source — e.g. "Move this column"; it needs to read the current structure first.
-
-## file_id resolution (local documents)
-
-`file_id` identifies an open local editor instance — it always comes from the **`tencent-local-office-edit`** Skill's entry tools (`get_pool_status`, `open_file`, `create_*`); never invent one from a path or filename. This section only fixes **when** each entry applies; the calling style, workflow, and error handling are owned by that Skill's own documentation.
-
-- **Injected `file_id`** — if the context block already injected one (e.g. `<active_document type="local" ... file_id="..."/>`), use it directly. The document already has a live host-owned editor/preview instance — do **not** reopen or re-present it.
-- **Existing file, no injected id** — resolve it through the `tencent-local-office-edit` Skill's documented flow (`get_pool_status` to find an already-open instance, `open_file` otherwise), then do the content work through that Skill.
-- **Brand-new document (no file on disk yet)** — there is nothing to resolve; do **not** call `get_pool_status` / `open_file` on a path that does not exist. Creating the file and its first save are owned by the routed Skill (e.g. `tencent-pptx`, `tencent-docs-sheet-generation`) or the host's create flow; once the file exists on disk, re-enter here for any subsequent edit.
-
-## Showing a document to the user (preview)
-
-Previewing is the **host's preview surface**, not a content channel and not part of [file_id resolution](#file_id-resolution-local-documents). Present a local document to the user, per the host's preview instructions, whenever they should see it:
-
-- **After creating a new local document** through a routed Skill (e.g. `tencent-pptx`, `tencent-docs-sheet-generation`, `tencent-docs-sheetagent`), open it so the user can immediately see and work with the result.
-- **After finishing edits** on a document that is not already visible to the user, once it is saved.
-
-Do **not** re-preview a document the context block already injected with a live `file_id`: it already has a host-owned preview instance.
+| 旧名 | 新名 |
+|---|---|
+| `tencent-local-office-edit` | `docx` |
+| `tencent-docs-sheetagent` | `xlsx` |
+| `tencent-docs-sheet-generation` | `xlsx` |
+| `tencent-docx` | `tdoc-orchestrator` |
+| `tencent-pptx` | `pptx-generator` |
+| `sheetagent` | `xlsx` |
