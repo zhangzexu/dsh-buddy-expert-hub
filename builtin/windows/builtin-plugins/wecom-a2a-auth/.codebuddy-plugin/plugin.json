@@ -1,7 +1,0 @@
-{
-  "name": "wecom-a2a-auth",
-  "version": "5.9.3-wb.42398134.gd4692421.h480e8d1fee0f",
-  "description": "A2A 调用企业微信前的登录态检查与授权",
-  "hooks": "./hooks/hooks.json",
-  "defaultEnabled": true
-}

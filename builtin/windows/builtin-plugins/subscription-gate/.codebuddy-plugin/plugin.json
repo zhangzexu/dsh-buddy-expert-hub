@@ -1,7 +1,0 @@
-{
-  "name": "subscription-gate",
-  "version": "5.9.3-wb.42398134.gd4692421.h480e8d1fee0f",
-  "description": "付费技能/专家订阅门控",
-  "hooks": "./hooks/hooks.json",
-  "defaultEnabled": true
-}

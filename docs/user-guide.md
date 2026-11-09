@@ -261,17 +261,17 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
 
 ### 开启会做什么
 
-把插件包内**两个来源**的技能全部装进 `~/.dsh/skills/`：
+把插件包内随包发布的内置技能全部装进 `~/.dsh/skills/`：
 
 | 来源 | Windows | Linux |
 | --- | --- | --- |
-| `builtin/<平台>/skills/*` 独立技能包 | 24 | 27 |
-| `builtin/<平台>/builtin-plugins/<插件>/skills/*` 里自包含的 | 11 | 5 |
-| **合计可装** | **35** | **32** |
+| `builtin/<平台>/skills/*` 独立技能包 | 4 | 27 |
+| `builtin/<平台>/builtin-plugins/<插件>/skills/*` 里自包含的 | 0 | 5 |
+| **合计可装** | **4** | **32** |
 
 平台映射：`win32 → builtin/windows`，其它（linux / darwin）→ `builtin/linux`。目录不存在或为空时按 0 个处理，开关仍可点、不报错。
 
-插件来源的技能要过**九条自包含规则**：依赖 `mcp__*` 工具、`ToolSearch` 发现的工具、`editor_sdk` 本地服务、`allowed-tools:` 限制、`../Xxx` 上级路径、插件根 `core/ agents/ hooks/ shared/ dist/ bin/ prebuilds/`、正文含 `Plugin`/`插件`、引用了不在本目录内的 `scripts/...`，命中任一即排除（原因可在 `excluded` 里看）。原因是这类技能复制出来会变成「列表里看得见、一调用就报工具不存在」。顶层独立技能包**不做文本筛查**。
+插件来源的技能要过**九条自包含规则**：依赖 `mcp__*` 工具、`ToolSearch` 发现的工具、`editor_sdk` 本地服务、`allowed-tools:` 限制、`../Xxx` 上级路径、插件根 `core/ agents/ hooks/ shared/ dist/ bin/ prebuilds/`、正文含 `Plugin`/`插件`、引用了不在本目录内的 `scripts/...`，命中任一即排除（原因可在 `excluded` 里看）。原因是这类技能复制出来会变成「列表里看得见、一调用就报工具不存在」。顶层独立技能包**不做文本筛查**。Windows 的插件来源技能已按可用性核查清空（原来能装但依赖 WorkBuddy 客户端能力的那批，以及永不被安装的死资源，都已删除）；`workbuddy-office-routing` 现在只把本地 Office 文件任务导向 `wps-office-suite`。
 
 ### 装完为什么在界面上看不到
 
@@ -311,7 +311,7 @@ dsh 和 WorkBuddy 是**两套独立运行时**，各读各的目录：
 所以：
 
 - **在 dsh 里看不到 WorkBuddy 装的技能是正常的**，不是 bug，也不是没同步；
-- 本插件**不再读取 WorkBuddy 的任何目录或注册表**，宿主装没装插件都不影响这 35 个技能的安装（旧版本曾按「宿主已装就跳过」，该判定已删除）；
+- 本插件**不再读取 WorkBuddy 的任何目录或注册表**，宿主装没装插件都不影响这 4 个技能的安装（旧版本曾按「宿主已装就跳过」，该判定已删除）；
 - 想在 dsh 里用某个 WorkBuddy 技能，只能让它**真的落进 `~/.dsh/skills/`**：用第 4 节的「添加技能」指向那个目录、从 SkillHub 装、或打开内置技能开关。注意：依赖该插件运行时（`mcp__*`、`editor_sdk`）的技能搬过去也调不起来。
 
 ---

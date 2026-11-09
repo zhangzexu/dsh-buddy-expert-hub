@@ -103,9 +103,9 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
 
 设置弹窗里有「**启用内置技能**」开关（`role="switch"` + 原生 `checkbox`，浅色主题）：
 
-- 开启 = 把插件包内**两个来源**的技能**全部安装**到 `$DSH_HOME/skills/`；关闭 = 把它们**全部移除**：
-  - `builtin/<platform>/skills/*` —— 随包发布的独立技能（Windows 当前 **24** 个、Linux 当前 **27** 个，数量取决于随包目录内容）；
-  - `builtin/<platform>/builtin-plugins/<插件>/skills/*` —— 内置插件里**自包含**的技能（Windows 当前 **11** 个、Linux 当前 **5** 个；纳入前要先过滤，见下一条）。
+- 开启 = 把插件包内随包发布的内置技能**全部安装**到 `$DSH_HOME/skills/`；关闭 = 把它们**全部移除**：
+  - `builtin/<platform>/skills/*` —— 随包发布的独立技能（Windows 当前 **4** 个、Linux 当前 **27** 个，数量取决于随包目录内容）；
+  - `builtin/<platform>/builtin-plugins/<插件>/skills/*` —— 内置插件里**自包含**的技能（Windows 侧该目录已整体清理、当前 **0** 个；Linux 当前 **5** 个；纳入前要先过滤，见下一条）。
 - 平台目录：`win32 → builtin/windows`，其它平台（darwin / linux 等）→ `builtin/linux`；目录不存在或为空时按「0 个技能」处理，开关仍可点、不报错；
 - **插件技能为什么要筛**：内置插件里的技能大多依赖**所属插件的运行时**（`mcp__*` 工具、`ToolSearch` 发现的工具、`editor_sdk` 本地服务、插件根的 `core/ agents/ hooks/ shared/ dist/ bin/ prebuilds/`，或不在自己目录里的 `scripts/...`）。这些技能单独复制到 `$DSH_HOME/skills` 会变成「列表里看得见、一调用就报工具不存在」，比不装更糟。所以只纳入**完全自包含**的技能，判定原则是**宁可少装，不装坏技能**。
   读 `SKILL.md`，命中任一即排除，共 9 条规则、判定顺序固定（返回第一条命中的原因）：
@@ -125,7 +125,7 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
   > 这套规则只作用于**插件来源**；`builtin/<platform>/skills` 是宿主发布的独立技能包，原样安装、不做文本筛查 —— 实测顶层技能里也有不少命中上述关键字（例如正文里出现 `bin/`、`不要 ToolSearch`、`mcp__miora__*` 这类说明或工具名），按规则筛会大量误杀。
 
   > 规则 1 里 `allowed-tools:` 后面为空**不算**命中（内置插件里多个技能故意留空占位）；规则 5 只查文件存在性，不做语义解析。
-  > 当前实测（Windows）：**11 个纳入**（`ardot` 的 `ardot-design-to-code` / `ardot-poster` / `ardot-slides` / `ardot-ui-design` / `design-router` / `livestream-poster`，`workbuddy-docx` 的 `design-token` / `doc-typeset` / `generate-fillable-contract-html` / `html-review`，`workbuddy-pptx` 的 `workbuddy-pptx`），**15 个排除**（`ardot-design-core`、`calendar-management`、`library-office-edit`、`tencent-docs`、`tencent-saas-docs`、`tencent-private-docs`、`weixinpay-feedback` / `-pay` / `-register`、`brief-compose`、`format-extract`、`html-to-doc`、`tdoc-orchestrator`、`workbuddy-sheet-generation`、`workbuddy-sheetagent`），合计可装 **35**（24 + 11）。Linux 目录当前为顶层 27 + 插件 5 = **32** 可装、插件来源排除 11。这些数字随包目录内容变化，以 `GET /builtin/skills` 的 `counts` 为准。排除明细连原因一起在 `excluded` 里可见。计算是**运行期按规则算**的，不是写死名单：插件目录里增删技能或改 `SKILL.md`，名单跟着变。
+  > 当前实测（Windows）：顶层 `builtin/windows/skills/*` **4 个**（`skill-creator`、`workbuddy-finance-skill`、`workbuddy-office-routing`、`wps-office-suite`），插件来源 **0 个** —— `builtin-plugins/*/skills/*` 里那批技能已按可用性核查清理，合计可装 **4**。`workbuddy-office-routing` 已改写为把本地 Office/WPS 文件任务统一导向 `wps-office-suite`（不再引用已删除的技能或宿主注入上下文）。Linux 目录未调整，仍为顶层 27 + 插件 5 = **32** 可装、插件来源排除 11。这些数字随包目录内容变化，以 `GET /builtin/skills` 的 `counts` 为准；计算是**运行期按规则算**的，不是写死名单。
 - **为什么不做「整包安装插件」**：CodeBuddy 插件包（`builtin-plugins/<插件>/`）里没有 dsh 的 bundle 入口，宿主也不认这种目录结构；宿主的插件注册表是 `~/.workbuddy/plugins` 下的私有格式，直接往里写会与宿主自己的插件清扫/版本管理冲突（重装、清理、升级都可能把它删掉或改坏）。所以内置插件只作为**技能来源**被读取，不改写成宿主插件。
 - 装进去的每个目录内会写一个 `.builtin-skill.json` 标记（`{from, platform, sourceDir, origin, plugin, installedAt}`），**只有带这个标记的目录才会被移除**；
 - **不覆盖同名技能**：目标目录已存在但没有标记（用户自己装的）→ 跳过，并在 `skipped` 里写明「同名技能已存在，未覆盖」，用户文件逐字节不动；
@@ -142,10 +142,10 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
 
 删掉的原因是它建立在一个不成立的前提上：dsh 与 WorkBuddy 是两套独立运行时，各自只扫自己的目录
 （dsh 只扫 `$DSH_HOME/skills`，不解析 WorkBuddy 的插件包，也不加载那些插件提供的技能）。所以
-「宿主已经装过」对 dsh 没有任何收益 —— 唯一效果是 dsh 少装一批技能（本机实测 11 个），而且界面上
+「宿主已经装过」对 dsh 没有任何收益 —— 唯一效果是 dsh 少装一批技能（当时本机实测 11 个），而且界面上
 看不出来，只在 `excluded` 里留一行原因。
 
-现在两个来源都只看**技能自己是否自包含**：自包含就纳入，宿主装了什么与判定无关。九条规则的
+现在内置技能只看**技能自己是否自包含**：自包含就纳入，宿主装了什么与判定无关。九条规则的
 「宁可少装」仍然成立（排除的是真跑不起来的技能），但「宿主装过」不再是少装的理由 ——
 宁可重复，不要缺。
 
@@ -157,7 +157,7 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
 
 - `builtin/<os>/mcps/<name>/.mcp.json` 是 **CodeBuddy 宿主插件的 MCP 清单**，用
   `${CODEBUDDY_PLUGIN_ROOT}/dist/cli.cjs` 指向宿主插件包自带的 CLI；MCP server 由**宿主**按
-  插件注册表启动并注册工具（`builtin-plugins/weixinpay/.mcp.json` 同理，指向
+  插件注册表启动并注册工具（插件包内同类 `.mcp.json` 同理，指向
   `${CODEBUDDY_PLUGIN_ROOT}/dist/mcp-server.mjs`）。
 - 本插件的「内置技能」只做一件事：**把 `SKILL.md` 整树复制到 `$DSH_HOME/skills/<dir>`**，
   不解析 `.mcp.json`、不启动进程、**不向宿主注册任何 MCP server**。依赖 `mcp__*` 工具的技能
@@ -169,12 +169,12 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
 
 | 项 | `builtin/windows` | `builtin/linux` |
 | --- | --- | --- |
-| 顶层 `skills/` | 24 | 27 |
-| `builtin-plugins/` 目录 | 11 个：`ardot`、`builtin-calendar`、`builtin-teams-todo`、`subscription-gate`、`tencent-docs-plugin`、`tencent-private-docs-plugin`、`wecom-a2a-auth`、`weixinpay`、`workbuddy-docx`、`workbuddy-pptx`、`workbuddy-sheetagent` | 5 个：`sheetagent`、`tencent-docs-plugin`、`tencent-docx`、`tencent-pptx`、`weixinpay` |
-| 插件来源技能（纳入 / 排除） | 11 / 15 | 5 / 11 |
-| 可装总数 | 35 | 32 |
-| `mcps/` 内容 | `agently-cli`（CLI 二进制）、`miora-mcp`（`.mcp.json` + 资源） | `agently-cli`（CLI 二进制）、`ardot-mcp-app`（`.codebuddy-plugin/plugin.json` + bootstrap）、`miora-mcp`（`.mcp.json` + 资源） |
-| 插件命名 | `workbuddy-docx` / `workbuddy-pptx` / `workbuddy-sheetagent` | `tencent-docx` / `tencent-pptx` / `sheetagent` |
+| 顶层 `skills/` | 4 | 27 |
+| `builtin-plugins/` 目录 | 0 个（已整体清理） | 5 个：`sheetagent`、`tencent-docs-plugin`、`tencent-docx`、`tencent-pptx`、`weixinpay` |
+| 插件来源技能（纳入 / 排除） | 0 / 0 | 5 / 11 |
+| 可装总数 | 4 | 32 |
+| `mcps/` 内容 | 已清理（无） | `agently-cli`（CLI 二进制）、`ardot-mcp-app`（`.codebuddy-plugin/plugin.json` + bootstrap）、`miora-mcp`（`.mcp.json` + 资源） |
+| 插件命名 | —（Windows 已清理） | `tencent-docx` / `tencent-pptx` / `sheetagent` |
 
 > 两边同名的只有 `tencent-docs-plugin` / `weixinpay`，其余是同一插件在两个平台的不同命名。
 > Linux 的插件命名、技能集合与 `mcps` 都和 Windows 不同，但九条自包含规则在两边逐字一致。
@@ -518,7 +518,7 @@ order: 300
 | GET | `/skills/installed` | 列出 `$DSH_HOME/skills/`（含 `skills-disabled/`）里的已安装技能：`{ ok, items:[{ dir, name, displayName, version, icon, description, source, enabled, slug, installedAt, path }] }`。`displayName` / `version` 来自随技能复制过来的 `_skillhub_meta.json`（缺失为空串），`icon` 为 `skill-icon:<dir>` 形式，经前端 `assetUrl()` 走 `/skill-icon?dir=`。`dir` 是宿主原生技能名，`/` 菜单只取 `enabled === true` 的项并把它当 `/` 指令名；关闭态目录宿主扫描不到。**内置技能开关装进来的目录（含 `.builtin-skill.json` 标记）不在此列表里出现** |
 | GET | `/pick` | 输入框选择器候选源，返回 `{ ok, keyword, installedOnly, groups:[{ kind, title, total, items }] }`（agent / team / skill / connector 四组）。技能条目 `name` 优先中文名，`avatar` 为图标路径（有就带），并额外下发 `version` / `dir` / `enabled`；`installed=1`（等价写法 `scope=installed`）只返回**已安装**条目：专家 / 团队看 `local === true` 或 `source === 'local'`；技能看本地技能库（`dir` / frontmatter `name` / `slug` / 仓库 `id` 末段任一命中，且排除内置技能开关装的那批）；连接器看 `origin === 'local'` 或 `installed === true`。过滤后 `group.total` 是**过滤后**的数量。不带参数时行为与此前完全一致（全量） |
 | GET | `/builtin/skills` | 内置技能总开关概览（**只给设置弹窗显示数量与排除说明用**，不是给用户浏览技能列表）：`{ ok, platform, enabled, root, pluginsRoot, available:[{ dir, name, description, installed, origin, plugin }], excluded:[{ plugin, dir, reason }], excludedTruncated, counts:{ available, installed, plugin, excluded } }`。`available` 是真正可安装的那批（`origin`：`'skills'` = `builtin/<platform>/skills`，`'plugin'` = 内置插件里的自包含技能，`plugin` 为所属插件目录名，顶层来源为空串）；`excluded` 是内置插件里**未纳入**的技能及中文原因（依赖插件运行时 / 体积超限），**最多 30 条**，超出置 `excludedTruncated: true`，`counts.excluded` 始终是真总数；`counts.plugin` 是 `origin === 'plugin'` 的条数。响应里不含任何宿主插件信息 —— 本插件不读宿主目录，装没装宿主插件都不影响该结果 |
-| POST | `/builtin/skills/toggle` | body `{ enabled: boolean }`（非布尔返回 400，GET 返回 405）。开启 → 全量安装 `available` 里的技能（`excluded` 永不安装）并置 `state.settings.builtinSkills = true`，响应带 `{ total, installed, updated, skipped:[{dir,reason}] }`（`total` = 可用总数：Windows 35 / Linux 32，随 `counts.available` 变化）；关闭 → 只移除带标记的目录并置 `false`，响应带 `{ removed:[dir] }`。两种响应都带最新 `counts` |
+| POST | `/builtin/skills/toggle` | body `{ enabled: boolean }`（非布尔返回 400，GET 返回 405）。开启 → 全量安装 `available` 里的技能（`excluded` 永不安装）并置 `state.settings.builtinSkills = true`，响应带 `{ total, installed, updated, skipped:[{dir,reason}] }`（`total` = 可用总数：Windows 4 / Linux 32，随 `counts.available` 变化）；关闭 → 只移除带标记的目录并置 `false`，响应带 `{ removed:[dir] }`。两种响应都带最新 `counts` |
 | GET | `/connectors` | `q` / `limit` / `offset` → `{ ok, total, items }` |
 | GET | `/detail` | `type`(`expert`\|`team`\|`skill`\|`connector`) + `id` → 单项完整信息 + `readme`（agent markdown / SKILL.md 正文前 2000 字）；专家优先查本地已导入目录。技能 `id` 走 `__skillhub` 去后缀别名兼容（改名前后都能命中），技能条目含 `displayName` / `version` / `icon`（有才带），找不到时回落到已安装技能库 |
 | GET | `/asset` | `path`（相对数据根的 POSIX 路径）→ 图片二进制，按扩展名 + 魔数返回真实 MIME |
@@ -583,9 +583,9 @@ dsh-buddy-expert-hub/
 │   └── frontmatter.js         # SKILL.md frontmatter 解析
 ├── builtin/                   # 内置技能（随包发布的只读资源，必须进 files）
 │   ├── windows/skills/<dir>/  # 来源一：Windows 平台内置技能（每个含 SKILL.md）
-│   ├── windows/builtin-plugins/<插件>/skills/<dir>/  # 来源二：内置插件里的技能（只装自包含的，见「内置技能」一节）
-│   ├── <os>/mcps/<name>/       # CodeBuddy 宿主插件 MCP 清单（.mcp.json / .codebuddy-plugin），本插件只读 SKILL.md、不注册 MCP
-│   └── linux/                  # 其它平台（darwin / linux）：结构同 windows，内容随包不同（当前 27 个独立技能 + 5 个插件技能）
+│   ├── linux/builtin-plugins/<插件>/skills/<dir>/  # 来源二：Linux 仍保留的内置插件技能（Windows 侧已整体清理）
+│   ├── linux/mcps/<name>/       # CodeBuddy 宿主插件 MCP 清单（.mcp.json / .codebuddy-plugin），本插件只读 SKILL.md、不注册 MCP
+│   └── linux/                  # 其它平台（darwin / linux）：含 skills/、builtin-plugins/、mcps/（当前 27 个独立技能 + 5 个插件技能）
 ├── scripts/build-connectors.mjs   # 资源仓库维护工具（见下节）
 └── README.md
 ```
