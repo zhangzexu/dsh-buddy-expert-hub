@@ -201,7 +201,7 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
 
 | 内容 | 位置 |
 | --- | --- |
-| 专家 / 专家团 / 技能 | 默认 `https://gitee.com/zhangzexu/dsh-buddy-expert-hub-resource.git`，也可在「设置」里改成任意本机资源目录 |
+| 专家 / 专家团 / 技能 | 默认 `https://gitcode.com/zzx_2446/dsh-buddy-expert-hub-resource.git`，也可在「设置」里改成任意本机资源目录 |
 | 本地已导入专家 | `$DSH_HOME/experts/<id>/`（DSH 原生格式，权威来源） |
 | 连接器（云端） | 数据根（资源仓库副本）`connectors/connectors.json` + `connectors/icons/<id>.<ext>` |
 | 连接器（本地已安装） | `$DSH_HOME/dsh-buddy-expert-hub/connectors/<dir>/connector.json` |
@@ -217,7 +217,7 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
 插件默认的远程资源仓库：
 
 ```text
-https://gitee.com/zhangzexu/dsh-buddy-expert-hub-resource.git
+https://gitcode.com/zzx_2446/dsh-buddy-expert-hub-resource.git
 ```
 
 | 项 | 说明 |
@@ -507,9 +507,10 @@ order: 300
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/status` | `{ ok, repoReady, indexReady, lastSync, counts:{experts,teams,skills,connectors,connectable,unsupported}, localCounts:{experts,teams}, sourceUrl, sourceKind, dataRoot, indexDataRoot, indexStale, library, hasSkills, connectorSource, connectorSkipped, skipped, busy, progress, lastError, lastErrorRaw, warnings, importedCount, baseDir, localExpertsDir }`（本轮**没有新增 `/status` 字段**；新增的 `indexSwitchPending` 只写进 `state.json`，不对外暴露）；`counts.experts/teams` 为合并去重后的数量，与列表一致；`counts.connectors` 是**现算**的两源合并总条数（常规模式不进索引；本地资料库模式改用导出包快照），`counts.connectable` / `counts.unsupported` 是其中宿主能装载 / 装载不了的条数（`connectable + unsupported === connectors`）；`connectorSource` 为 `repo` / `none` / `library`；`connectorSkipped` 是**真正解析不了**（缺 id / 结构异常）的条数，正常数据下为 0 —— 它和「不可连接」不是一回事；`lastError` 是给人看的中文，`lastErrorRaw` 是原始错误堆栈；`sourceKind` 为 `git` / `local`，`local` 时 `dataRoot` 是设置里配置的本机目录；`busy` 是**真实的同步中状态**（不是恒 `true`）；`indexDataRoot` 是当前索引对应的数据根，`indexStale` 在「切到 git 数据源、数据根变化」时为 `true` —— 包含冷启动作废旧缓存、当前无索引的情况（此时 `indexDataRoot` 取 `state.json` 里记录的旧根），前端据此提示点「刷新」 |
-| GET | `/settings` | `{ ok, sourceUrl, sourceKind, defaultUrl, usingDefault, skillhubUrl, builtinSkills, builtinPlatform, builtinSkillCount, builtinSkillPluginCount, builtinSkillExcluded }`；`sourceKind` 同上。`builtinSkills` 是内置技能开关状态（旧 `state.json` 无该字段时缺省 `false`），`builtinPlatform` 为 `windows` / `linux`，`builtinSkillCount` 是插件包内当前平台**可用技能总数**（设置弹窗用它渲染「N 个技能」），`builtinSkillPluginCount` 是其中来自内置插件的自包含技能数，`builtinSkillExcluded` 是内置插件里未纳入的数量（全部因依赖插件运行时 / 体积超限，与宿主装了什么无关） |
-| POST | `/settings` | body `{ sourceUrl, skillhubUrl? }` → `{ ok, sourceUrl, sourceKind, skillhubUrl }`。`sourceUrl` 可填 `https://` / `git@` 仓库地址或本机目录绝对地址；本机目录会校验存在性与 `experts/` / `skills/` / `connectors/` 结构，不合格返回 400 并给出中文原因；相对路径返回 400 且错误含「绝对路径」。数据根变化时按新数据源分流：**新源为本机目录** → 旧索引立即作废（`state.index` 清空 + 删 `index.json`），下次请求懒加载自动重建、不联网、不自动触发 git；**新源为 git** → 保留旧索引、不触发同步，`/status` 报 `indexStale: true` 由前端提示点「刷新」，并把 `indexSwitchPending: true` 写进 `state.json`（重启后仍提示、仍不自动克隆）；**git 地址互换且数据根不变** → 什么都不做 |
-| POST | `/settings/reset` | 清除自定义地址、回到 `SOURCE_URL`，返回 `{ ok, sourceUrl, sourceKind: 'git', defaultUrl, usingDefault: true }`；数据根变化时按「新源为 git」处理，保留索引并置 `indexStale` |
+| GET | `/settings` | `{ ok, sourceUrl, sourceKind, sourceBranch, defaultBranch, branchSupported, defaultUrl, usingDefault, skillhubUrl, builtinSkills, builtinPlatform, builtinSkillCount, builtinSkillPluginCount, builtinSkillExcluded }`；`sourceKind` 同上。`builtinSkills` 是内置技能开关状态（旧 `state.json` 无该字段时缺省 `false`），`builtinPlatform` 为 `windows` / `linux`，`builtinSkillCount` 是插件包内当前平台**可用技能总数**（设置弹窗用它渲染「N 个技能」），`builtinSkillPluginCount` 是其中来自内置插件的自包含技能数，`builtinSkillExcluded` 是内置插件里未纳入的数量（全部因依赖插件运行时 / 体积超限，与宿主装了什么无关）。`sourceBranch` 是已配置分支（空串 = 未配置，跟随远端默认分支 HEAD；`defaultBranch` 为空串即表示这一语义），`branchSupported` 表示当前数据源是否为远程 git（决定设置弹窗是否显示分支栏） |
+| POST | `/settings` | body `{ sourceUrl, sourceBranch?, skillhubUrl? }` → `{ ok, sourceUrl, sourceKind, sourceBranch, defaultBranch, branchSupported, skillhubUrl }`。`sourceBranch` 可选：不传保持原值、空串清除（跟随远端默认分支 HEAD：clone 不传 `--branch`、fetch 不指定 ref）；只接受纯分支名（字母数字与 `. _ - /`，不能以 `-` 或 `/` 开头、不接受 `refs/heads/...`），非法返回 400；本机目录模式一律忽略并清空。`sourceUrl` 可填 `https://` / `git@` 仓库地址或本机目录绝对地址；本机目录会校验存在性与 `experts/` / `skills/` / `connectors/` 结构，不合格返回 400 并给出中文原因；相对路径返回 400 且错误含「绝对路径」。数据根变化时按新数据源分流：**新源为本机目录** → 旧索引立即作废（`state.index` 清空 + 删 `index.json`），下次请求懒加载自动重建、不联网、不自动触发 git；**新源为 git** → 保留旧索引、不触发同步，`/status` 报 `indexStale: true` 由前端提示点「刷新」，并把 `indexSwitchPending: true` 写进 `state.json`（重启后仍提示、仍不自动克隆）；**git 地址互换且数据根不变** → 什么都不做。只改分支不改地址时数据根不变，但仍会置 `indexSwitchPending` 提示刷新，因为索引内容可能随分支变化 |
+| POST | `/settings/reset` | 清除自定义地址、回到 `SOURCE_URL`，返回 `{ ok, sourceUrl, sourceKind: 'git', defaultUrl, usingDefault: true, sourceBranch: '', defaultBranch, branchSupported: true }`；同时清空已配置的分支；数据根变化时按「新源为 git」处理，保留索引并置 `indexStale` |
+| GET | `/settings/branches` | `url` 可选（省略则用当前生效地址）→ `{ ok, sourceUrl, branches:[...], truncated }`。用只读的 `git ls-remote --heads` 列出远端分支（15 秒超时、最多 200 个、按字母序），供设置弹窗做候选；**只对 `https://` / `git@` 远程源可用**，本机目录 / 非法地址返回 `ok:false`。私有仓库取不到列表时前端仍允许手动填写分支名。绝不 clone、不 checkout、不写任何工作树 |
 | POST | `/refresh` | 触发同步；默认立即返回 `{ started, busy }`，加 `?wait=1` 则等待完成后再返回状态。`progress` 每秒回写「已用时 Ns」 |
 | GET | `/experts` | `q` / `category` / `limit`(默认 200) / `offset` → `{ ok, total, localCount, items }` |
 | GET | `/teams` | 同上，只返回 `expertType=team` |

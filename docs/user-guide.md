@@ -221,20 +221,30 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
 
 ## 7. 设置详解
 
-面板设置弹窗里共三类配置：
+面板设置弹窗里共三类配置；其中「资源仓库地址」在填远程 git 地址时会多出一个分支子项。
 
 ### 7.1 资源仓库地址
 
-默认远程资源仓库：`https://gitee.com/zhangzexu/dsh-buddy-expert-hub-resource.git`
+默认远程资源仓库：`https://gitcode.com/zzx_2446/dsh-buddy-expert-hub-resource.git`
 
 可以填两种：
 
 | 类型 | 写法 | 行为 |
 | --- | --- | --- |
-| git 仓库 | `https://...` 或 `git@...`（不含空白 / `..`） | 首次 `git clone --depth 1`，之后「刷新」执行 `git fetch --depth 1` + `git reset --hard FETCH_HEAD` |
-| 本机目录 | **绝对路径** | 直接把这个目录当数据根读；不联网、不执行任何 git 命令，保存时校验目录结构 |
+| git 仓库 | `https://...` 或 `git@...`（不含空白 / `..`） | 配置分支后首次 `git clone --depth 1 --branch <分支>`，刷新执行 `git fetch --depth 1 origin <分支>` + `git reset --hard FETCH_HEAD`；未配置分支时不传分支参数，跟随远端 HEAD。分支可在设置里选，候选来自远端只读探测 |
+| 本机目录 | **绝对路径** | 直接把这个目录当数据根读；不联网、不执行任何 git 命令，保存时校验目录结构，分支栏不显示 |
 
 留空回到默认地址。**改成 git 地址是下次同步才生效**；切回 git 数据源时界面会提示「数据源已切换，点刷新以应用新数据源」，重启后仍会提示。
+
+#### 7.1.1 资源仓库分支（仅 git 仓库）
+
+地址填的是 `https://...` 或 `git@...` 时，设置弹窗会多出「资源仓库分支（可选）」一栏：
+
+- 点「获取分支」从远端只读拉取分支列表（不克隆、不 checkout），选中即填入；私有仓库无权限或网络不可用时**仍可手动填写**分支名。
+- 留空跟随**远端默认分支**（远端 HEAD）：此时 `clone` 不传 `--branch`、`fetch` 不指定 ref，由 git 自己决定检出哪个分支。默认资源仓库的远端 HEAD 是 `master` 而不是 `main`，所以这里不能写死 `main`。只接受纯分支名：字母、数字与 `.` `_` `-` `/`，不能以 `-` 或 `/` 开头，不接受 `refs/heads/...` 这类完整 ref，也不能含空格。
+- 保存后**下次同步（点「刷新」）才生效**。只改分支、没改地址时同样会提示点刷新，因为索引内容可能随分支变化。
+- 本机目录模式下这一栏不显示：该模式不执行任何 git 命令，也不会改动你目录里的工作树或当前分支。
+- 若点「获取分支」提示「后端尚未加载新版本」：插件以 `link:` 方式装进 profile 时，后端 `lib/index.js` 只在 dsh 进程启动时 import 一次，**刷新浏览器只会更新前端资源**，必须重启 dsh web 进程才会加载新接口。此时仍可直接手动填写分支名，不影响保存。
 
 数据根优先级：
 
@@ -400,6 +410,7 @@ __expertHubDiag().atTrigger         // @ 源已注销
 | --- | --- | --- |
 | GET | `/dsh-buddy-expert-hub/status` | 索引 / 数据根 / 同步状态 / 各类计数 |
 | GET | `/dsh-buddy-expert-hub/settings` | 当前设置与内置技能数量 |
+| GET | `/dsh-buddy-expert-hub/settings/branches?url=<仓库地址>` | 列出远程 git 仓库的分支（仅 git 源可用，本机目录返回 `ok:false`） |
 | GET | `/dsh-buddy-expert-hub/skills/installed` | 已安装技能（内置技能隐藏） |
 | GET | `/dsh-buddy-expert-hub/builtin/skills` | 内置技能可装数、已装数、排除原因 |
 | POST | `/dsh-buddy-expert-hub/builtin/skills/toggle` | `{"enabled":true|false}` |
