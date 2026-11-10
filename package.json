@@ -15,10 +15,10 @@
   "main": "lib/index.js",
   "files": [
     "lib",
+    "builtin/**/skills/**",
     "cordis.patch.yml",
-    "data/connectors.json",
-    "data/icons",
-    "README.md"
+    "README.md",
+    "docs"
   ],
   "exports": {
     ".": "./lib/index.js",
@@ -28,7 +28,7 @@
   },
   "scripts": {
     "build:connectors": "node scripts/build-connectors.mjs",
-    "check": "node --check lib/index.js && node --check lib/client.js && node --check lib/frontmatter.js && node scripts/check-package.mjs",
+    "check": "node --check lib/index.js && node --check lib/client.js && node --check lib/frontmatter.js && node --check lib/connector-meta.js && node --check lib/connector-provision.js && node --check lib/connector-secret.js && node --check lib/connector-store.js && node scripts/check-package.mjs",
     "check:package": "node scripts/check-package.mjs --verbose"
   },
   "publishConfig": {

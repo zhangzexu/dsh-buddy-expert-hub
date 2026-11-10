@@ -1,0 +1,13 @@
+{
+  "name": "Word 文档处理",
+  "installedAt": 1794121847572,
+  "source": "marketplace",
+  "version": "1.0.0",
+  "skillId": "skill_2095395851789164544",
+  "description_zh": "创建、读取、编辑、排版、审阅、合并和校验 Word DOCX 文档，并通过渲染检查保证交付质量。",
+  "description_en": "Create, read, edit, format, review, merge, and validate Word DOCX documents with structural and visual quality checks.",
+  "iconSource": "https://openplatform-cdn.codebuddy.cn/public/common/capability_cover/2a4cd129-9ecf-4971-996e-bc618cbd7921/99071bbd-06b7-40d0-8a95-a3d5de23bd4d.png",
+  "installedContentHash": "sha256:5fba49f5cd8f4d92746447b0759c60dfb09255a3c1e93c8f1b502a77f0c0179b",
+  "iconLocalPath": "/home/zzx/.workbuddy/skills/docx/_icon.png",
+  "iconDownloadedFrom": "https://openplatform-cdn.codebuddy.cn/public/common/capability_cover/2a4cd129-9ecf-4971-996e-bc618cbd7921/99071bbd-06b7-40d0-8a95-a3d5de23bd4d.png"
+}
