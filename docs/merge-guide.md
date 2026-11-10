@@ -79,7 +79,7 @@ git diff dev...pr/<功能名> -- lib/ README.md package.json
 - [ ] **包体积**：`files` 只发布 `builtin/**/skills/**`。曾经误把 `mcps/`、插件运行时的 `dist/` 带进去，包从 10.4MB 涨到 91.7MB。任何提交里出现 `builtin/*/mcps/`、`node_modules/`、`dist/`、`prebuilds/` 都应拒绝。
 - [ ] **不要提交个人状态**：`.workbuddy/`（项目数据，不是缓存，禁止删除）、`state.json`、`index.json`、`credentials.enc`、`*.log`、任何含 `C:\Users\...` 或 `~/.dsh` 的绝对路径。
 - [ ] **前后端字段对齐**：`lib/client.js` 读的响应字段必须在 `lib/index.js` 里真的下发；新增/删除字段要同步 `README.md` 接口表与 `docs/user-guide.md`。
-- [ ] **内置技能相关**：改动 `builtin/` 或内置技能筛选规则时，确认 `GET /builtin/skills` 的 `counts` 与文档里的数字一致；本机 Windows 当前 4 个可装、Linux 32 个。
+- [ ] **内置技能相关**：改动 `builtin/` 或内置技能筛选规则时，确认 `GET /builtin/skills` 的 `counts` 与文档里的数字一致；本机 Windows 当前 4 个可装、Linux 16 个。
 - [ ] **文档**：行为变更要同步 `README.md`，纯使用说明放 `docs/user-guide.md`。
 
 ### 3.3 跑检查（按影响面，不要全量）

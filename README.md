@@ -85,6 +85,7 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
 - **技能引用有三个入口，三者发送后统一为 `/技能名`、都不会内联正文**：① 输入框 `/` 菜单（主路径，技能候选只在这里出现）；② 列表页技能卡片的「引用」气泡；③ 工具栏自绘紧凑选择器（`conversation.input.overlay` 的「技能」分类，它不是 `@` 触发源，故仍保留）。三者都会先命中已安装记录、统一插入结构化引用 `skill:<dir>`，由同一份 `codec` 展开成 `/技能名`；旧草稿里残留的 `skill:skills/<集合>/<名字>` 会取末段净化成合法指令名后降级输出，不会报错。
 - 三个入口的技能引用都要求**已安装且开启**：未安装提示先点卡片上的 `+` 安装，已关闭提示到「已安装」里开启；关闭的技能宿主扫描不到，自然也不会出现在 `/` 菜单里。工具栏自绘选择器的「技能」分类仍按 `/pick` 列出仓库技能，但选中未安装 / 已关闭技能时只给上述中文提示，**不再产出降级指令名**。
 - **连接器不变**：仍是会话常驻（`/attach` → dock chip）+ 发送时内联 MCP 配置；专家 / 专家团仍走 `/attach` 单选语义。三条链路互不影响。
+- **专家 / 专家团在当前会话内替换**：曾试过「命中注入历史就强制开新会话」，但宿主 `sessions` facade 只有 `create`、没有切换当前会话的 `open/select`，新建会话不会自动成为用户正在看的会话，dock 按当前 `sessionId` 读 `/attachments` 就为空 —— 用户看到「选了专家却没显示到对话框」。故已撤销拦截：换专家时 `detachExpert()` 双 dispose 清掉旧 runtime skill 与 `systemPrompt` section，再在当前会话注入新身份，chip 立刻更新。`state.json` 的 `expertSessionHistory` 仍记录曾挂过的 id，但**只用于诊断/统计、不参与准入**。针对旧专家残留，`expertPromptBlock()` 注入 `<identity-priority>` 明确「本区块是本会话唯一有效身份，忽略此前其它专家及其子智能体」。面板卡片「召唤」仍开新会话，连接器可多选、不受影响。
 - 宿主契约：`/` 同时是宿主内置 slash-menu 的触发符。插件注册前会探测 `inputTriggers`（`registerSource` 是否可用、是否已有同名源或占用 `/` 的源）；注册被拒时先尝试自定义前缀 `/skill`，两者都被拒则明确告警「宿主不允许 / 触发源，需要宿主侧配合；技能引用暂不可用」，**绝不静默把技能退回 `@` 菜单**。注册结果可在控制台用 `__expertHubDiag().skillTrigger` 查看；`__expertHubDiag().atTrigger` 会如实写着 `@` 源已注销。
 
 ### 输入框专家按钮：只列已安装
@@ -125,7 +126,7 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
   > 这套规则只作用于**插件来源**；`builtin/<platform>/skills` 是宿主发布的独立技能包，原样安装、不做文本筛查 —— 实测顶层技能里也有不少命中上述关键字（例如正文里出现 `bin/`、`不要 ToolSearch`、`mcp__miora__*` 这类说明或工具名），按规则筛会大量误杀。
 
   > 规则 1 里 `allowed-tools:` 后面为空**不算**命中（内置插件里多个技能故意留空占位）；规则 5 只查文件存在性，不做语义解析。
-  > 当前实测（Windows）：顶层 `builtin/windows/skills/*` **4 个**（`skill-creator`、`workbuddy-finance-skill`、`workbuddy-office-routing`、`wps-office-suite`），插件来源 **0 个** —— `builtin-plugins/*/skills/*` 里那批技能已按可用性核查清理，合计可装 **4**。`workbuddy-office-routing` 已改写为把本地 Office/WPS 文件任务统一导向 `wps-office-suite`（不再引用已删除的技能或宿主注入上下文）。Linux 目录未调整，仍为顶层 27 + 插件 5 = **32** 可装、插件来源排除 11。这些数字随包目录内容变化，以 `GET /builtin/skills` 的 `counts` 为准；计算是**运行期按规则算**的，不是写死名单。
+  > 当前实测（Windows）：顶层 `builtin/windows/skills/*` **4 个**（`skill-creator`、`workbuddy-finance-skill`、`workbuddy-office-routing`、`wps-office-suite`），插件来源 **0 个** —— `builtin-plugins/*/skills/*` 里那批技能已按可用性核查清理，合计可装 **4**。`workbuddy-office-routing` 已改写为把本地 Office/WPS 文件任务统一导向 `wps-office-suite`（不再引用已删除的技能或宿主注入上下文）。Linux 目录亦已清理，现为顶层 **16** 个、插件来源 **0** 个，合计可装 **16**、排除 **0**。这些数字随包目录内容变化，以 `GET /builtin/skills` 的 `counts` 为准；计算是**运行期按规则算**的，不是写死名单。
 - **为什么不做「整包安装插件」**：CodeBuddy 插件包（`builtin-plugins/<插件>/`）里没有 dsh 的 bundle 入口，宿主也不认这种目录结构；宿主的插件注册表是 `~/.workbuddy/plugins` 下的私有格式，直接往里写会与宿主自己的插件清扫/版本管理冲突（重装、清理、升级都可能把它删掉或改坏）。所以内置插件只作为**技能来源**被读取，不改写成宿主插件。
 - 装进去的每个目录内会写一个 `.builtin-skill.json` 标记（`{from, platform, sourceDir, origin, plugin, installedAt}`），**只有带这个标记的目录才会被移除**；
 - **不覆盖同名技能**：目标目录已存在但没有标记（用户自己装的）→ 跳过，并在 `skipped` 里写明「同名技能已存在，未覆盖」，用户文件逐字节不动；
@@ -519,7 +520,7 @@ order: 300
 | GET | `/skills/installed` | 列出 `$DSH_HOME/skills/`（含 `skills-disabled/`）里的已安装技能：`{ ok, items:[{ dir, name, displayName, version, icon, description, source, enabled, slug, installedAt, path }] }`。`displayName` / `version` 来自随技能复制过来的 `_skillhub_meta.json`（缺失为空串），`icon` 为 `skill-icon:<dir>` 形式，经前端 `assetUrl()` 走 `/skill-icon?dir=`。`dir` 是宿主原生技能名，`/` 菜单只取 `enabled === true` 的项并把它当 `/` 指令名；关闭态目录宿主扫描不到。**内置技能开关装进来的目录（含 `.builtin-skill.json` 标记）不在此列表里出现** |
 | GET | `/pick` | 输入框选择器候选源，返回 `{ ok, keyword, installedOnly, groups:[{ kind, title, total, items }] }`（agent / team / skill / connector 四组）。技能条目 `name` 优先中文名，`avatar` 为图标路径（有就带），并额外下发 `version` / `dir` / `enabled`；`installed=1`（等价写法 `scope=installed`）只返回**已安装**条目：专家 / 团队看 `local === true` 或 `source === 'local'`；技能看本地技能库（`dir` / frontmatter `name` / `slug` / 仓库 `id` 末段任一命中，且排除内置技能开关装的那批）；连接器看 `origin === 'local'` 或 `installed === true`。过滤后 `group.total` 是**过滤后**的数量。不带参数时行为与此前完全一致（全量） |
 | GET | `/builtin/skills` | 内置技能总开关概览（**只给设置弹窗显示数量与排除说明用**，不是给用户浏览技能列表）：`{ ok, platform, enabled, root, pluginsRoot, available:[{ dir, name, description, installed, origin, plugin }], excluded:[{ plugin, dir, reason }], excludedTruncated, counts:{ available, installed, plugin, excluded } }`。`available` 是真正可安装的那批（`origin`：`'skills'` = `builtin/<platform>/skills`，`'plugin'` = 内置插件里的自包含技能，`plugin` 为所属插件目录名，顶层来源为空串）；`excluded` 是内置插件里**未纳入**的技能及中文原因（依赖插件运行时 / 体积超限），**最多 30 条**，超出置 `excludedTruncated: true`，`counts.excluded` 始终是真总数；`counts.plugin` 是 `origin === 'plugin'` 的条数。响应里不含任何宿主插件信息 —— 本插件不读宿主目录，装没装宿主插件都不影响该结果 |
-| POST | `/builtin/skills/toggle` | body `{ enabled: boolean }`（非布尔返回 400，GET 返回 405）。开启 → 全量安装 `available` 里的技能（`excluded` 永不安装）并置 `state.settings.builtinSkills = true`，响应带 `{ total, installed, updated, skipped:[{dir,reason}] }`（`total` = 可用总数：Windows 4 / Linux 32，随 `counts.available` 变化）；关闭 → 只移除带标记的目录并置 `false`，响应带 `{ removed:[dir] }`。两种响应都带最新 `counts` |
+| POST | `/builtin/skills/toggle` | body `{ enabled: boolean }`（非布尔返回 400，GET 返回 405）。开启 → 全量安装 `available` 里的技能（`excluded` 永不安装）并置 `state.settings.builtinSkills = true`，响应带 `{ total, installed, updated, skipped:[{dir,reason}] }`（`total` = 可用总数：Windows 4 / Linux 16，随 `counts.available` 变化）；关闭 → 只移除带标记的目录并置 `false`，响应带 `{ removed:[dir] }`。两种响应都带最新 `counts` |
 | GET | `/connectors` | `q` / `limit` / `offset` → `{ ok, total, items }` |
 | GET | `/detail` | `type`(`expert`\|`team`\|`skill`\|`connector`) + `id` → 单项完整信息 + `readme`（agent markdown / SKILL.md 正文前 2000 字）；专家优先查本地已导入目录。技能 `id` 走 `__skillhub` 去后缀别名兼容（改名前后都能命中），技能条目含 `displayName` / `version` / `icon`（有才带），找不到时回落到已安装技能库 |
 | GET | `/asset` | `path`（相对数据根的 POSIX 路径）→ 图片二进制，按扩展名 + 魔数返回真实 MIME |
@@ -586,7 +587,7 @@ dsh-buddy-expert-hub/
 │   ├── windows/skills/<dir>/  # 来源一：Windows 平台内置技能（每个含 SKILL.md）
 │   ├── linux/builtin-plugins/<插件>/skills/<dir>/  # 来源二：Linux 仍保留的内置插件技能（Windows 侧已整体清理）
 │   ├── linux/mcps/<name>/       # CodeBuddy 宿主插件 MCP 清单（.mcp.json / .codebuddy-plugin），本插件只读 SKILL.md、不注册 MCP
-│   └── linux/                  # 其它平台（darwin / linux）：含 skills/、builtin-plugins/、mcps/（当前 27 个独立技能 + 5 个插件技能）
+│   └── linux/                  # 其它平台（darwin / linux）：含 skills/、builtin-plugins/、mcps/（当前 16 个独立技能，插件来源与 mcps 已清理）
 ├── scripts/build-connectors.mjs   # 资源仓库维护工具（见下节）
 └── README.md
 ```
