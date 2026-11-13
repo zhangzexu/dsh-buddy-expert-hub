@@ -23,6 +23,7 @@ DeepSeek Harness（dsh）插件：把 WorkBuddy 的「专家 · 技能 · 连接
 | --- | --- |
 | [docs/user-guide.md](docs/user-guide.md) | 面向使用者的详细手册：安装、四个标签页、文件夹导入、专家按钮 / `/` 指令、连接器三步、设置、内置技能开关、FAQ 与排障 |
 | [docs/merge-guide.md](docs/merge-guide.md) | 维护者合并他人提交 / PR 的流程、检查清单、冲突处理、回滚与合并说明模板 |
+| [docs/ui-appearance.md](docs/ui-appearance.md) | **外观一致性铁律**：颜色只认宿主 `--dsw-alias-*` token、token 对照表、范围边界与自检方式 |
 
 本文件（`README.md`）保留设计口径、接口表、安全说明与目录结构。
 
@@ -535,6 +536,13 @@ order: 300
 | GET | `/export/item` | `type`(`expert`\|`team`\|`skill`) + `id` → 下载单个条目的 `.json.gz` 包。专家 / 专家团的 `id` 先过 `safeId()` 单段目录名白名单，再用「词法前缀 + `realpathSync`」双重校验目录，目录穿越与符号链接逃逸一律 400/404；技能 `id` 是 `skills/<集合>/<名字>` 形式的相对路径，保留 `index.skills.find` + `safeRepoPath` 的既有链路。错误文案只回显 id，不回显绝对路径 |
 | POST | `/import/folder` | **本轮新增**：浏览器选择文件夹导入。请求体 `{ type:'skill'\|'expert'\|'team', rootName:string, files:[{path,data,encoding}] }`，`encoding` 为 `utf8` 或 `base64`。响应 `{ ok:true, mode:'single'\|'batch', imported:[{id,name,type,dir,already?,notes?}], skipped:[{dir,reason}] }`；全部失败时 `{ ok:false, error, imported:[], skipped, mode }`。先按「所选目录本身就是一个条目」校验，不通过再按一级子目录批量导入；三种类型格式要求不同，见「文件夹导入」章节。安全与幂等：拒绝 `..` / 绝对路径 / 盘符 / 反斜杠 / 符号链接，单文件 ≤ 2MB、文件数 ≤ 200、总计 ≤ 20MB，已存在目录返回 `already:true` 不覆盖 |
 | POST | `/library/import` | 上传整包字节（gzip JSON），原子落盘后切换数据源 |
+| GET | `/workbench/list` | 每次重扫 HTML 目录，返回 `workbenches[]` / `errors[]` / `htmlDir` / `dataDir` / `dataDirReady` / `syncIntervalMs`；新 HTML 落盘后点「刷新」即生效，无需重启宿主进程 |
+| GET | `/workbench/html?workbench=<id>` | 返回 `text/html; charset=utf-8`、`no-store`，在 `<head>` 后注入 postMessage 桥 bootstrap |
+| GET | `/workbench/data?workbench=<id>&table=<file>[&hash=<sha256>]` | 带相同 `hash` 时轻量返回 `{ok:true,changed:false,hash,mtimeMs,size}`（不含 `rows`）；带旧 `hash` 或不带 `hash` 返回完整 `{columns,fields,rows,hash,mtimeMs,size,lineEnding,changed}` |
+| POST | `/workbench/data` | body `{workbench,table,baseHash,columns,rows}`；同 hash 成功返回 `{ok:true,hash,columns,rows}`；hash 不一致返回 409 `{ok:false,code:'conflict',error,current:{columns,rows,hash}}`，自动重载 `current` 并给出「重试 / 放弃」提示，不静默覆盖 |
+| GET | `/workbench/bridge.js` | `application/javascript`，供宿主 CSP 禁止内联脚本时外链桥脚本（回退路径） |
+| GET | `/workbench/settings` | 独立工作台设置：`{ ok, dataDir, dataDirReady, syncMs, htmlDir, creatorSkill, workbenchIndex, order, autoSync, lastPrefs }`。`dataDir` / `syncMs` 与旧扁平字段镜像一致；`creatorSkill` 是创建技能状态；`workbenchIndex` 是常驻索引快照 `{ mode, sections, name }`（`mode` 为 `off` / `global` / `per-session`） |
+| POST | `/workbench/settings` | body 全可选 `{ dataDir?, syncMs?, order?, autoSync?, action? }` → 200 回显完整 GET 形态；不传保持原值、空串清除数据目录 / 重置同步间隔。**不依赖 `sourceUrl`**（与 `/settings` 的关键区别）。400 一律带机器可读 `code`：`invalid-data-dir` / `invalid-sync-ms` / `invalid-action`；`action:'enable-creator'` 一键启用内置创建技能 |
 
 > **`repoReady` 与 `indexReady` 是两个独立信号**：
 > 前者表示「数据目录可用」（`dataRoot` 已定位到某个含 `experts/` / `skills/` / `connectors/` 之一的目录；git 克隆与 `ntd-resource` 仍要求 `experts/` 非空），
@@ -545,6 +553,230 @@ order: 300
 
 
 索引不可用时，数据类接口返回 `{ ok: false, busy, indexReady: false, error, message }`：`busy` 取**真实同步状态**（同步已失败即为 `false`），`error` 与 `message` 内容相同、同时提供，前端两条取值链都不会拿到空白文案。首次同步、同步失败、以及「切到 git 待刷新」三种情况给出不同提示，其中待刷新时提示「数据源已切换，点「刷新」以应用新数据源」。自动同步在「待刷新」或「上次同步失败」期间被抑制，只有用户主动点「刷新」才会重试。
+
+---
+
+## 外观一致性（铁律）
+
+**插件自己的每一个颜色都必须来自宿主 dsh 的通用外观 token，不得自建一套配色。** 这是硬约束，后续任何 UI 改动都按这条走。
+
+- 写法固定：`var(--dsw-alias-<语义>, <回退值>)` —— 宿主提供就跟随（含深浅主题切换），不提供就回退，渲染不塌。
+- 裸色值只允许两种：`#fff`（彩色底上的前景文字）、`rgba()`（阴影 / 遮罩）。其余一律 token 化。
+- 禁止：`--wb-*` 之类的私有颜色变量、`prefers-color-scheme` 媒体查询、`data-theme` 切换、往 iframe 注入主题脚本、插件自己的主题设置。
+- 语义 token 九件套：`bg-base` / `bg-layer-1` / `bg-layer-2` / `interactive-bg-hover-solid` / `label-primary` / `label-secondary` / `border-l1` / `brand-primary` / `state-{error,success,warning}-primary`。
+- 唯一登记例外：技能卡片图标色板 `SKILL_TILE_PALETTE`（内容装饰色，20 个色值）。
+- **实心色块上的文字一律用 `var(--dsw-alias-bg-base, #fff)` 做反色**：深色外观下 `brand-primary` 可能就是白色，写死 `#fff` 会变成白底白字（实机踩过，见 AP10）。
+- iframe 里的工作台 HTML 由插件下发同一套 token：页面写 `var(--dsw-alias-*, 回退)` 即自动跟随深浅色，详见 [docs/ui-appearance.md §4](docs/ui-appearance.md)。
+
+完整对照表、范围边界、推测 token 标注与新增 UI 的流程见 **[docs/ui-appearance.md](docs/ui-appearance.md)**；落地情况由 `node _harness/appearance.mjs`（AP1–AP9）自动把关，必须 9/9 PASS。
+
+---
+
+## 个人工作台
+
+面板新增一个大块「个人工作台」：块内二级菜单由每个 HTML 的 `menu[]` 提供，右侧是一个 `iframe`。页面不是插件渲染的，而是 **dsh agent 直接落盘到磁盘的 HTML**；插件只负责只读地展示它，并通过注入的桥帮它读写旁边的 CSV 数据表。落盘后在工作台点「刷新」即生效，无需重启宿主进程（`GET /workbench/list` 每次重扫目录）。v2 起创建规则收敛到内置技能、配置拆到独立设置、菜单与整体观感可按风格切换，详见下文各节。
+
+这 7 个路由与其它接口一样挂在 `/dsh-buddy-expert-hub` 前缀下、全部继承宿主同源门禁；其中 `/workbench/html` 与 `/workbench/bridge.js` 直接返回内容（`text/html` / `application/javascript`），不走 `{ ok, ... }` 包裹，其余沿用前缀下的错误约定。
+
+### 目录结构
+
+```text
+$DSH_HOME/                                  # 默认 ~/.dsh，可用环境变量 DSH_HOME 覆盖
+└── dsh-buddy-expert-hub/
+    └── workbench/                          # HTML 展示文件（固定位置，只读发布包目录不用它）
+        ├── reading-log.html
+        └── ...
+
+<个人工作台数据目录>/                       # 用户在设置里填的绝对路径
+└── <工作台 id>/
+    ├── books.csv                           # 表名 = tables[].file
+    └── ...
+```
+
+- HTML 展示文件固定放 `$DSH_HOME/dsh-buddy-expert-hub/workbench/`；`DSH_HOME` 可用环境变量覆盖，默认 `~/.dsh`。**发布包目录只读，不用它**。
+- CSV 数据表放用户在设置里填的「个人工作台数据目录」下 `<工作台 id>/<表名>.csv`，`id` 来自菜单声明、`<表名>` 来自 `tables[].file`。
+- HTML 目录与 CSV 目录是**两个不同的 root**，各自独立做越界校验，互不串用。
+- Win / Linux / macOS 三端都从 `DSH_HOME` 派生路径（macOS 不读 `builtin/`）；Windows 的中文 / 空格路径、CSV 的 CRLF + BOM 均在覆盖范围内。
+- **插件不提供 HTML 写接口**：没有新增 / 修改 / 删除工作台 HTML 的路由，HTML 由 dsh agent 直接落盘到上述 workbench 目录，插件只读。
+
+### 快速体验
+
+仓库里带一个可直接落盘运行的「读书记录」示例工作台 `docs/workbench-example.html`：内嵌菜单声明，以及 `Workbench.read` / `write` / `onData` / `onConflict` 的完整用法，用来先把读写流程跑通一遍：
+
+1. 把 `docs/workbench-example.html` 复制到 `$DSH_HOME/dsh-buddy-expert-hub/workbench/`（`DSH_HOME` 默认 `~/.dsh`，可用环境变量覆盖）；
+2. 在工作台视图「设置」打开的独立「工作台设置 → 数据分区」里填好「个人工作台数据目录」；
+3. 回到面板的「个人工作台」大块点「刷新」—— 列表每次重扫 HTML 目录，示例工作台立刻出现，**不用重启宿主进程**；
+4. 打开后即可在页面上增删改数据，数据表会自动落在 `<数据目录>/reading-log/books.csv`（`id` 是 `reading-log`、`tables[].file` 是 `books.csv`）。
+
+> 这个文件只是**示例 / 模板**，方便照着写自己的 HTML。正式工作台仍由 dsh agent 生成并落盘到 `workbench/` 目录，插件不提供上传 / 编辑 HTML 的界面。
+
+### 通过 @ 指令生成工作台
+
+在输入框输入 `@` 即可唤起候选，分组名为「个人工作台」。内置 5 个静态模板，按中文名、id、表名或关键词过滤：
+
+| 模板 | id | CSV 数据表 |
+| --- | --- | --- |
+| 读书记录 | `reading-log` | `books.csv` |
+| 任务看板 | `task-board` | `tasks.csv` |
+| 家庭开支 | `expense` | `expenses.csv` |
+| 健身打卡 | `fitness` | `checkins.csv` |
+| 自定义空白工作台 | `blank` | `data.csv` |
+
+选中模板后，插件**不自己写 HTML**，对话框里**只出现 1 个短 chip**（如「个人工作台 · 读书记录」）+ **一句 ≤120 字的技能引用**（如 `/workbench-creator reading-log 读书记录`），**规则文本不进对话框**：菜单声明 schema、CSV / HTML 落盘路径、`window.Workbench` 桥 API、CAS / 409、刷新等**完整创建规则只放在内置技能 `workbench-creator` 里**，由 dsh agent 按需加载；**同一会话多次创建只加载 1 次 skill**，不会每次生成都重新解析规则。会话里另有一段精简的 systemPrompt 常驻索引，只做能力发现（「有个人工作台能力 / 完整规则在内置技能 `workbench-creator` / `@` 触发 / 其它对话忽略本区块」），不含任何规则细节。
+
+- 任务说明由技能引用承载，不再拼一大段中文提示语；用户仍可在 chip 后面补一句自然语言场景，例如「再加一个按月份统计的图表」「字段里加一个标签列」；
+- 菜单声明 `<script type="application/json" id="workbench-menu">` 的 `version` / `id` / `name` / `tables[].file` / `tables[].fields[]` / `menu[]` schema、`_id` 由后端自动补齐、JSON 文本里的 `</script>` 要写成 `\u003c/script\u003e`，这些细节全部写在技能正文里，不进对话框；
+- CSV 数据表落到 `<数据目录>/<id>/<表文件>`、HTML 展示文件落到 `<HTML 目录>/<id>.html`，两个目录与 `GET /settings` 的 `workbenchDataDir` / `workbenchHtmlDir` 口径一致（后者取不到时用 `$DSH_HOME/dsh-buddy-expert-hub/workbench`）；未配置数据目录时到「工作台设置 → 数据分区 → 数据目录」填一个存在且可写的绝对路径；
+- 页面必须使用注入的 `window.Workbench.ready()` / `read({table})` / `write({table, baseHash, columns, rows})` / `onData(fn)` / `onConflict(fn)`：页面上的增删改写回 CSV、外部改 CSV 后页面自动更新、遇到 409 冲突给「重试 / 放弃」提示且不静默覆盖；
+- 生成完到面板点「刷新」即生效、无需重启宿主进程，可参考自带的 `docs/workbench-example.html`。
+
+**插件不提供 HTML 写接口**：没有新增 / 修改 / 删除工作台 HTML 的路由，HTML 由 dsh agent 直接落盘，插件只读。
+
+#### 指定数据目录
+
+默认使用设置里的 `workbenchDataDir`。也可以在 `@` 后附加一个绝对路径来指定数据位置（Windows `X:\...` 或 POSIX `/...`，例如 `@读书 D:\我的数据\workbench-data`）；路径放在关键词后面，允许含空格。目录会过滤控制字符 / 换行 / 尖括号 / 反引号 / 竖线并截断长度上限，避免污染对话框里的 chip 参数。
+
+若指定的目录与设置里的 `workbenchDataDir` 不同，消息发送时插件会自动发起一次 `POST /settings`（请求体只带 `sourceUrl` 与 `workbenchDataDir`）把设置同步成该目录，保证 agent 的落盘位置与 `window.Workbench` 桥实际读写的位置一致；同步结果**改用 toast 反馈**（成功 info / 失败 error），不再写进任何提示语。同步失败（网络异常、非 2xx、设置里没有 `sourceUrl`、后端目录校验不通过等）时**回退到当前设置目录**，toast 提示先到「工作台设置 → 数据分区 → 数据目录」手动改成该路径后再生成，**不阻断消息发送**，绝不会悄悄把数据写到别处。目录相同、或没有指定目录时不会发这次 POST。
+
+#### 与 `/` 触发源的关系
+
+`@` 与 `/` 是两个互相独立的触发源：`/` 仍是技能指令源，`@` 只承载「生成个人工作台」这一类指令，**不会**在 `@` 菜单里冒出专家 / 专家团 / 技能 / 连接器等资源候选（那些仍从输入框的专家按钮选择）。宿主原生占用 `@` 时，插件会降级尝试 `@workbench`；两者都被拒绝则在控制台给出明确中文告警并返回空注销函数，**不影响 `/` 技能源的注册**。两源各自独立 `ctx.effect` 注册，注册失败互不影响；`@` 序列化产出的技能引用文本只是随消息发送的一句短文本，**不会触发 `/` 源的注册或候选函数**。
+
+### 侧栏入口
+
+左侧栏新增「个人工作台」入口，与「专家·技能·连接器」并列，`order: 13` 排在其下方（依赖宿主按 order 升序渲染，**需宿主实机验证**）。点击打开一个独立的工作台面板：左侧文件树（工作台 + 数据表）、右侧整页 iframe，外加「刷新 / 自动刷新开关 / 设置」工具条。
+
+主面板「专家·技能·连接器」里**不再有**工作台大块（只剩 3 个大块：专家 / 技能 / 连接器），工作台只保留这个侧栏入口，避免和资源类目录混在一起。
+
+工作台面板的布局是**左侧文件树 + 右侧整页 HTML**：
+
+- 左侧按文件列：每个工作台是一个文件节点（`读书记录`），下面挂它的 CSV 数据表（`books.csv`），可收起；点节点即切换工作台。
+- **左侧栏宽度可拖**：左栏与页面之间的分隔条拖动即改宽度（140–520px），双击复位，聚焦后 `←`/`→` 微调（`Shift` 大步）；宽度存 `localStorage`，刷新后保持。
+- **展示顺序可调**：拖动文件节点到另一个节点上即换位，也可聚焦节点后 `Alt+↑` / `Alt+↓` 移动一位；顺序存 `state.settings.workbench.order`（`POST /workbench/settings { order: [id…] }`），重启仍在，未登记过的新工作台按扫盘顺序追加在末尾。
+- 右侧 iframe **整页铺满**，页面的菜单、按钮、排版全部由 HTML 自己渲染 —— 插件不代画任何页面内按钮，也不再提供菜单风格 / 主题选择。
+- **页面配色跟随宿主深浅色**：父窗口把宿主 11 个 `--dsw-alias-*` 语义 token 下发进 iframe 的 `:root`（`ready` 时先发一次，之后每秒比对指纹、变化才推），并给页面 `html` 打 `data-dsh-theme="light|dark"`；页面只要写 `var(--dsw-alias-*, 回退值)` 就自动跟随。桥层新增 `window.Workbench.theme()` / `onTheme(fn)`，创建技能第 7 段 UI 清单第 10 条强制要求页面不写死颜色。
+- 顶部只保留一条**插件自己的固定工具条**（刷新 / 自动刷新开关 / 设置齿轮）；点齿轮打开**独立「工作台设置」弹窗**（数据目录 / 同步间隔 / 创建能力），**不与专家 `SettingsDialog` 共用**。
+
+> 「同一插件注册第二个 main 面板」是否允许**需宿主实机验证**：这是运行时不可证项，插件侧无法自证。若宿主不支持多 main 面板，工作台入口将无法显示。
+
+### 菜单声明（每个 HTML 必须内嵌）
+
+插件**只读字符串提取 + `JSON.parse` + 白名单校验，绝不执行 HTML 里的脚本**：
+
+```html
+<script type="application/json" id="workbench-menu">
+{"version":1,"id":"reading-log","name":"读书记录","icon":"book",
+ "tables":[{"file":"books.csv","fields":[{"key":"title","label":"书名","type":"string"},{"key":"status","label":"状态","type":"enum","options":["想读","在读","已读"]}]}],
+ "menu":[{"id":"overview","label":"总览","view":"","prompt":"帮我汇总本月的读书进度"}]}
+</script>
+```
+
+字段口径：
+
+| 字段 | 约束 |
+| --- | --- |
+| `id` | 小写字母 / 数字 / 连字符，长度 1–64 |
+| `name` | 必填 |
+| `version` | 数字 |
+| `tables[].file` | 只能是无路径的 `.csv` 文件名 |
+| `tables[].fields[]` | 支持 `key` / `label` / `type`（`string` \| `number` \| `date` \| `boolean` \| `enum`）/ `required` / `default` / `options` |
+| `menu[].view` | 作为 `view=` 查询参数传给 iframe |
+| `menu[].prompt` | 该菜单项搭配的用户任务提示语，前端提供「复制提示语」 |
+| `_id` | 由后端自动补齐并作为稳定行标识，不用手写 |
+
+- 单个 HTML 声明非法只**降级跳过**，并在列表的 `errors[]` 里给出提示，不影响其它工作台；
+- JSON 里若出现 `</script>`，要写成 `\u003c/script\u003e`，避免提前闭合脚本标签。
+
+### 桥协议简表
+
+`iframe` 用 `sandbox="allow-scripts"`，**不给 `allow-same-origin`**（opaque origin，页面无法直接 fetch 插件写接口）。HTML 内用注入的 `window.Workbench`：
+
+| `window.Workbench` 方法 | 对应 `kind` | 作用 |
+| --- | --- | --- |
+| `ready()` | `ready` | 页面就绪，父组件回送初始数据 |
+| `read({table})` | `read` | 读一张表（父组件代理 `GET /workbench/data`） |
+| `write({table,baseHash,columns,rows})` | `write` | 写一张表（父组件代理 `POST /workbench/data`） |
+| `onData(fn)` | —（推送） | 订阅数据推送：初次加载与外部改动后的自动刷新 |
+| `onConflict(fn)` | —（推送） | 订阅 409 冲突，收到「重试 / 放弃」提示 |
+| `theme()` | — | 返回当前宿主外观 `{ scheme:'light'\|'dark', tokens:{…} }`（插件自动维护） |
+| `onTheme(fn)` | `theme`（父→子） | 订阅宿主外观变化，注册时若已收到外观会立即回调一次 |
+
+- 外观下发：父窗口读宿主 `--dsw-alias-*` 快照（11 个语义 token），`ready` 时先发一条 `kind:"theme"`，之后每 1s 比对指纹、变化才发；桥把它写到 iframe `:root`（同名 `--dsw-alias-*`）并打 `data-dsh-theme` / `color-scheme`，页面因此能跟随宿主深浅色。
+
+- 所有 `postMessage` 带 magic `__wb:1`；父组件校验 `event.source` 与 `kind` 白名单（**只代理 `ready` / `read` / `write`**），请求 5 秒超时；
+- 子桥侧同样只接受 `event.source === window.parent` 的消息（顶层直接打开 HTML 调试时跳过该校验），避免同页其它窗口伪造推送或响应；
+- 外部改 CSV 后按 `syncIntervalMs` 自动 push 更新页面；
+- 409 时自动重载 `current` 数据并给出「重试 / 放弃」提示，**不静默覆盖**；
+- 宿主 CSP 禁止内联脚本时，可外链 `GET /workbench/bridge.js` 作为回退路径。
+
+### 设置（GET / POST `/settings`，两个可选字段）
+
+> v2 起工作台配置已拆到独立「工作台设置」弹窗与 `GET/POST /workbench/settings`（见下一节）；本节两个字段作为**旧 `/settings` 兼容字段**原样保留，老 `state.json` 与既有调用不受影响。
+
+| 字段 | 说明 |
+| --- | --- |
+| `workbenchDataDir` | 绝对路径，指向 CSV 数据表根目录；留空清除、不传保持原值；后端校验存在 / 是目录 / 可写 |
+| `syncIntervalMs` | 500..60000，默认 `2000`；控制外部改 CSV 后页面自动刷新的轮询间隔 |
+
+### 配置与存储分层
+
+v2 起工作台配置从专家设置里**完全拆出**，不再和专家 / 技能 / 连接器配置混在一起：
+
+| 层 | v2 | 向后兼容 |
+| --- | --- | --- |
+| UI | 独立「工作台设置」弹窗（工作台工具条齿轮直达），分数据 / 创建能力两个分区 | 专家 `SettingsDialog` 已无任何工作台字段 |
+| 接口 | 专用 `GET/POST /workbench/settings`，字段全可选、不传保持原值、**不依赖 `sourceUrl`** | `POST /settings` 与 `GET /settings` 对 `workbenchDataDir` / `syncIntervalMs` 的旧行为保留 |
+| 存储 | `state.settings.workbench`（`dataDir` / `syncMs` / `lastPrefs`），冷启动 `restoreState()` 白名单恢复 | 旧扁平字段 `workbenchDataDir` / `syncIntervalMs` 保留为镜像、不删除、**不写迁移脚本**；老 `state.json` 缺新对象时冷启动回填一次 |
+
+`GET /workbench/settings` 回显 `{ ok, dataDir, dataDirReady, syncMs, htmlDir, creatorSkill, workbenchIndex, order, autoSync, lastPrefs }`；`POST /workbench/settings` 的 200 响应就是同一份完整形态。新对象为写入权威、运行期数据面仍读旧扁平字段，两者由 `applyWorkbenchPatch()` 收口保持一致；所有 400 都带机器可读 `code`。
+
+### 页面菜单归 HTML
+
+工作台页面里的**菜单、标签页、按钮、配色、排版全部由生成的 HTML 自己实现**，插件不渲染、不注入样式：
+
+- 左侧文件树只列「工作台文件 + 它的 CSV 数据表」，是插件自己的导航，不是页面菜单；
+- 右侧 iframe 整页铺满，页面内部怎么排、菜单放哪，全由 HTML 决定；
+- 菜单声明里的 `menu[]` 只是可选的元信息（插件不渲染），页面菜单必须写在 `<body>` 里；
+- `menuStyle` / `theme` 字段已废弃，写了也会被忽略，不影响校验。
+
+**切换不重载**：点左侧另一个工作台才会换 iframe（`setFrameKey`），同一页内的 tab 切换完全由页面自己处理。
+
+### 内置创建技能
+
+`builtin/windows/skills/workbench-creator/SKILL.md` 与 `builtin/linux/skills/workbench-creator/SKILL.md` 两平台正文一致，是**创建规则的唯一权威副本**：
+
+| 段 | 内容 |
+| --- | --- |
+| 1 | 何时使用 / 护栏 |
+| 2 | 创建前一次性偏好询问 |
+| 3 | 落盘位置（HTML 目录与 CSV 目录两个不同 root） |
+| 4 | 菜单声明 schema（`tables[]`；`menu[]` 可选、插件不渲染，菜单写在 HTML body 里） |
+| 5 | 桥 API：`window.Workbench` 的 `ready` / `read` / `write` / `onData` / `onConflict` / `theme` / `onTheme` |
+| 6 | CAS / 409 / 冲突态 |
+| 7 | 扁平化 UI 10 条自检清单（配色 / 间距 / 字号 / 控件 / 表单 / 空态 / 冲突态 / 同步态 / 响应式无障碍 / 深浅色自适应） |
+| 8 | 完成与自检（生成完点「刷新」即生效） |
+
+**创建前会先问一次**：工作台形态用途、增改表单如何设置（含字段是否按模板预置）、数据目录，共 3 个问题、最多 1 轮；**不想选直接跳过按默认走**，问询工具不可用时退化为一条自然语言一次性提问，不中断创建。
+
+**总开关无关**：该技能用独立 marker `.wb-creator-skill.json` 常驻安装，**不写 `.builtin-skill.json`**，所以「启用内置技能」总开关关闭 / 再开启都不会把它删掉，打 `@` 始终能用；独立「工作台设置 → 能力分区」可查看状态，必要时点「一键启用」（`POST /workbench/settings` 带 `action:'enable-creator'`）。
+
+### 安全边界
+
+- 全部接口继承宿主的**同源门禁**（`localRequestGuard()`：只接受 localhost / 127.0.0.1 / ::1，带 `Origin` 时校验 host 一致，`Sec-Fetch-Site: cross-site` 一律 403）；
+- 路径做**词法 + `realpath` 双重越界校验**：HTML 目录与 CSV 目录是两个不同 root，`workbench` / `table` 参数一律按白名单与单段文件名解析，目录穿越与符号链接逃逸都拒绝；
+- 菜单声明只做字符串提取 + `JSON.parse` + 白名单校验，不执行 HTML；iframe 不给 `allow-same-origin`，页面拿不到宿主同源凭据；
+- CSV 只支持 **UTF-8**：自动剥 BOM、沿用首次创建时的 CRLF 或 LF 行尾、正确处理引号 / 逗号 / 字段内换行与 `""` 转义；
+- `hash` = `sha256(磁盘 CSV 原始字节)` 的 hex，`mtimeMs` / `size` 只作轮询预检；写入按**字段名对齐列**合并（新列留空、已有行全保留），进程内串行队列 + 队列内 double-check，`tmp` → `rename` 原子写，**不做分布式锁**。
+
+### 明确不做的事
+
+> **本期是纯本地单机**：数据写在用户自己指定的本地目录里；团队协作靠把这个目录指到共享盘/同步盘实现，插件本身不提供服务端、账号或云端同步，多人同时写同一张表会走 CAS 冲突提示。
+
+以下都不在本次范围内，接口与文档不含糊带过：
+
+- **HTML 写接口**：插件没有写 / 改 / 删工作台 HTML 的路由，HTML 一律由 dsh agent 落盘，插件只读；
+- **云端存储**：HTML 与 CSV 都在本机 `DSH_HOME` / 用户自填目录里，不上传、不跨机同步；
+- **多表消费**：插件只按 `table` 逐表读写，不提供跨表关联 / 联合查询，多表消费属于后续增量。
 
 ---
 
@@ -628,6 +860,9 @@ npm run build:connectors
 npm run check            # 所有 lib/*.js 语法检查 + 发布清单自检
 node --check lib/index.js
 node --check lib/client.js
+
+# 外观铁律（必须 9/9 PASS）：颜色只认宿主 --dsw-alias-* token
+node _harness/appearance.mjs
 ```
 
 ---
