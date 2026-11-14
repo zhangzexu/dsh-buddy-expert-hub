@@ -593,7 +593,7 @@ order: 300
 
 ## dsh 设置页（设置 → Buddy 工作台）
 
-插件注册 `settings.section`（`order: 16`），在 dsh 设置左侧导航里贡献一个**一级入口「Buddy 工作台」**，与「内置插件」同级，页内四个分区：
+插件注册 `settings.section`（`order: 16`），在 dsh 设置左侧导航里贡献一个**一级入口「Buddy 工作台」**，与「内置插件」同级，页内五个分区：
 
 | 分区 | 内容 |
 | --- | --- |
@@ -601,6 +601,7 @@ order: 300
 | 个人工作台 | 数据目录、自动检查间隔、创建技能安装状态（原「工作台设置」弹窗整体搬入） |
 | 插件升级 | 当前 / 最新版本、检查更新、一键升级、最近升级历史 |
 | 关于与反馈 | GitHub Star 入口、Issues、重看插件介绍 |
+| 在线资料库 | 后端地址 / clientId / clientSecret / 用户 API Key / 在线优先开关 + 测试连接 |
 
 页面结构对齐参考项目 `dsh-our-free-model`：头部一行是**插件头像**（包内 `assets/avatar.png`，由 `GET /avatar` 返回）+ 标题，右侧是「**视觉特效**」开关与「**点个 Star**」；下面是一行横向分区导航（只有文字，不带计数），内容区按分区切换。「关于与反馈」分区里另有一个「去 GitHub 点 Star」主按钮。
 
@@ -647,6 +648,96 @@ order: 300
 - iframe 里的工作台 HTML 由插件下发同一套 token：页面写 `var(--dsw-alias-*, 回退)` 即自动跟随深浅色，详见 [docs/ui-appearance.md §4](docs/ui-appearance.md)。
 
 完整对照表、范围边界、推测 token 标注与新增 UI 的流程见 **[docs/ui-appearance.md](docs/ui-appearance.md)**；落地情况由 `node _harness/appearance.mjs`（AP1–AP10）自动把关，必须 10/10 PASS。
+
+---
+
+## 在线资料库（Knowledge Hub）
+
+插件可以接一个自部署的 [Knowledge Hub](https://github.com/) 风格的在线资料库服务端。
+**整个插件共用一套后端与凭据**：工作台的 HTML / CSV、以及新增的「资料库」文档浏览都从这里读；
+本地目录只在在线不可用时作为备用。
+
+### 配置
+
+在 **设置 → Buddy 工作台 → 在线资料库** 里填：
+
+| 字段 | 说明 |
+|---|---|
+| 后端服务地址 | 例如 `http://127.0.0.1:8080`；只接受 http(s) |
+| 客户端 ID / 客户端密钥 | 服务端 `POST /api/open/auth/client` 签发的接入凭据，测试连接时会校验有效性 |
+| 用户 API Key | `khub_pat_xxx`，所有数据请求用 `Authorization: Bearer` 带上；只看到 PAT 被授权的空间 |
+| 在线优先 | **默认开启**：填好地址与用户 API Key 保存后立即生效，不需要再点开关。只有显式关掉才只用本机目录（关掉后地址与密钥仍保留，随时可以再开） |
+
+明文密钥只出现在保存请求里，服务端写入 `$DSH_HOME/dsh-buddy-expert-hub/credentials.enc`
+（AES-256-GCM，复用连接器凭据那套）；`state.json` 只存地址、clientId 和开关，
+GET 回显只有「是否已配置」，输入框永远回填空（留空 = 不改动，勾选「清除」才删除）。
+「测试连接」会同时验证 PAT 能列出哪些空间、以及 client 凭据是否有效。
+
+### 数据优先级
+
+```
+/workbench/list | html | data  →  在线可用就用在线；任一步失败静默回落到原来的本地实现
+```
+
+- **在线工作台**：把资料库里每个 `HTML` 节点当作一个工作台，挂在它下面的 `CSV` 子节点当作数据表。
+  插件工作台要求的 `workbench-menu` 声明由插件按树自动合成，在线 HTML 不需要改。
+- **KB → Workbench 适配**：在线 HTML 用的是 `window.KB`（`listChildren / getCsv / updateCell / readTable`），
+  插件 iframe 注入的是 `window.Workbench`。插件在返回 HTML 时注入一层适配器，把 KB 调用翻译成
+  父桥的 `read` / `write`（父桥只放宽了「允许 iframe 指定 table」），因此在线 HTML 原样能跑，
+  单元格编辑最终写回 `PUT /api/nodes/{id}/csv/matrix`。
+- **版本即 hash**：在线 CSV 的 `version` 统一变成 `v<n>` 当作插件的 hash，
+  沿用现有的轻量轮询、CAS 与 409 冲突 UI；前端一行没改。
+- **写入不静默改本地**：在线写入失败会返回可读错误，不会偷偷写进本地 CSV 造成两边数据分裂。
+- **主题**：在线 HTML 自带的 `:root` 变量在注入时被映射到宿主 `--dsw-alias-*`，
+  深浅色仍自动跟随（外观铁律同样覆盖 iframe）。
+
+### 「资料库」面板
+
+侧栏新增独立入口「资料库」，版式为左侧树形导航 + 右侧文档区，功能对齐在线资料库的文档区：
+
+- **树形侧栏**：空间 → 目录 → 文件递归展开，按类型着色（目录 / Markdown / CSV / HTML / 图片 / Office），
+  可展开折叠、点目录看子项、点文件直接打开；悬停任意节点出现「···」菜单。
+- **节点操作**（菜单与编辑器里都能进）：新建子项、重命名、移动到其它目录、删除、收藏 / 取消收藏、分享、版本历史。
+- **收藏**：左侧「收藏」进入，可按收藏夹分组筛选（服务端的默认分组 + 自建分组），树里已收藏的节点带星标。
+- **共享**：左侧「共享」进入，分「我发出的 / 收到的」两个页签；每条可复制链接、改只读/可写、取消。
+- **分享**：编辑器里点「分享」创建链接，支持只读 / 可写、有效期（小时）、访问密码；
+  HTML 节点额外给出「直链」`/p/{token}/{nodeId}`（对方浏览器直接打开就是页面本身）。
+- **版本历史**：列出历史版本（版本号、备注、编辑人、大小、时间），可查看内容并回滚（回滚会生成新版本）。
+- **Markdown 按 Word 方式编辑**：默认所见即所得（contenteditable + 工具栏：H1/H2/H3、加粗、斜体、
+  下划线、删除线、有序/无序列表、引用、链接、代码块），保存时把 DOM 序列化回 Markdown 源码；
+  也可切「源码」「预览」。
+- **最近访问**：左侧「最近」按服务端访问记录排序。
+- 只做文档区能力；空间 / 成员 / 权限等后台管理不在本插件范围内。
+
+支持的类型（与在线资料库的查看器对齐，Office 除外）：
+
+| 类型 | 插件内能力 | 说明 |
+|---|---|---|
+| 目录 FOLDER | 进入 | 面包屑返回上级 |
+| Markdown MD | 查看 + 编辑 | 编辑 / 源码 / 预览三种模式，预览用内置轻量渲染（不引第三方依赖）；正文里的 `![](kb:21)`、`![](素材/a.png)` 会被解析成 `/khub/raw` 直链直接显示，`[周会纪要](kb:18)` 渲染成可点链接、点一下就在面板里打开目标节点；解析不到的图片显示「图片未找到：<路径>」而不是破图 |
+| CSV | 查看 + 编辑 | 表格网格逐格编辑、加行加列，保存走 `PUT /khub/csv`（整表覆盖 + `baseVersion` 乐观锁，冲突提示刷新） |
+| HTML | 查看 + 编辑 | iframe 预览（sandbox 不给 `allow-same-origin`）可运行页面里的 `window.KB` 读写挂载的 CSV；另有「源码」与「刷新」 |
+| IMAGE | 查看 | `GET /khub/raw?id=` 由插件服务端带 PAT 取回字节再转发（img/iframe 无法自带认证头） |
+| FILE（PDF / 文本等） | 查看 + 下载 | 浏览器能内嵌的直接显示，其余给「下载」 |
+| WORD / EXCEL / PPT | 不支持 | 明确提示去在线资料库中打开（Office 预览依赖较重，按需求不做） |
+
+与在线版的差异只有两处，都是刻意取舍：Markdown 的可视化（富文本）模式没做，改成源码 + 分栏 + 预览；
+Office 预览不做。其余（目录、CSV 网格、HTML 预览与源码、图片、附件下载）行为一致。
+
+
+
+### 相关接口
+
+| 接口 | 说明 |
+|---|---|
+| `GET/POST /khub/settings` | 回显 / 保存在线配置（密钥只进加密文件） |
+| `POST /khub/probe` | 测试连接，返回可见空间与客户端校验结果 |
+| `GET /khub/spaces` · `/khub/tree?spaceId=` · `/khub/children?id=` | 空间与目录 |
+| `GET /khub/content?id=` · `/khub/csv?id=` · `/khub/search?spaceId=&keyword=` | 正文 / 数据表 / 搜索 |
+| `GET /khub/attachments?id=` | 容器后代清单（带 relPath，Markdown 引用解析用） |
+| `POST /khub/node` · `PUT /khub/node` · `DELETE /khub/node?id=` | 新建 / 保存或重命名 / 删除 |
+
+自检：`node _harness/knowledge-hub.mjs`（本机 mock 服务，47 条断言，不依赖真实后端）；`node _harness/library-ui.mjs`（严格 React 桩真渲染资料库面板，18 条断言：整片空白、Markdown 图片/引用解析、树高亮跟随）。
 
 ---
 
@@ -954,6 +1045,9 @@ node _harness/appearance.mjs
 
 # 市场收录（含用 dsh 自带 parseMarketIndex 真校验 market/index.json）
 node _harness/market-index.mjs
+
+# 资料库面板真渲染（严格 React 桩：拒绝原始对象当子元素 / 打开文档不崩）
+node _harness/library-ui.mjs
 ```
 
 ---

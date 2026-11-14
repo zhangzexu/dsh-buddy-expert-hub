@@ -42,7 +42,7 @@
   "scripts": {
     "build:connectors": "node scripts/build-connectors.mjs",
     "build:market": "node scripts/build-market-index.mjs",
-    "check": "node --check lib/index.js && node --check lib/client.js && node --check lib/csv.js && node --check lib/workbench-menu.js && node --check lib/workbench.js && node --check lib/workbench-bridge.js && node --check lib/plugin-update.js && node --check lib/frontmatter.js && node --check lib/connector-meta.js && node --check lib/connector-provision.js && node --check lib/connector-secret.js && node --check lib/connector-store.js && node scripts/check-package.mjs",
+    "check": "node --check lib/index.js && node --check lib/client.js && node --check lib/csv.js && node --check lib/workbench-menu.js && node --check lib/workbench.js && node --check lib/workbench-bridge.js && node --check lib/plugin-update.js && node --check lib/frontmatter.js && node --check lib/connector-meta.js && node --check lib/connector-provision.js && node --check lib/connector-secret.js && node --check lib/connector-store.js && node --check lib/knowledge-hub.js && node --check lib/khub-workbench.js && node scripts/check-package.mjs",
     "check:package": "node scripts/check-package.mjs --verbose"
   },
   "publishConfig": {

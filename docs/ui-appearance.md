@@ -66,6 +66,12 @@
 - 实心主色 / 状态色块上的文字用 `var(--dsw-alias-bg-base, #fff)` 反色 —— 深色主题下 `brand-primary` 可能就是白色。
 - 参考实现：`docs/workbench-example.html`（`:root` 里做一层 `--app-*` 映射，全站只用变量）。
 
+新增的「资料库」面板（`.dshe-lib-*`）同样只使用宿主 token：卡片底 `bg-layer-1`、
+悬停 `interactive-bg-hover-solid`、目录图标 `state-warning-primary`、文件图标 `brand-primary`、
+实心色块上的文字用 `bg-base` 反色。iframe 里的在线 HTML 由 `kbAdapterSource()` 注入一层
+`:root` 变量映射，把页面自带的 `--bg/--card/--line/--text/--muted/--brand` 指到宿主 token，
+所以在线工作台页面也跟随深浅色。
+
 ## 5. 自检
 
 ```bash
