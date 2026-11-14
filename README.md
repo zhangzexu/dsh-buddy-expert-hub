@@ -134,7 +134,7 @@ node _harness/market-index.mjs
 
 ### 内置技能（设置里一个开关）
 
-设置弹窗里有「**启用内置技能**」开关（`role="switch"` + 原生 `checkbox`，浅色主题）：
+设置页的「资源仓库」分区里有「**启用内置技能**」开关（`role="switch"` + 原生 `checkbox`，浅色主题）：
 
 - 开启 = 把插件包内随包发布的内置技能**全部安装**到 `$DSH_HOME/skills/`；关闭 = 把它们**全部移除**：
   - `builtin/<platform>/skills/*` —— 随包发布的独立技能（Windows 当前 **4** 个、Linux 当前 **27** 个，数量取决于随包目录内容）；
@@ -260,7 +260,7 @@ https://gitcode.com/zzx_2446/dsh-buddy-expert-hub-resource.git
 | 自定义本机目录 | 面板「设置」里可直接填本机目录（见下节），`sourceKind` 为 `local`；保存时校验目录。`dataRoot` 立刻重算；新数据源为本机目录时，旧索引立即作废并在下次请求自动重建（不联网、不需要点刷新）；切回 git 仓库时索引保持到下次同步，界面会提示「数据源已切换，点刷新以应用新数据源」（**重启后仍提示**，见下节） |
 | 克隆目标 | `$DSH_HOME/dsh-buddy-expert-hub/repo`（只有完整仓库带 `skills/`）；本机目录模式不会创建或改动它 |
 | 同步方式 | git 数据源：首次 `git clone --depth 1`，之后 `git fetch --depth 1` + `git reset --hard FETCH_HEAD`；点「立即同步」或右上「刷新」触发。本机目录：只重读目录并重建索引，**不联网、不执行任何 git 命令** |
-| 私有仓库 | 设置弹窗会用 `/settings/probe` 匿名探测；判定为私有时自动出现「Git 用户名 + 访问令牌」输入区。探测失败（离线 / 内网 DNS）时可手动勾选「这是私有仓库」兜底。凭据加密保存在本地，令牌绝不回显 |
+| 私有仓库 | 设置页会用 `/settings/probe` 匿名探测；判定为私有时自动出现「Git 用户名 + 访问令牌」输入区。探测失败（离线 / 内网 DNS）时可手动勾选「这是私有仓库」兜底。凭据加密保存在本地，令牌绝不回显 |
 | 校验 | git 地址接受 `http://`、`https://` 与 `git@` 三种形式（不得含空白或 `..`；`http://` 用于内网自建 Git 服务，明文传输风险由用户自行评估）；本机目录必须是绝对地址，相对路径会被拒并提示填绝对路径；未知协议一律拒绝 |
 
 `sourceKind` 只有两个取值：`git`（远程 git 仓库）/ `local`（本机资源目录）。`/settings` 与 `/status` 都会返回它。
@@ -541,6 +541,10 @@ order: 300
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/status` | `{ ok, repoReady, indexReady, lastSync, counts:{experts,teams,skills,connectors,connectable,unsupported}, localCounts:{experts,teams}, sourceUrl, sourceKind, dataRoot, indexDataRoot, indexStale, library, hasSkills, connectorSource, connectorSkipped, skipped, busy, progress, lastError, lastErrorRaw, warnings, importedCount, baseDir, localExpertsDir }`（本轮**没有新增 `/status` 字段**；新增的 `indexSwitchPending` 只写进 `state.json`，不对外暴露）；`counts.experts/teams` 为合并去重后的数量，与列表一致；`counts.connectors` 是**现算**的两源合并总条数（常规模式不进索引；本地资料库模式改用导出包快照），`counts.connectable` / `counts.unsupported` 是其中宿主能装载 / 装载不了的条数（`connectable + unsupported === connectors`）；`connectorSource` 为 `repo` / `none` / `library`；`connectorSkipped` 是**真正解析不了**（缺 id / 结构异常）的条数，正常数据下为 0 —— 它和「不可连接」不是一回事；`lastError` 是给人看的中文，`lastErrorRaw` 是原始错误堆栈；`sourceKind` 为 `git` / `local`，`local` 时 `dataRoot` 是设置里配置的本机目录；`busy` 是**真实的同步中状态**（不是恒 `true`）；`indexDataRoot` 是当前索引对应的数据根，`indexStale` 在「切到 git 数据源、数据根变化」时为 `true` —— 包含冷启动作废旧缓存、当前无索引的情况（此时 `indexDataRoot` 取 `state.json` 里记录的旧根），前端据此提示点「刷新」 |
+| GET | `/meta` | 插件自身元数据：`{ ok, name, version, repoUrl, starUrl, introSeenVersion, updateHistory }`。设置页与介绍弹窗只读这一个接口 |
+| POST | `/intro/ack` | body `{ version }` → `{ ok, introSeenVersion }`；缺 version → 400 `invalid-version` |
+| GET | `/update/check` | 查 registry 最新版：`{ ok, current, latest, hasUpdate, publishedAt, registry }`；可带 `registry` / `force=1`；失败 502 `check-failed` |
+| POST | `/update/apply` | body `{ version?, dryRun? }` → 下载 → sha512 校验 → 备份 → 覆盖，任一步失败回滚；成功 `{ ok, from, to, files, backup, reloadRequired }`，失败 400 `apply-failed` |
 | GET | `/settings` | `{ ok, sourceUrl, sourceKind, sourceBranch, defaultBranch, branchSupported, defaultUrl, usingDefault, skillhubUrl, builtinSkills, builtinPlatform, builtinSkillCount, builtinSkillPluginCount, builtinSkillExcluded }`；`sourceKind` 同上。`builtinSkills` 是内置技能开关状态（旧 `state.json` 无该字段时缺省 `false`），`builtinPlatform` 为 `windows` / `linux`，`builtinSkillCount` 是插件包内当前平台**可用技能总数**（设置弹窗用它渲染「N 个技能」），`builtinSkillPluginCount` 是其中来自内置插件的自包含技能数，`builtinSkillExcluded` 是内置插件里未纳入的数量（全部因依赖插件运行时 / 体积超限，与宿主装了什么无关）。`sourceBranch` 是已配置分支（空串 = 未配置，跟随远端默认分支 HEAD；`defaultBranch` 为空串即表示这一语义），`branchSupported` 表示当前数据源是否为远程 git（决定设置弹窗是否显示分支栏） |
 | POST | `/settings` | body `{ sourceUrl, sourceBranch?, skillhubUrl?, sourceAuthUser?, sourceAuthToken?, sourceAuthClear? }` → `{ ok, sourceUrl, sourceKind, sourceBranch, defaultBranch, branchSupported, skillhubUrl, sourceAuthUser, sourceAuthConfigured }`。`sourceBranch` 可选：不传保持原值、空串清除（跟随远端默认分支 HEAD：clone 不传 `--branch`、fetch 不指定 ref）；只接受纯分支名（字母数字与 `. _ - /`，不能以 `-` 或 `/` 开头、不接受 `refs/heads/...`），非法返回 400；本机目录模式一律忽略并清空。私有仓库凭据：`sourceAuthUser` + `sourceAuthToken`（访问令牌 / PAT）只在远程 git 源时生效，令牌用 AES-256-GCM 加密存进 `$DSH_HOME/dsh-buddy-expert-hub/credentials.enc`，**不写 `state.json`、不随任何接口回显**（只回显 `sourceAuthUser` 与 `sourceAuthConfigured`）；令牌留空表示保持已保存的值，`sourceAuthClear: true` 清除，`POST /settings/reset` 也一并清除。凭据通过 `GIT_CONFIG_*` 环境变量注入 `http.extraHeader`，不会拼进 URL 或出现在命令行参数里；`git@` SSH 源用系统密钥，不走这套。`sourceUrl` 可填 `http://` / `https://` / `git@` 仓库地址或本机目录绝对地址；本机目录会校验存在性与 `experts/` / `skills/` / `connectors/` 结构，不合格返回 400 并给出中文原因；相对路径返回 400 且错误含「绝对路径」。数据根变化时按新数据源分流：**新源为本机目录** → 旧索引立即作废（`state.index` 清空 + 删 `index.json`），下次请求懒加载自动重建、不联网、不自动触发 git；**新源为 git** → 保留旧索引、不触发同步，`/status` 报 `indexStale: true` 由前端提示点「刷新」，并把 `indexSwitchPending: true` 写进 `state.json`（重启后仍提示、仍不自动克隆）；**git 地址互换且数据根不变** → 什么都不做。只改分支不改地址时数据根不变，但仍会置 `indexSwitchPending` 提示刷新，因为索引内容可能随分支变化 |
 | POST | `/settings/reset` | 清除自定义地址、回到 `SOURCE_URL`，返回 `{ ok, sourceUrl, sourceKind: 'git', defaultUrl, usingDefault: true, sourceBranch: '', defaultBranch, branchSupported: true }`；同时清空已配置的分支；数据根变化时按「新源为 git」处理，保留索引并置 `indexStale` |
@@ -584,6 +588,49 @@ order: 300
 
 
 索引不可用时，数据类接口返回 `{ ok: false, busy, indexReady: false, error, message }`：`busy` 取**真实同步状态**（同步已失败即为 `false`），`error` 与 `message` 内容相同、同时提供，前端两条取值链都不会拿到空白文案。首次同步、同步失败、以及「切到 git 待刷新」三种情况给出不同提示，其中待刷新时提示「数据源已切换，点「刷新」以应用新数据源」。自动同步在「待刷新」或「上次同步失败」期间被抑制，只有用户主动点「刷新」才会重试。
+
+---
+
+## dsh 设置页（设置 → Buddy 工作台）
+
+插件注册 `settings.section`（`order: 16`），在 dsh 设置左侧导航里贡献一个**一级入口「Buddy 工作台」**，与「内置插件」同级，页内四个分区：
+
+| 分区 | 内容 |
+| --- | --- |
+| 资源仓库 | 仓库地址、分支、私有仓库凭据、Skillhub 地址、内置技能开关（原「设置」弹窗整体搬入，embedded 复用同一组件） |
+| 个人工作台 | 数据目录、自动检查间隔、创建技能安装状态（原「工作台设置」弹窗整体搬入） |
+| 插件升级 | 当前 / 最新版本、检查更新、一键升级、最近升级历史 |
+| 关于与反馈 | GitHub Star 入口、Issues、重看插件介绍 |
+
+页面结构对齐参考项目 `dsh-our-free-model`：头部一行是**插件头像**（包内 `assets/avatar.png`，由 `GET /avatar` 返回）+ 标题，右侧是「**视觉特效**」开关与「**点个 Star**」；下面是一行横向分区导航（只有文字，不带计数），内容区按分区切换。「关于与反馈」分区里另有一个「去 GitHub 点 Star」主按钮。
+
+- **视觉特效**：默认开启，开关状态只记在当前浏览器（`localStorage` 键 `dsh-buddy-expert-hub:visual-effects:v2`，显式关过才保持关闭）。键带版本：v13 等旧版本曾默认关闭并写入过 `"0"`，换到带 `:v2` 的新键后，旧版写入的关闭状态不会带过来，所有用户升级后首次进入都是开启；之后用户在当前版本手动关掉仍写在新键里、下次进入继续保持关闭。开启后分两类：
+  - **常驻（`infinite`，打开页面什么都不做也一直在动）**：整页外框的缓慢流光（5.2s 一个来回）+ 呼吸描边（3.2s）、内容卡片的同节奏流光、头像呼吸光环（2.4s）、Star 按钮脉冲光晕（2.1s）、选中页签下划线微光（2s）与文字呼吸（2.6s）。流光用 `background-image: linear-gradient(...)` + `background-size:240% 100%` 直接画在背景层，不引入伪元素覆盖内容、不改 `position` / `z-index`，`.dshe-mask-embedded{position:static}` 不受影响。
+  - **交互触发**：切换分区时卡片整体上滑（26px + `scale(.97)`，0.5s 弹性曲线，逐项 90ms 错开），内部内容**只做错峰淡入**不叠加位移，收尾一次柔光高亮；选中页签下划线从左划出（0.35s）；头像 / Star / 页签 / 卡片 / 卡片按钮悬浮位移加大到 4–6px，并带明显的阴影与描边变化。
+- **审美约束**：流光中间色用 `var(--dsw-alias-interactive-bg-hover-solid, rgba(9,105,218,.10))`，浅色外观是淡蓝、深色外观是柔光，不写死一套蓝色；流光只画「外框 + 卡片」两层，不在 head / nav / body 上各叠一条；父层滑入 + 子层淡入，避免父子双重 `transform` 抖动。
+- 动画挂在内容区的**子元素**上而不是容器本身 —— 容器切分区时不会重挂载，动画只会在首次出现时播一次（等于看不见）。用 `animation-fill-mode: backwards` 而不是 `both`，播完把 transform 交还给元素，否则卡片悬停的位移会被动画最终帧锁死。所有 `animation` / `transform` 规则都带 `.dshe-setpage-effects` 作用域前缀（根卡片用 `.dshe-setpage.dshe-setpage-effects`，避免误伤同名的开关文字），关掉开关后整页完全静止。
+- 系统开启「减少动态效果」（`prefers-reduced-motion`）时，所有新增的 `animation` / `transform` / 流光一律归零，功能不受影响。
+
+面板与工作台工具条**不再有齿轮按钮** —— 配置只有一个入口，避免两套弹窗各写一份字段。
+
+### 插件自身在线升级
+
+「插件升级」分区从 npm registry 查最新版并支持一键升级：
+
+```
+检查更新 → 下载 tarball → sha512 校验 → 解包到临时目录 → 校验包名 / 版本一致
+→ 整目录备份 <root>.bak-<from>-<时间戳> → 逐文件覆盖 → 任一步失败自动回滚
+```
+
+- 只认 http(s) registry；tarball 的主机必须与 registry 相同（防镜像重定向）；
+- 解包条目必须以 `package/` 开头且不含 `..`，越界条目直接丢弃；解压上限 64 MiB；
+- 覆盖时跳过 `.git` / `node_modules`；`dryRun: true` 只下载校验、不写盘；
+- **Windows 上覆盖正在加载的 `.js` 可能 EBUSY**：此时回滚并给出可读错误，改用 `dsh plugin --profile <p> add dsh-buddy-expert-hub@<version>` 重装；
+- 升级完成后需要**重启 dsh** 才会加载新代码（响应里 `reloadRequired: true`）。
+
+### 介绍弹窗（首装 / 版本更新）
+
+挂在 `shell.overlay`：拉一次 `GET /meta`，`introSeenVersion` 与当前版本不同就弹（首次安装是 `null`）。四页（概览 / 资源 / 工作台 / 升级与反馈），点「开始使用」写 `POST /intro/ack`，下次不再弹。「关于与反馈」里可以随时重看。
 
 ---
 
@@ -686,7 +733,7 @@ $DSH_HOME/                                  # 默认 ~/.dsh，可用环境变量
 - **展示顺序可调**：拖动文件节点到另一个节点上即换位，也可聚焦节点后 `Alt+↑` / `Alt+↓` 移动一位；顺序存 `state.settings.workbench.order`（`POST /workbench/settings { order: [id…] }`），重启仍在，未登记过的新工作台按扫盘顺序追加在末尾。
 - 右侧 iframe **整页铺满**，页面的菜单、按钮、排版全部由 HTML 自己渲染 —— 插件不代画任何页面内按钮，也不再提供菜单风格 / 主题选择。
 - **页面配色跟随宿主深浅色**：父窗口把宿主 11 个 `--dsw-alias-*` 语义 token 下发进 iframe 的 `:root`（`ready` 时先发一次，之后每秒比对指纹、变化才推），并给页面 `html` 打 `data-dsh-theme="light|dark"`；页面只要写 `var(--dsw-alias-*, 回退值)` 就自动跟随。桥层新增 `window.Workbench.theme()` / `onTheme(fn)`，创建技能第 7 段 UI 清单第 10 条强制要求页面不写死颜色。
-- 顶部只保留一条**插件自己的固定工具条**（刷新 / 自动刷新开关 / 设置齿轮）；点齿轮打开**独立「工作台设置」弹窗**（数据目录 / 同步间隔 / 创建能力），**不与专家 `SettingsDialog` 共用**。
+- 顶部只保留一条**插件自己的固定工具条**（刷新 / 自动刷新开关）；数据目录、同步间隔与创建能力统一在 **dsh 设置 → Buddy 工作台 → 个人工作台** 里配置。
 
 > 「同一插件注册第二个 main 面板」是否允许**需宿主实机验证**：这是运行时不可证项，插件侧无法自证。若宿主不支持多 main 面板，工作台入口将无法显示。
 
@@ -755,7 +802,7 @@ v2 起工作台配置从专家设置里**完全拆出**，不再和专家 / 技�
 
 | 层 | v2 | 向后兼容 |
 | --- | --- | --- |
-| UI | 独立「工作台设置」弹窗（工作台工具条齿轮直达），分数据 / 创建能力两个分区 | 专家 `SettingsDialog` 已无任何工作台字段 |
+| UI | 设置 → Buddy 工作台 →「个人工作台」分区，分数据 / 创建能力两块 | 专家 `SettingsDialog` 已无任何工作台字段 |
 | 接口 | 专用 `GET/POST /workbench/settings`，字段全可选、不传保持原值、**不依赖 `sourceUrl`** | `POST /settings` 与 `GET /settings` 对 `workbenchDataDir` / `syncIntervalMs` 的旧行为保留 |
 | 存储 | `state.settings.workbench`（`dataDir` / `syncMs` / `lastPrefs`），冷启动 `restoreState()` 白名单恢复 | 旧扁平字段 `workbenchDataDir` / `syncIntervalMs` 保留为镜像、不删除、**不写迁移脚本**；老 `state.json` 缺新对象时冷启动回填一次 |
 

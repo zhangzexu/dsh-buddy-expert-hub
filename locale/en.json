@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Buddy expert hub",
-    "description": "Browse, search and import experts, expert teams, skills and connectors in one panel, opened from the expert button beside the composer. Also adds a `/` skill command, an `@` workbench command, and a personal workbench panel that renders agent-written HTML pages whose data lives in CSV tables next to them. It reads the resource repository over the network, scans local skill directories, and keeps connector credentials in an encrypted file under $DSH_HOME. Turning the plugin off removes the panel, both commands and the workbench entry.",
+    "description": "Browse, search and import experts, expert teams, skills and connectors in one panel, opened from the expert button beside the composer. Also adds a `/` skill command, an `@` workbench command, and a personal workbench panel that renders agent-written HTML pages whose data lives in CSV tables next to them. It reads the resource repository over the network, scans local skill directories, and keeps connector credentials in an encrypted file under $DSH_HOME. Turning the plugin off removes the panel, both commands and the workbench entry. It can check for and install its own updates from npm (sha512 checked, automatic rollback), and shows a short intro after install or a version change.",
     "detail": "docs/DETAIL.md"
   }
 }

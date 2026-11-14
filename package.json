@@ -2,6 +2,14 @@
   "name": "dsh-buddy-expert-hub",
   "version": "1.0.3",
   "description": "DeepSeek Harness 插件：专家 / 专家团 / 技能 / 连接器 浏览、检索与导入面板",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhangzexu/dsh-buddy-expert-hub.git"
+  },
+  "homepage": "https://github.com/zhangzexu/dsh-buddy-expert-hub#readme",
+  "bugs": {
+    "url": "https://github.com/zhangzexu/dsh-buddy-expert-hub/issues"
+  },
   "keywords": [
     "deepseek-harness",
     "dsh",
@@ -20,7 +28,8 @@
     "builtin/**/skills/**",
     "cordis.patch.yml",
     "README.md",
-    "docs"
+    "docs",
+    "assets"
   ],
   "exports": {
     ".": "./lib/index.js",
@@ -33,7 +42,7 @@
   "scripts": {
     "build:connectors": "node scripts/build-connectors.mjs",
     "build:market": "node scripts/build-market-index.mjs",
-    "check": "node --check lib/index.js && node --check lib/client.js && node --check lib/csv.js && node --check lib/workbench-menu.js && node --check lib/workbench.js && node --check lib/workbench-bridge.js && node --check lib/frontmatter.js && node --check lib/connector-meta.js && node --check lib/connector-provision.js && node --check lib/connector-secret.js && node --check lib/connector-store.js && node scripts/check-package.mjs",
+    "check": "node --check lib/index.js && node --check lib/client.js && node --check lib/csv.js && node --check lib/workbench-menu.js && node --check lib/workbench.js && node --check lib/workbench-bridge.js && node --check lib/plugin-update.js && node --check lib/frontmatter.js && node --check lib/connector-meta.js && node --check lib/connector-provision.js && node --check lib/connector-secret.js && node --check lib/connector-store.js && node scripts/check-package.mjs",
     "check:package": "node scripts/check-package.mjs --verbose"
   },
   "publishConfig": {
