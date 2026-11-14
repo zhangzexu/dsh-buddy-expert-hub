@@ -1,0 +1,60 @@
+{
+  "format": 1,
+  "title": {
+    "en": "Buddy plugin index",
+    "zh": "Buddy 插件索引"
+  },
+  "description": {
+    "en": "Plugins built for DeepSeek Harness by the Buddy workspace.",
+    "zh": "为 DeepSeek Harness 编写的 Buddy 工作区插件。"
+  },
+  "metadata": {
+    "categories": {
+      "productivity": {
+        "title": {
+          "en": "Productivity",
+          "zh": "效率"
+        }
+      }
+    },
+    "labels": {},
+    "sortKeys": {}
+  },
+  "plugins": [
+    {
+      "name": "dsh-buddy-expert-hub",
+      "title": {
+        "en": "Buddy expert hub",
+        "zh": "专家资源中心"
+      },
+      "description": {
+        "en": "Browse, search and import experts, expert teams, skills and connectors in one panel, opened from the expert button beside the composer. Also adds a `/` skill command, an `@` workbench command, and a personal workbench panel that renders agent-written HTML pages whose data lives in CSV tables next to them. It reads the resource repository over the network, scans local skill directories, and keeps connector credentials in an encrypted file under $DSH_HOME. Turning the plugin off removes the panel, both commands and the workbench entry.",
+        "zh": "在一个面板里浏览、检索并导入专家、专家团、技能与连接器，入口是输入框旁的专家按钮。另外提供 `/` 技能指令、`@` 工作台指令，以及个人工作台面板 —— 它渲染 agent 生成的 HTML 页面，数据存在页面旁边的 CSV 表里。插件会联网读取资源仓库、扫描本机技能目录，连接器凭据加密保存在 $DSH_HOME 下。关闭插件后面板、两条指令与工作台入口一并消失。"
+      },
+      "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiIgdmlld0JveD0iMCAwIDM2IDM2IiBmaWxsPSJub25lIiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IkV4cGVydCBodWIiPgogIDxnIHN0cm9rZT0iI0M0QzlEMiIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CiAgICA8cGF0aCBkPSJNMTAgMTIuOFYyNS40IiAvPgogICAgPHBhdGggZD0iTTEwIDE0aDguMyIgLz4KICAgIDxwYXRoIGQ9Ik0xMCAyMGg4LjMiIC8+CiAgICA8cGF0aCBkPSJNMTAgMjUuNGg4LjMiIC8+CiAgPC9nPgogIDxjaXJjbGUgY3g9IjEwIiBjeT0iOS42IiByPSIzLjIiIGZpbGw9IiMyQjVBRUQiIC8+CiAgPGNpcmNsZSBjeD0iMjAuNiIgY3k9IjE0IiByPSIyLjMiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzZCNzI4MCIgc3Ryb2tlLXdpZHRoPSIxLjkiIC8+CiAgPGNpcmNsZSBjeD0iMjAuNiIgY3k9IjIwIiByPSIyLjMiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzZCNzI4MCIgc3Ryb2tlLXdpZHRoPSIxLjkiIC8+CiAgPGNpcmNsZSBjeD0iMjAuNiIgY3k9IjI1LjQiIHI9IjIuMyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNkI3MjgwIiBzdHJva2Utd2lkdGg9IjEuOSIgLz4KPC9zdmc+Cg==",
+      "metadata": {
+        "category": "productivity",
+        "keywords": [
+          "deepseek-harness",
+          "dsh",
+          "dsh-plugin",
+          "dsh-buddy-expert-hub",
+          "skills",
+          "connectors"
+        ],
+        "labels": [],
+        "sortKeys": {}
+      },
+      "versions": [
+        {
+          "version": "1.0.3",
+          "publishTimestamp": 1794632047,
+          "source": {
+            "type": "npm"
+          },
+          "engines": {}
+        }
+      ]
+    }
+  ]
+}

@@ -92,6 +92,6 @@ node _harness/appearance.mjs
 
 1. 先在 §2 查语义 → 找不到合适语义时，用**最接近的层级色**（`bg-layer-2` / `label-secondary`），不要新造颜色。
 2. 写成 `var(--dsw-alias-<语义>, <接近当前观感的回退值>)`。
-3. 跑 `node _harness/appearance.mjs`，必须 9/9 PASS。
+3. 跑 `node _harness/appearance.mjs`，必须 10/10 PASS。
 4. 再跑对应的功能 harness + 全量回归。
 5. 如果确实需要新 token（现有语义覆盖不了），先在 §2 登记为 ⚠️ 推测名，并在 PR / 提交说明里写清理由与回退值，不能直接写裸色值绕过。

@@ -15,6 +15,8 @@
   "main": "lib/index.js",
   "files": [
     "lib",
+    "locale/*.json",
+    "icon.svg",
     "builtin/**/skills/**",
     "cordis.patch.yml",
     "README.md",
@@ -24,10 +26,13 @@
     ".": "./lib/index.js",
     "./client": "./lib/client.js",
     "./cordis.patch.yml": "./cordis.patch.yml",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
     "./package.json": "./package.json"
   },
   "scripts": {
     "build:connectors": "node scripts/build-connectors.mjs",
+    "build:market": "node scripts/build-market-index.mjs",
     "check": "node --check lib/index.js && node --check lib/client.js && node --check lib/csv.js && node --check lib/workbench-menu.js && node --check lib/workbench.js && node --check lib/workbench-bridge.js && node --check lib/frontmatter.js && node --check lib/connector-meta.js && node --check lib/connector-provision.js && node --check lib/connector-secret.js && node --check lib/connector-store.js && node scripts/check-package.mjs",
     "check:package": "node scripts/check-package.mjs --verbose"
   },

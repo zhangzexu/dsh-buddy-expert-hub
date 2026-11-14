@@ -55,6 +55,37 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
 
 ---
 
+## 被 DSH 收录（插件市场索引）
+
+DSH 的「发现」页读的不是固定官方列表，而是**用户自己添加的索引源** —— 一个 http(s) 上的 JSON 文档（format 1，由 `@deepseek-ai/dsh-plugin-market-index` 校验）。本仓库已把收录需要的东西备齐：
+
+| 项 | 文件 | 作用 |
+| --- | --- | --- |
+| 索引文档 | `market/index.json` | format 1：`name` / `title` / `description` / `icon` / `metadata` / `versions` |
+| 包内元数据 | `locale/en.json`、`locale/zh.json` | `meta.title` / `meta.description` / `meta.detail`，插件行与详情页直接读 |
+| 图标 | `icon.svg`（36×36、≤256 KiB） | 插件行图标；Plugin Manager 自己画外框，图标里不画底 |
+| 详情图 | `docs/DETAIL.md` / `docs/DETAIL.zh.md` + `docs/preview.svg` | 详情页那张单图（每份文档恰好一行图片） |
+
+包清单已导出 `./locale/*.json` 与 `./icon`，`files` 覆盖 `locale/*.json` / `icon.svg` / `docs`，`npm pack` 后这些文件都在包里。
+
+### 让 DSH 真正收录（三步）
+
+1. **发布包**：`npm publish`。索引里的安装来源是 `{ "type": "npm" }`，不写 `registry` 就用客户端默认 registry。
+2. **托管索引**：把 `market/index.json` 放到任意 http(s) 静态地址（GitHub Pages、对象存储、内网静态服务都行）。`icon` 已内联成 `data:` URL，不需要额外托管图标。
+3. **在 DSH 里添加索引源**：Discover / 设置里把上面的 URL 加进索引源，搜 `dsh-buddy-expert-hub` 即可看到并安装。
+
+改了版本号后重新生成索引：`npm run build:market`（要复现旧时间可加 `--timestamp <unix 秒>`）。
+
+### 自检
+
+```bash
+node _harness/market-index.mjs
+```
+
+除结构断言外，它会在 dsh 安装目录里取 `@deepseek-ai/dsh-plugin-market-index`，**真跑一次 `parseMarketIndex`** 确认这个索引被 DSH 接受（找不到 dsh 时该条记为 SKIP）。
+
+---
+
 ## 使用
 
 1. 点击左侧栏「专家·技能·连接器」图标进入面板；
@@ -568,7 +599,7 @@ order: 300
 - **实心色块上的文字一律用 `var(--dsw-alias-bg-base, #fff)` 做反色**：深色外观下 `brand-primary` 可能就是白色，写死 `#fff` 会变成白底白字（实机踩过，见 AP10）。
 - iframe 里的工作台 HTML 由插件下发同一套 token：页面写 `var(--dsw-alias-*, 回退)` 即自动跟随深浅色，详见 [docs/ui-appearance.md §4](docs/ui-appearance.md)。
 
-完整对照表、范围边界、推测 token 标注与新增 UI 的流程见 **[docs/ui-appearance.md](docs/ui-appearance.md)**；落地情况由 `node _harness/appearance.mjs`（AP1–AP9）自动把关，必须 9/9 PASS。
+完整对照表、范围边界、推测 token 标注与新增 UI 的流程见 **[docs/ui-appearance.md](docs/ui-appearance.md)**；落地情况由 `node _harness/appearance.mjs`（AP1–AP10）自动把关，必须 10/10 PASS。
 
 ---
 
@@ -823,10 +854,20 @@ dsh-buddy-expert-hub/
 │   ├── linux/mcps/<name>/       # CodeBuddy 宿主插件 MCP 清单（.mcp.json / .codebuddy-plugin），本插件只读 SKILL.md、不注册 MCP
 │   └── linux/                  # 其它平台（darwin / linux）：含 skills/、builtin-plugins/、mcps/（当前 16 个独立技能，插件来源与 mcps 已清理）
 ├── scripts/build-connectors.mjs   # 资源仓库维护工具（见下节）
+├── scripts/build-market-index.mjs # 生成 market/index.json（DSH 插件市场索引 format 1）
+├── locale/
+│   ├── en.json                 # meta.title / meta.description / meta.detail（英文）
+│   └── zh.json                 # 同上（中文），插件行与详情页直接读这两个文件
+├── icon.svg                    # 插件行图标：36×36，无底、无文字、≤256 KiB
+├── docs/
+│   ├── DETAIL.md               # 详情页图（英文，恰好一行图片）
+│   ├── DETAIL.zh.md            # 详情页图（中文）
+│   └── preview.svg             # 640×300 示意图，两主题通用
+├── market/index.json           # 市场索引（format 1），托管到 http(s) 后即可被 DSH 收录
 └── README.md
 ```
 
-**没有 `data/` 目录**：插件不再内置连接器清单与图标，`package.json` 的 `files` 发布 `lib` / `builtin` / `cordis.patch.yml` / `README.md`；`scripts/check-package.mjs` 会断言 `builtin` 已进 `files`（漏了就会出现「开启内置技能后 0 个技能」）。
+**没有 `data/` 目录**：插件不再内置连接器清单与图标，`package.json` 的 `files` 发布 `lib` / `locale/*.json` / `icon.svg` / `builtin` / `cordis.patch.yml` / `README.md` / `docs`；`scripts/check-package.mjs` 会断言 `builtin` 已进 `files`（漏了就会出现「开启内置技能后 0 个技能」）。`market/index.json` 不随包发布，它是给索引托管用的独立文档。
 
 零 npm 依赖、零构建步骤：host 半是纯 ESM，client 半是一个由 `window.__ModuleLoader__` 加载的普通脚本，使用 `React.createElement` 而不用 JSX。
 
@@ -861,8 +902,11 @@ npm run check            # 所有 lib/*.js 语法检查 + 发布清单自检
 node --check lib/index.js
 node --check lib/client.js
 
-# 外观铁律（必须 9/9 PASS）：颜色只认宿主 --dsw-alias-* token
+# 外观铁律（必须 10/10 PASS）：颜色只认宿主 --dsw-alias-* token
 node _harness/appearance.mjs
+
+# 市场收录（含用 dsh 自带 parseMarketIndex 真校验 market/index.json）
+node _harness/market-index.mjs
 ```
 
 ---
