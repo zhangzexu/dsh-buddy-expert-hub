@@ -697,10 +697,11 @@ GET 回显只有「是否已配置」，输入框永远回填空（留空 = 不�
 
 - **树形侧栏**：空间 → 目录 → 文件递归展开，按类型着色（目录 / Markdown / CSV / HTML / 图片 / Office），
   可展开折叠、点目录看子项、点文件直接打开；悬停任意节点出现「···」菜单。
-- **节点操作**（菜单与编辑器里都能进）：新建子项、重命名、移动到其它目录、删除、收藏 / 取消收藏、分享、版本历史。
+- **节点操作**（统一收在左侧「···」菜单与右键菜单里）：新建子项、重命名、移动到其它目录、删除、收藏 / 取消收藏、分享、版本历史。
+  编辑器顶部只保留针对内容的动作（返回、编辑/源码/预览、保存、下载），不重复堆节点级按钮。
 - **收藏**：左侧「收藏」进入，可按收藏夹分组筛选（服务端的默认分组 + 自建分组），树里已收藏的节点带星标。
 - **共享**：左侧「共享」进入，分「我发出的 / 收到的」两个页签；每条可复制链接、改只读/可写、取消。
-- **分享**：编辑器里点「分享」创建链接，支持只读 / 可写、有效期（小时）、访问密码；
+- **分享**：左侧节点菜单里点「分享」创建链接，支持只读 / 可写、有效期（小时）、访问密码；
   HTML 节点额外给出「直链」`/p/{token}/{nodeId}`（对方浏览器直接打开就是页面本身）。
 - **版本历史**：列出历史版本（版本号、备注、编辑人、大小、时间），可查看内容并回滚（回滚会生成新版本）。
 - **Markdown 按 Word 方式编辑**：默认所见即所得（contenteditable + 工具栏：H1/H2/H3、加粗、斜体、
@@ -714,12 +715,15 @@ GET 回显只有「是否已配置」，输入框永远回填空（留空 = 不�
 | 类型 | 插件内能力 | 说明 |
 |---|---|---|
 | 目录 FOLDER | 进入 | 面包屑返回上级 |
-| Markdown MD | 查看 + 编辑 | 编辑 / 源码 / 预览三种模式，预览用内置轻量渲染（不引第三方依赖）；正文里的 `![](kb:21)`、`![](素材/a.png)` 会被解析成 `/khub/raw` 直链直接显示，`[周会纪要](kb:18)` 渲染成可点链接、点一下就在面板里打开目标节点；解析不到的图片显示「图片未找到：<路径>」而不是破图 |
+| Markdown MD | 查看 + 编辑 | 可视化（Word 式工具栏：撤销重做 / 段落格式 / 粗斜体下划线删除线 / 行内代码 / 文字颜色与高亮 / 对齐 / 列表 / 缩进 / 引用 / 代码块 / 分隔线 / 链接 / 插图 / 表格 / 清除格式）+ 源码 + 预览三种模式（浏览器原生能力，零第三方依赖）；正文里的 `![](kb:21)`、`![](素材/a.png)` 会被解析成 `/khub/raw` 直链直接显示，`[周会纪要](kb:18)` 渲染成可点链接、点一下就在面板里打开目标节点；解析不到的图片显示「图片未找到：<路径>」而不是破图 |
 | CSV | 查看 + 编辑 | 表格网格逐格编辑、加行加列，保存走 `PUT /khub/csv`（整表覆盖 + `baseVersion` 乐观锁，冲突提示刷新） |
 | HTML | 查看 + 编辑 | iframe 预览（sandbox 不给 `allow-same-origin`）可运行页面里的 `window.KB` 读写挂载的 CSV；另有「源码」与「刷新」 |
 | IMAGE | 查看 | `GET /khub/raw?id=` 由插件服务端带 PAT 取回字节再转发（img/iframe 无法自带认证头） |
 | FILE（PDF / 文本等） | 查看 + 下载 | 浏览器能内嵌的直接显示，其余给「下载」 |
-| WORD / EXCEL / PPT | 不支持 | 明确提示去在线资料库中打开（Office 预览依赖较重，按需求不做） |
+| Word (.docx) | **查看 + 编辑** | 内置编辑器按段落改正文，保存生成新版本；版式、图片、表格结构原样保留（只替换文本） |
+| Excel (.xlsx) | **查看 + 编辑** | 逐个单元格编辑，多工作表页签切换；保留公式与样式，字符串写成 inlineStr 不污染共享字符串 |
+| PPT (.pptx) | 只读 | 逐页文本预览（改内容请下载后用本地 Office 编辑再上传新版本） |
+| 旧格式 .doc/.xls/.ppt | 不支持 | 二进制老格式无法安全重写，提示下载后本地编辑 |
 
 与在线版的差异只有两处，都是刻意取舍：Markdown 的可视化（富文本）模式没做，改成源码 + 分栏 + 预览；
 Office 预览不做。其余（目录、CSV 网格、HTML 预览与源码、图片、附件下载）行为一致。
@@ -735,9 +739,10 @@ Office 预览不做。其余（目录、CSV 网格、HTML 预览与源码、图�
 | `GET /khub/spaces` · `/khub/tree?spaceId=` · `/khub/children?id=` | 空间与目录 |
 | `GET /khub/content?id=` · `/khub/csv?id=` · `/khub/search?spaceId=&keyword=` | 正文 / 数据表 / 搜索 |
 | `GET /khub/attachments?id=` | 容器后代清单（带 relPath，Markdown 引用解析用） |
+| `GET /khub/office?id=` · `POST /khub/office?id=` | 内置 Office 读写：解析成段落 / 单元格模型；保存时重建 OOXML 并上传为新版本 |
 | `POST /khub/node` · `PUT /khub/node` · `DELETE /khub/node?id=` | 新建 / 保存或重命名 / 删除 |
 
-自检：`node _harness/knowledge-hub.mjs`（本机 mock 服务，47 条断言，不依赖真实后端）；`node _harness/library-ui.mjs`（严格 React 桩真渲染资料库面板，18 条断言：整片空白、Markdown 图片/引用解析、树高亮跟随）。
+自检：`node _harness/knowledge-hub.mjs`（本机 mock 服务，47 条断言，不依赖真实后端）；`node _harness/library-ui.mjs`（严格 React 桩真渲染资料库面板，36 条断言：整片空白、Markdown 图片/引用解析、树高亮跟随、Office 编辑器与保存）；`node _harness/ooxml.mjs`（合成 docx / xlsx 往返 12 条：zip、段落、单元格、公式保留）；`node _harness/table-edit.mjs`（从 client.js 抽真实函数源码、用 Edge 无头真 DOM 跑 56 条：Markdown 表格解析 / 往返、加行删行加列删列、列宽行高拖拽与持久化、colgroup 联动）；`node _harness/khub-fast-path.mjs`（起本地 mock 资料库，10 条：工作台数据直读 `node-<id>.csv` 不采 catalog、catalog 并发去重与缓存命中）。
 
 ---
 
@@ -1048,6 +1053,12 @@ node _harness/market-index.mjs
 
 # 资料库面板真渲染（严格 React 桩：拒绝原始对象当子元素 / 打开文档不崩）
 node _harness/library-ui.mjs
+
+# Markdown 表格：解析 / 往返 / 加行加列（抽 client.js 真代码，用 Edge 无头跑真 DOM）
+node _harness/table-edit.mjs
+
+# 在线工作台首屏：数据接口直读 node-<id>.csv，不再每次采 catalog（本地 mock，10 条）
+node _harness/khub-fast-path.mjs
 ```
 
 ---
