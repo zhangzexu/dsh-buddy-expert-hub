@@ -742,7 +742,7 @@ Office 预览不做。其余（目录、CSV 网格、HTML 预览与源码、图�
 | `GET /khub/office?id=` · `POST /khub/office?id=` | 内置 Office 读写：解析成段落 / 单元格模型；保存时重建 OOXML 并上传为新版本 |
 | `POST /khub/node` · `PUT /khub/node` · `DELETE /khub/node?id=` | 新建 / 保存或重命名 / 删除 |
 
-自检：`node _harness/knowledge-hub.mjs`（本机 mock 服务，47 条断言，不依赖真实后端）；`node _harness/library-ui.mjs`（严格 React 桩真渲染资料库面板，36 条断言：整片空白、Markdown 图片/引用解析、树高亮跟随、Office 编辑器与保存）；`node _harness/ooxml.mjs`（合成 docx / xlsx 往返 12 条：zip、段落、单元格、公式保留）；`node _harness/table-edit.mjs`（从 client.js 抽真实函数源码、用 Edge 无头真 DOM 跑 56 条：Markdown 表格解析 / 往返、加行删行加列删列、列宽行高拖拽与持久化、colgroup 联动）；`node _harness/khub-fast-path.mjs`（起本地 mock 资料库，10 条：工作台数据直读 `node-<id>.csv` 不采 catalog、catalog 并发去重与缓存命中）。
+自检：`node _harness/knowledge-hub.mjs`（本机 mock 服务，62 条断言，不依赖真实后端：资料库 HTML 预览内联 seed、KB 适配器写回返回完整 CSV 视图）；`node _harness/library-ui.mjs`（严格 React 桩真渲染资料库面板，51 条断言：整片空白、Markdown 图片/引用解析、树高亮跟随、Office 编辑器与保存、HTML 预览父窗口桥 read/write 回信）；`node _harness/ooxml.mjs`（合成 docx / xlsx 往返 12 条：zip、段落、单元格、公式保留）；`node _harness/table-edit.mjs`（从 client.js 抽真实函数源码、用 Edge 无头真 DOM 跑 56 条：Markdown 表格解析 / 往返、加行删行加列删列、列宽行高拖拽与持久化、colgroup 联动）；`node _harness/khub-fast-path.mjs`（起本地 mock 资料库，10 条：工作台数据直读 `node-<id>.csv` 不采 catalog、catalog 并发去重与缓存命中）；`node _harness/snapshot-helper.mjs`（从 khub-workbench.js 抽真实采集器源码、用 Edge 无头真 DOM 跑 8 条：去脚本 / 禁交互 / 固化表单值 / 输出完整静态页）。
 
 ---
 
@@ -1059,6 +1059,9 @@ node _harness/table-edit.mjs
 
 # 在线工作台首屏：数据接口直读 node-<id>.csv，不再每次采 catalog（本地 mock，10 条）
 node _harness/khub-fast-path.mjs
+
+# 当前页分享（静态快照）：抽真实采集器源码，Edge 无头跑真 DOM（8 条）
+node _harness/snapshot-helper.mjs
 ```
 
 ---
