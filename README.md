@@ -645,7 +645,7 @@ order: 300
 - 语义 token 九件套：`bg-base` / `bg-layer-1` / `bg-layer-2` / `interactive-bg-hover-solid` / `label-primary` / `label-secondary` / `border-l1` / `brand-primary` / `state-{error,success,warning}-primary`。
 - 唯一登记例外：技能卡片图标色板 `SKILL_TILE_PALETTE`（内容装饰色，20 个色值）。
 - **实心色块上的文字一律用 `var(--dsw-alias-bg-base, #fff)` 做反色**：深色外观下 `brand-primary` 可能就是白色，写死 `#fff` 会变成白底白字（实机踩过，见 AP10）。
-- iframe 里的工作台 HTML 由插件下发同一套 token：页面写 `var(--dsw-alias-*, 回退)` 即自动跟随深浅色，详见 [docs/ui-appearance.md §4](docs/ui-appearance.md)。
+- iframe 里的工作台 HTML：插件仍会下发同一套 token（页面写 `var(--dsw-alias-*, 回退)` 就跟随深浅色），但**页面也可以完全自带一套配色**——适配器只会补页面没有定义的变量，不会覆盖页面自己的 `--bg/--card/--line` 等，`color-scheme` 也尊重页面声明。详见 [docs/ui-appearance.md §4](docs/ui-appearance.md)。
 
 完整对照表、范围边界、推测 token 标注与新增 UI 的流程见 **[docs/ui-appearance.md](docs/ui-appearance.md)**；落地情况由 `node _harness/appearance.mjs`（AP1–AP10）自动把关，必须 10/10 PASS。
 
@@ -685,11 +685,52 @@ GET 回显只有「是否已配置」，输入框永远回填空（留空 = 不�
   插件 iframe 注入的是 `window.Workbench`。插件在返回 HTML 时注入一层适配器，把 KB 调用翻译成
   父桥的 `read` / `write`（父桥只放宽了「允许 iframe 指定 table」），因此在线 HTML 原样能跑，
   单元格编辑最终写回 `PUT /api/nodes/{id}/csv/matrix`。
+- **`readTable` 两边的返回必须同形**：`{ headers, matrix, version, rowCount, colCount, text }`
+  （`matrix` 第 0 行是表头；在线版额外带 `rows` 对象数组，插件版 build 6 起也带）。
+  曾经在线 `kb-bridge.js` 只回 `{ headers, rows, version, raw }` 把 `matrix` 丢了，
+  页面里 `t.matrix` 取到 `undefined` → 表格渲染成空表，而状态灯仍显示「已同步」——
+  表现就是「插件里能查数据，在线资料库里查不出来」。改契约时两边必须一起改。
 - **版本即 hash**：在线 CSV 的 `version` 统一变成 `v<n>` 当作插件的 hash，
   沿用现有的轻量轮询、CAS 与 409 冲突 UI；前端一行没改。
 - **写入不静默改本地**：在线写入失败会返回可读错误，不会偷偷写进本地 CSV 造成两边数据分裂。
 - **主题**：在线 HTML 自带的 `:root` 变量在注入时被映射到宿主 `--dsw-alias-*`，
-  深浅色仍自动跟随（外观铁律同样覆盖 iframe）。
+  想跟随就用这些变量，想自带主题也不会被覆盖（适配器只补缺省值）。
+
+### 外部数据定时更新（ingest）
+
+工作台页面跑在 iframe 里，不能自己执行代码。需要「每天自动取数」时由 dsh 自动化任务跑用户自己的
+python / node 采集脚本，产出批次 JSON 交给插件写表：
+
+```
+dsh 自动化任务 → 采集脚本 → ingest/inbox/<batchId>.json
+    ├─ 本地镜像 <数据目录>/<工作台 id>/<表名>.csv   ← 断网时页面读这个
+    └─ 在线资料库（只推变化：单元格 / 追加行；变化大才整表覆盖 + baseVersion）
+```
+
+- **批次契约**：`batchId / workbench / table / mode / primaryKey / columns / rows`。`mode` 三选一：
+  `upsert`（默认，按主键只覆盖声明列）/ `append`（只增，可按主键去重）/ `replace`（整表快照）。
+  `primaryKey` **优选单列**（如订单号、手机号、日期）—— 单列主键直接走服务端按主键 upsert；
+  两列以上（日期 + 代码这类）仍能正常工作，但走的是逐格增量，请求更多。
+- **两个投递通道**：写 `ingest/inbox/` 文件（主通道，离线可用、跨平台、不受端口影响），
+  或 `POST /workbench/ingest`（要即时结果时用）。
+- **在线按模式选最省的路**：
+
+  | 场景 | 走法 | 请求数 |
+  | --- | --- | --- |
+  | `upsert` + **单列主键** | `POST /csv/upsert`（服务端文档锁内按主键匹配，只更新传入的列、未命中追加） | 1 次，不读整表 |
+  | `upsert` + 多列主键 | 逐格 `PUT /csv/cell` + 追加 `POST /csv/row`（服务端只支持单列主键）；格数 + 新增行 > `deltaMax`（默认 200）才 `PUT /csv/matrix` | 按变化量 |
+  | `append` | 只追加主键未命中的行（`POST /csv/row`），**绝不改已有行** | 按新增行 |
+  | `replace` | `PUT /csv/matrix`（带 `baseVersion`，409 自动重读重算 2 次） | 2 次 |
+
+  单列主键但在线表头里没有这一列（用户改过列名）时自动降级为逐格路径并标记「降级」，不让整批失败。
+  服务端 upsert 单次上限 5000 行，插件按 `chunkRows`（默认 2000）自动分批。
+- **本地先行**：先写本地镜像再推在线。在线失败不报错、入 `pending.json` 待补推，
+  联网后自动补（或面板点「立即处理」）。断网时 `GET /workbench/data` 直接读镜像，
+  `khub-*` 工作台页面照常可用；离线保存也带 CAS，并挂待补推。
+- **幂等**：`batchId + 内容 checksum` 记账（`ingest/state.json`），重复投递跳过；内容变了才重做。
+- **分批**：单批按 `chunkRows`（默认 2000）切块处理，单批硬上限 20 万行；超出请脚本拆批。
+- **面板**：工作台工具栏「同步」显示待处理 / 待补推 / 失败数，弹窗里能复制 inbox 路径、
+  看最近处理记录、手动催一轮。颜色全部走宿主 token。
 
 ### 「资料库」面板
 
@@ -742,7 +783,7 @@ Office 预览不做。其余（目录、CSV 网格、HTML 预览与源码、图�
 | `GET /khub/office?id=` · `POST /khub/office?id=` | 内置 Office 读写：解析成段落 / 单元格模型；保存时重建 OOXML 并上传为新版本 |
 | `POST /khub/node` · `PUT /khub/node` · `DELETE /khub/node?id=` | 新建 / 保存或重命名 / 删除 |
 
-自检：`node _harness/knowledge-hub.mjs`（本机 mock 服务，62 条断言，不依赖真实后端：资料库 HTML 预览内联 seed、KB 适配器写回返回完整 CSV 视图）；`node _harness/library-ui.mjs`（严格 React 桩真渲染资料库面板，51 条断言：整片空白、Markdown 图片/引用解析、树高亮跟随、Office 编辑器与保存、HTML 预览父窗口桥 read/write 回信）；`node _harness/ooxml.mjs`（合成 docx / xlsx 往返 12 条：zip、段落、单元格、公式保留）；`node _harness/table-edit.mjs`（从 client.js 抽真实函数源码、用 Edge 无头真 DOM 跑 56 条：Markdown 表格解析 / 往返、加行删行加列删列、列宽行高拖拽与持久化、colgroup 联动）；`node _harness/khub-fast-path.mjs`（起本地 mock 资料库，10 条：工作台数据直读 `node-<id>.csv` 不采 catalog、catalog 并发去重与缓存命中）；`node _harness/snapshot-helper.mjs`（从 khub-workbench.js 抽真实采集器源码、用 Edge 无头真 DOM 跑 8 条：去脚本 / 禁交互 / 固化表单值 / 输出完整静态页）。
+自检：`node _harness/knowledge-hub.mjs`（本机 mock 服务，62 条断言，不依赖真实后端：资料库 HTML 预览内联 seed、KB 适配器写回返回完整 CSV 视图）；`node _harness/library-ui.mjs`（严格 React 桩真渲染资料库面板，51 条断言：整片空白、Markdown 图片/引用解析、树高亮跟随、Office 编辑器与保存、HTML 预览父窗口桥 read/write 回信）；`node _harness/ooxml.mjs`（合成 docx / xlsx 往返 12 条：zip、段落、单元格、公式保留）；`node _harness/table-edit.mjs`（从 client.js 抽真实函数源码、用 Edge 无头真 DOM 跑 56 条：Markdown 表格解析 / 往返、加行删行加列删列、列宽行高拖拽与持久化、colgroup 联动）；`node _harness/khub-fast-path.mjs`（起本地 mock 资料库，10 条：工作台数据直读 `node-<id>.csv` 不采 catalog、catalog 并发去重与缓存命中）；`node _harness/snapshot-helper.mjs`（从 khub-workbench.js 抽真实采集器源码、用 Edge 无头真 DOM 跑 8 条：去脚本 / 禁交互 / 固化表单值 / 输出完整静态页）。`node _harness/ingest.mjs`（本地 mock 资料库 + 临时目录，40 条：批次校验、三种合并模式、服务端按主键 upsert 与 5000 行分批、多列主键降级、旧后端 404 降级、append 只增不改、409 重算、断网待补推与补推、幂等、inbox 归档、镜像兜底读）。
 
 ---
 
@@ -789,6 +830,8 @@ $DSH_HOME/                                  # 默认 ~/.dsh，可用环境变量
 > **⚠️ 本节已停用（保留作历史设计记录）**：创建工作台的入口改为召唤
 > `khub-workbench-builder`（在线工作台搭建师）专家，位于
 > `dsh-buddy-expert-hub-resource/experts/khub-workbench-builder/`。
+> 该专家动工前**必须先跟你确认四件事**：页面名称（≥3 条推荐 + 自己填）、所在目录（真实目录树 + 可新建空间）、
+> 视觉风格（≥3 条推荐 + 自己填）、功能模块清单；确认完才建节点。
 > 插件不再注册 `@` 工作台模板触发源，输入 `@` 不会出现「个人工作台」分组；
 > 新方案直接把工作台建成在线资料库的「HTML 节点 + 子 CSV 数据表」，
 > 不再往本地 `workbench/*.html` 落盘，也不再写 `workbench-menu` JSON 载体。
@@ -837,7 +880,7 @@ $DSH_HOME/                                  # 默认 ~/.dsh，可用环境变量
 - **左侧栏宽度可拖**：左栏与页面之间的分隔条拖动即改宽度（140–520px），双击复位，聚焦后 `←`/`→` 微调（`Shift` 大步）；宽度存 `localStorage`，刷新后保持。
 - **展示顺序可调**：拖动文件节点到另一个节点上即换位，也可聚焦节点后 `Alt+↑` / `Alt+↓` 移动一位；顺序存 `state.settings.workbench.order`（`POST /workbench/settings { order: [id…] }`），重启仍在，未登记过的新工作台按扫盘顺序追加在末尾。
 - 右侧 iframe **整页铺满**，页面的菜单、按钮、排版全部由 HTML 自己渲染 —— 插件不代画任何页面内按钮，也不再提供菜单风格 / 主题选择。
-- **页面配色跟随宿主深浅色**：父窗口把宿主 11 个 `--dsw-alias-*` 语义 token 下发进 iframe 的 `:root`（`ready` 时先发一次，之后每秒比对指纹、变化才推），并给页面 `html` 打 `data-dsh-theme="light|dark"`；页面只要写 `var(--dsw-alias-*, 回退值)` 就自动跟随。桥层新增 `window.Workbench.theme()` / `onTheme(fn)`，创建技能第 7 段 UI 清单第 10 条强制要求页面不写死颜色。
+- **页面配色：可选跟随，可自带主题**：父窗口把宿主 11 个 `--dsw-alias-*` 语义 token 下发进 iframe 的 `:root`（`ready` 时先发一次，之后每秒比对指纹、变化才推），并给页面 `html` 打 `data-dsh-theme="light|dark"`；页面写 `var(--dsw-alias-*, 回退值)` 就跟随宿主。**但不再强制**：工作台允许自带一整套配色（奶油底 / 墨绿侧栏 / 糖果粉紫…），适配器的 `--bg/--card/--line/--text/--muted/--brand` 别名只在页面**没有定义**时才补，桥也不覆盖页面声明的 `color-scheme`。视觉标准见专家包 `skills/khub-workbench-spec/references/visual-system.md`。
 - 顶部只保留一条**插件自己的固定工具条**（刷新 / 自动刷新开关）；数据目录、同步间隔与创建能力统一在 **dsh 设置 → Buddy 工作台 → 个人工作台** 里配置。
 
 > 「同一插件注册第二个 main 面板」是否允许**需宿主实机验证**：这是运行时不可证项，插件侧无法自证。若宿主不支持多 main 面板，工作台入口将无法显示。
@@ -1071,6 +1114,10 @@ node _harness/khub-fast-path.mjs
 
 # 当前页分享（静态快照）：抽真实采集器源码，Edge 无头跑真 DOM（8 条）
 node _harness/snapshot-helper.mjs
+
+# 外部数据定时更新：本地 mock 资料库跑 40 条（upsert 只改声明列 / 增量 vs 整表 /
+# 断网入队与补推 / 幂等 / 分批 / inbox 文件通道 / 镜像兜底读）
+node _harness/ingest.mjs
 ```
 
 ---
