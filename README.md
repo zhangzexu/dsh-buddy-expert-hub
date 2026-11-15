@@ -786,6 +786,15 @@ $DSH_HOME/                                  # 默认 ~/.dsh，可用环境变量
 
 ### 通过 @ 指令生成工作台
 
+> **⚠️ 本节已停用（保留作历史设计记录）**：创建工作台的入口改为召唤
+> `khub-workbench-builder`（在线工作台搭建师）专家，位于
+> `dsh-buddy-expert-hub-resource/experts/khub-workbench-builder/`。
+> 插件不再注册 `@` 工作台模板触发源，输入 `@` 不会出现「个人工作台」分组；
+> 新方案直接把工作台建成在线资料库的「HTML 节点 + 子 CSV 数据表」，
+> 不再往本地 `workbench/*.html` 落盘，也不再写 `workbench-menu` JSON 载体。
+> 内置技能 `workbench-creator` 仅作历史规则参考，不再是生成依据。
+
+
 在输入框输入 `@` 即可唤起候选，分组名为「个人工作台」。内置 5 个静态模板，按中文名、id、表名或关键词过滤：
 
 | 模板 | id | CSV 数据表 |

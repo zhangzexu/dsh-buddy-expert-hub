@@ -7,7 +7,14 @@ user-invocable: true
 disable-model-invocation: false
 ---
 
-# 个人工作台创建规则（唯一权威正文）
+> **已迁移（保留作历史参考，不再是创建入口）**：创建工作台现在请召唤
+> `khub-workbench-builder`（在线工作台搭建师）专家，规则正文在
+> `experts/khub-workbench-builder/skills/khub-workbench-spec/SKILL.md`。
+> 新方案把工作台直接建成在线资料库的「HTML 节点 + 子 CSV 数据表」，
+> 废弃本地 `workbench/*.html` 落盘与 `workbench-menu` JSON 载体；
+> 插件的 `@` 工作台模板指令源也已停用。本文件不再作为生成依据。
+
+# 个人工作台创建规则（历史版本）
 
 本技能是「个人工作台」创建与修改方法的唯一权威规则来源。工作台扩展只提供只读接口与数据读写代理；HTML 页面与外置 CSV 由你（dsh agent）按本规则生成并直接落盘。
 
