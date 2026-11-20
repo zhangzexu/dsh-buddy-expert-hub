@@ -236,3 +236,37 @@ if (failures.length > 0) {
 }
 console.log('PASS  package.json files 覆盖 ' + String(libFiles.length) + ' 个 lib 文件与全部清单文件（含 builtin 内置技能目录，仅技能子树）')
 console.log('PASS  显示元数据齐备：' + String(localeNames.length) + ' 个 locale + icon.svg（Plugin Manager 可直接读取）')
+
+/* ---- dsh 版本兼容声明：高版本 dsh 会读 engines.dsh 做前置校验，空/缺失会误报不兼容 ---- */
+const dshRange = pkg.engines !== null && typeof pkg.engines === 'object' ? pkg.engines.dsh : undefined
+if (typeof dshRange !== 'string' || dshRange.trim() === '') {
+  failures.push('package.json 缺少 engines.dsh：高版本 dsh（0.2.1+）会因此提示插件不兼容')
+} else if (dshRange.indexOf('0.2.2-0') < 0 || dshRange.indexOf('0.1.5-0') < 0) {
+  failures.push('engines.dsh 未覆盖 0.1.5 与 0.2.2：当前 dsh 版本会被判为不兼容')
+}
+if (failures.length > 0) {
+  for (const failure of failures) console.error('FAIL  ' + failure)
+  process.exit(1)
+}
+/* 市场索引的 engines 必须与 package.json 同源（build:market 生成），否则插件市场装不上。 */
+const marketIndexFile = path.join(PLUGIN_ROOT, 'market', 'index.json')
+if (fs.existsSync(marketIndexFile)) {
+  try {
+    const index = JSON.parse(fs.readFileSync(marketIndexFile, 'utf8'))
+    const version = Array.isArray(index.plugins) && Array.isArray(index.plugins[0] && index.plugins[0].versions)
+      ? index.plugins[0].versions[0] : null
+    if (version === null || typeof version !== 'object') {
+      console.error('FAIL  market/index.json 无 versions[0]')
+      process.exit(1)
+    }
+    const ie = version.engines
+    if (ie === null || typeof ie !== 'object' || ie.dsh !== dshRange) {
+      console.error('FAIL  market/index.json 的 engines.dsh 与 package.json 不一致：需重跑 npm run build:market')
+      process.exit(1)
+    }
+    console.log('PASS  dsh 兼容声明齐备：engines.dsh 覆盖 0.1.5–0.2.2，市场索引同步')
+  } catch (error) {
+    console.error('FAIL  market/index.json 解析失败：' + String((error && error.message) || error))
+    process.exit(1)
+  }
+}

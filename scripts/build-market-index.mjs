@@ -72,7 +72,9 @@ const index = {
           publishTimestamp: publishTimestamp(),
           /* 从 npm 安装：不写 registry 就用客户端配置的默认 registry。 */
           source: { type: 'npm' },
-          engines: {}
+          /* 与 package.json 的 engines 保持同源：dsh 0.2.1+ 会读它做前置版本校验，
+             空对象会让高版本宿主报「插件不兼容」。 */
+          engines: Object.assign({}, pkg.engines)
         }
       ]
     }

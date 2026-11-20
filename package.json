@@ -20,6 +20,10 @@
   ],
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": "^22.19.0 || >=24.9.0",
+    "dsh": ">=0.1.5-0 <0.2.0 || >=0.1.6-0 <0.2.0 || >=0.1.7-0 <0.2.0 || >=0.2.0-0 <0.3.0 || >=0.2.1-0 <0.3.0 || >=0.2.2-0 <0.3.0"
+  },
   "main": "lib/index.js",
   "files": [
     "lib",
@@ -56,6 +60,18 @@
     "client": {
       "platform": "web",
       "immediately": true
+    },
+    "compatibility": {
+      "dsh": ">=0.1.5-0 <0.2.0 || >=0.1.6-0 <0.2.0 || >=0.1.7-0 <0.2.0 || >=0.2.0-0 <0.3.0 || >=0.2.1-0 <0.3.0 || >=0.2.2-0 <0.3.0",
+      "dshReleases": {
+        "0.1.5-rc.1": "compatible",
+        "0.1.7-rc.1": "compatible",
+        "0.2.0-rc.2": "compatible",
+        "0.2.1-rc.2": "compatible",
+        "0.2.1-rc.5": "compatible",
+        "0.2.2-rc.1": "compatible",
+        "0.2.2-rc.5": "compatible"
+      }
     }
   }
 }

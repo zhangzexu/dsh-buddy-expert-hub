@@ -15,7 +15,9 @@ DeepSeek Harness（dsh）插件：把 WorkBuddy 的「专家 · 技能 · 连接
 
 输入框工具栏的**专家按钮**只列**已安装**的专家 / 专家团 / 技能 / 连接器；设置里还有一个「启用内置技能」开关，可把插件包内的内置技能一次性装进本地技能库（按系统取 `builtin/windows` 或 `builtin/linux`，装完在插件界面不可见，关闭开关即移除）。
 
-适用运行时：**dsh 0.1.5-rc.1**（`main` 为 keyed 插槽、`sidebar.panellist` 为 list 插槽，注册时只传 `label` 不传 `locale`）。
+适用运行时：**dsh 0.1.5 ~ 0.2.x**（已验证 `0.1.5-rc.1` / `0.1.7-rc.1` / `0.2.0-rc.2` / `0.2.1-rc.2` / `0.2.1-rc.5` / `0.2.2-rc.1` / `0.2.2-rc.5`，不含 0.3.0）。插件在 `package.json` 的 `engines.dsh` 与 `dsh.compatibility` 里声明了兼容范围，市场索引的 `versions[].engines` 与之一致，高版本 dsh 不会因「未声明」而误报不兼容。
+>
+> 历史口径：`0.1.5-rc.1` 时 `main` 为 keyed 插槽、`sidebar.panellist` 为 list 插槽，注册时只传 `label` 不传 `locale`；这些宿主契约在 0.2.x 仍被本插件使用的范围内保持一致。
 
 ## 文档
 
@@ -566,7 +568,7 @@ order: 300
 | GET | `/config/remote` | 远程配置状态：`{ ok, config:{ source, url, filename, loadedAt, appliedFields, active }, fieldDocs, sample }`。`fieldDocs` 是支持覆盖的字段说明，`sample` 是带中文注释的示例 JSON 文本 |
 | POST | `/config/remote/load` | body `{ mode:'url', url }` 或 `{ mode:'upload', content, filename }` → 拉取/解析 → 白名单规范化 → 覆盖设置并落盘。成功 `{ ok, appliedFields, warnings, ignoredFields, config }`；非法 JSON / 无可识别字段 / 拉取失败 400。URL 拉取 15 秒超时、2MB 上限，仅 http(s) |
 | POST | `/config/remote/clear` | 清除远程配置，按加载时快照恢复本地设置（含密钥从加密备份还原）→ `{ ok, message, config }`。没有生效中的配置时也返回成功 |
-| POST | `/workbench/open-html-dir` | 用系统文件管理器打开工作台 HTML 目录（固定 `WORKBENCH_DIR`，无用户输入）。`{ ok, dir }`；目录不存在 / 无法启动文件管理器返回 500 带原因。Windows 上 explorer 退出码不可靠，只把「进程启动失败」当错误 |
+| POST | `/workbench/open-html-dir` | 用系统文件管理器打开工作台**数据目录**（当前配置值或默认目录，HTML + CSV 共用）。`{ ok, dir }`；目录不存在 / 无法启动文件管理器返回 500 带原因。Windows 上 explorer 退出码不可靠，只把「进程启动失败」当错误 |
 | POST | `/intro/ack` | body `{ version }` → `{ ok, introSeenVersion }`；缺 version → 400 `invalid-version` |
 | GET | `/update/check` | 查 registry 最新版：`{ ok, current, latest, hasUpdate, publishedAt, registry }`；可带 `registry` / `force=1`；失败 502 `check-failed` |
 | POST | `/update/apply` | body `{ version?, dryRun? }` → 下载 → sha512 校验 → 备份 → 覆盖，任一步失败回滚；成功 `{ ok, from, to, files, backup, reloadRequired }`，失败 400 `apply-failed` |
@@ -596,13 +598,13 @@ order: 300
 | GET | `/export/item` | `type`(`expert`\|`team`\|`skill`) + `id` → 下载单个条目的 `.json.gz` 包。专家 / 专家团的 `id` 先过 `safeId()` 单段目录名白名单，再用「词法前缀 + `realpathSync`」双重校验目录，目录穿越与符号链接逃逸一律 400/404；技能 `id` 是 `skills/<集合>/<名字>` 形式的相对路径，保留 `index.skills.find` + `safeRepoPath` 的既有链路。错误文案只回显 id，不回显绝对路径 |
 | POST | `/import/folder` | **本轮新增**：浏览器选择文件夹导入。请求体 `{ type:'skill'\|'expert'\|'team', rootName:string, files:[{path,data,encoding}] }`，`encoding` 为 `utf8` 或 `base64`。响应 `{ ok:true, mode:'single'\|'batch', imported:[{id,name,type,dir,already?,notes?}], skipped:[{dir,reason}] }`；全部失败时 `{ ok:false, error, imported:[], skipped, mode }`。先按「所选目录本身就是一个条目」校验，不通过再按一级子目录批量导入；三种类型格式要求不同，见「文件夹导入」章节。安全与幂等：拒绝 `..` / 绝对路径 / 盘符 / 反斜杠 / 符号链接，单文件 ≤ 2MB、文件数 ≤ 200、总计 ≤ 20MB，已存在目录返回 `already:true` 不覆盖 |
 | POST | `/library/import` | 上传整包字节（gzip JSON），原子落盘后切换数据源 |
-| GET | `/workbench/list` | 每次重扫 HTML 目录，返回 `workbenches[]` / `errors[]` / `htmlDir` / `dataDir` / `dataDirReady` / `syncIntervalMs`；新 HTML 落盘后点「刷新」即生效，无需重启宿主进程 |
+| GET | `/workbench/list` | 每次重扫数据目录（HTML 在根），返回 `workbenches[]` / `errors[]` / `htmlDir` / `dataDir`（两者同源）/ `defaultDataDir` / `usingDefaultDataDir` / `dataDirReady` / `syncIntervalMs`；新 HTML 落盘后点「刷新」即生效，无需重启宿主进程 |
 | GET | `/workbench/html?workbench=<id>` | 返回 `text/html; charset=utf-8`、`no-store`，在 `<head>` 后注入 postMessage 桥 bootstrap |
 | GET | `/workbench/data?workbench=<id>&table=<file>[&hash=<sha256>]` | 带相同 `hash` 时轻量返回 `{ok:true,changed:false,hash,mtimeMs,size}`（不含 `rows`）；带旧 `hash` 或不带 `hash` 返回完整 `{columns,fields,rows,hash,mtimeMs,size,lineEnding,changed}` |
 | POST | `/workbench/data` | body `{workbench,table,baseHash,columns,rows}`；同 hash 成功返回 `{ok:true,hash,columns,rows}`；hash 不一致返回 409 `{ok:false,code:'conflict',error,current:{columns,rows,hash}}`，自动重载 `current` 并给出「重试 / 放弃」提示，不静默覆盖 |
 | GET | `/workbench/bridge.js` | `application/javascript`，供宿主 CSP 禁止内联脚本时外链桥脚本（回退路径） |
-| GET | `/workbench/settings` | 独立工作台设置：`{ ok, dataDir, dataDirReady, syncMs, htmlDir, order, autoSync, lastPrefs }`。`dataDir` / `syncMs` 与旧扁平字段镜像一致 |
-| POST | `/workbench/settings` | body 全可选 `{ dataDir?, syncMs?, order?, autoSync? }` → 200 回显完整 GET 形态；不传保持原值、空串清除数据目录 / 重置同步间隔。**不依赖 `sourceUrl`**（与 `/settings` 的关键区别）。400 一律带机器可读 `code`：`invalid-data-dir` / `invalid-sync-ms` / `invalid-action` |
+| GET | `/workbench/settings` | 独立工作台设置：`{ ok, dataDir（实际生效，未配置=默认）, configuredDataDir, dataDirDefault, usingDefaultDataDir, dataDirReady, syncMs, htmlDir（=dataDir）, order, autoSync, lastPrefs }`。`dataDir` / `syncMs` 与旧扁平字段镜像一致 |
+| POST | `/workbench/settings` | body 全可选 `{ dataDir?, syncMs?, order?, autoSync? }` → 200 回显完整 GET 形态；不传保持原值、空串清除数据目录 / 重置同步间隔。改 `dataDir` 时会把旧目录的 HTML + `<id>/` CSV 整体复制到新目录（**旧目录保留**，失败提示手动处理）。**不依赖 `sourceUrl`**（与 `/settings` 的关键区别）。400 一律带机器可读 `code`：`invalid-data-dir` / `invalid-sync-ms` / `invalid-action` |
 
 > **`repoReady` 与 `indexReady` 是两个独立信号**：
 > 前者表示「数据目录可用」（`dataRoot` 已定位到某个含 `experts/` / `skills/` / `connectors/` 之一的目录；git 克隆与 `ntd-resource` 仍要求 `experts/` 非空），
@@ -891,24 +893,22 @@ Office 只在 ONLYOFFICE 可用时提供版式级预览 / 编辑（编辑需在�
 
 ### 目录结构
 
-```text
-$DSH_HOME/                                  # 默认 ~/.dsh，可用环境变量 DSH_HOME 覆盖
-└── dsh-buddy-expert-hub/
-    └── workbench/                          # HTML 展示文件（固定位置，只读发布包目录不用它）
-        ├── reading-log.html
-        └── ...
+**HTML 与 CSV 现在共用一个「工作台数据目录」**：HTML 放目录根，CSV 放同目录的 `<工作台 id>/` 子目录。**用户不配置也能用**——默认数据目录就是原来的 HTML 目录 `$DSH_HOME/dsh-buddy-expert-hub/workbench/`（`DSH_HOME` 可用环境变量覆盖，默认 `~/.dsh`），因此老用户的数据零迁移。
 
-<个人工作台数据目录>/                       # 用户在设置里填的绝对路径
-└── <工作台 id>/
+```text
+<工作台数据目录>/                           # 默认 ~/.dsh/dsh-buddy-expert-hub/workbench，可在设置里改
+├── reading-log.html                        # HTML 页面（工作台 id 来自页面内菜单声明）
+├── books.html
+└── <工作台 id>/                            # 如 reading-log/
     ├── books.csv                           # 表名 = tables[].file
     └── ...
 ```
 
-- HTML 展示文件固定放 `$DSH_HOME/dsh-buddy-expert-hub/workbench/`；`DSH_HOME` 可用环境变量覆盖，默认 `~/.dsh`。**发布包目录只读，不用它**。
-- CSV 数据表放用户在设置里填的「个人工作台数据目录」下 `<工作台 id>/<表名>.csv`，`id` 来自菜单声明、`<表名>` 来自 `tables[].file`。
-- HTML 目录与 CSV 目录是**两个不同的 root**，各自独立做越界校验，互不串用。
-- Win / Linux / macOS 三端都从 `DSH_HOME` 派生路径（macOS 不读 `builtin/`）；Windows 的中文 / 空格路径、CSV 的 CRLF + BOM 均在覆盖范围内。
-- **插件不提供 HTML 写接口**：没有新增 / 修改 / 删除工作台 HTML 的路由，HTML 由 dsh agent 直接落盘到上述 workbench 目录，插件只读。
+- **不配置也可用**：未填数据目录时回落到默认目录，HTML / CSV 读写都正常；设置页会显示当前实际生效的路径。
+- **改目录自动迁移**：在设置里改成另一个绝对路径时，插件会把旧目录里的 HTML（根目录 `*.html`）与 `<id>/` CSV 子目录**整体复制到新目录**；**旧目录保留不删**，迁移失败时两边都留着并给出提示，绝不丢数据。注意目标目录必须**已存在且可写**。
+- `id` 来自 HTML 内菜单声明，`<表名>` 来自 `tables[].file`；两层都做词法 + realpath 越界校验（`id` 小写字母/数字/连字符、表名无路径的 `.csv`）。
+- Win / Linux / macOS 三端都从 `DSH_HOME` 派生默认路径；Windows 的中文 / 空格路径同样支持（迁移用自建的 `copyTreeSync`，规避 Node 22 在中文路径下 `fs.cpSync` 静默失败的问题）；CSV 的 CRLF + BOM 均覆盖。
+- **插件不提供 HTML 写接口**：没有新增 / 修改 / 删除工作台 HTML 的路由，HTML 由 dsh agent 直接落盘到数据目录根，插件只读。
 
 ### 直接查看 / 编辑 CSV
 
@@ -924,9 +924,9 @@ $DSH_HOME/                                  # 默认 ~/.dsh，可用环境变量
 
 仓库里带一个可直接落盘运行的「读书记录」示例工作台 `docs/workbench-example.html`：内嵌菜单声明，以及 `Workbench.read` / `write` / `onData` / `onConflict` 的完整用法，用来先把读写流程跑通一遍：
 
-1. 把 `docs/workbench-example.html` 复制到 `$DSH_HOME/dsh-buddy-expert-hub/workbench/`（`DSH_HOME` 默认 `~/.dsh`，可用环境变量覆盖）；
-2. 在工作台视图「设置」打开的独立「工作台设置 → 数据分区」里填好「个人工作台数据目录」；
-3. 回到面板的「个人工作台」大块点「刷新」—— 列表每次重扫 HTML 目录，示例工作台立刻出现，**不用重启宿主进程**；
+1. 把 `docs/workbench-example.html` 复制到默认数据目录 `$DSH_HOME/dsh-buddy-expert-hub/workbench/`（`DSH_HOME` 默认 `~/.dsh`）；**不配置数据目录也能直接跑**；
+2. （可选）想换目录时，在「设置 → Buddy 工作台 → 个人工作台」填一个已存在且可写的绝对路径 —— 旧的 HTML/CSV 会自动复制过去；
+3. 回到面板的「个人工作台」大块点「刷新」—— 列表每次重扫数据目录，示例工作台立刻出现，**不用重启宿主进程**；
 4. 打开后即可在页面上增删改数据，数据表会自动落在 `<数据目录>/reading-log/books.csv`（`id` 是 `reading-log`、`tables[].file` 是 `books.csv`）。
 
 > 这个文件只是**示例 / 模板**，方便照着写自己的 HTML。正式工作台仍由 dsh agent 生成并落盘到 `workbench/` 目录，插件不提供上传 / 编辑 HTML 的界面。
@@ -941,7 +941,7 @@ $DSH_HOME/                                  # 默认 ~/.dsh，可用环境变量
 ### 安全边界
 
 - 全部接口继承宿主的**同源门禁**（`localRequestGuard()`：只接受 localhost / 127.0.0.1 / ::1，带 `Origin` 时校验 host 一致，`Sec-Fetch-Site: cross-site` 一律 403）；
-- 路径做**词法 + `realpath` 双重越界校验**：HTML 目录与 CSV 目录是两个不同 root，`workbench` / `table` 参数一律按白名单与单段文件名解析，目录穿越与符号链接逃逸都拒绝；
+- 路径做**词法 + `realpath` 双重越界校验**：HTML 与 CSV 共用一个数据目录 root，`workbench`（id）/ `table` 参数一律按白名单与单段文件名解析，目录穿越与符号链接逃逸都拒绝；迁移只复制不删除旧目录，不跟随符号链接；
 - 菜单声明只做字符串提取 + `JSON.parse` + 白名单校验，不执行 HTML；iframe 不给 `allow-same-origin`，页面拿不到宿主同源凭据；
 - CSV 只支持 **UTF-8**：自动剥 BOM、沿用首次创建时的 CRLF 或 LF 行尾、正确处理引号 / 逗号 / 字段内换行与 `""` 转义；
 - `hash` = `sha256(磁盘 CSV 原始字节)` 的 hex，`mtimeMs` / `size` 只作轮询预检；写入按**字段名对齐列**合并（新列留空、已有行全保留），进程内串行队列 + 队列内 double-check，`tmp` → `rename` 原子写，**不做分布式锁**。
@@ -1093,6 +1093,9 @@ node _harness/remote-config.mjs
 
 # 个人工作台：真起 HTTP 跑 40 条（数据读写 CAS / 冲突 409 / 桥注入 / 列表口径）
 node _harness/workbench-smoke.mjs
+
+# 数据目录统一与迁移：11 条（默认目录可用 / 改目录整体迁移 / 旧目录保留 / 中文路径）
+node _harness/workbench-migration.mjs
 ```
 
 ---
