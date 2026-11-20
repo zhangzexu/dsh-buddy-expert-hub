@@ -588,6 +588,9 @@ order: 300
 | POST | `/builtin/skills/toggle` | body `{ enabled: boolean }`（非布尔返回 400，GET 返回 405）。开启 → 全量安装 `available` 里的技能（`excluded` 永不安装）并置 `state.settings.builtinSkills = true`，响应带 `{ total, installed, updated, skipped:[{dir,reason}] }`（`total` = 可用总数：Windows 4 / Linux 16，随 `counts.available` 变化）；关闭 → 只移除带标记的目录并置 `false`，响应带 `{ removed:[dir] }`。两种响应都带最新 `counts` |
 | GET | `/connectors` | `q` / `limit` / `offset` → `{ ok, total, items }` |
 | GET | `/detail` | `type`(`expert`\|`team`\|`skill`\|`connector`) + `id` → 单项完整信息 + `readme`（agent markdown / SKILL.md 正文前 2000 字）；专家优先查本地已导入目录。技能 `id` 走 `__skillhub` 去后缀别名兼容（改名前后都能命中），技能条目含 `displayName` / `version` / `icon`（有才带），找不到时回落到已安装技能库 |
+| GET | `/resource/status` | `type` + `id` → `{ ok, installed, installedVersion, remoteVersion, canUpdate, canDelete, installedLocally }`。专家 / 专家团比 `plugin.json` 版本、技能比 `_skillhub_meta.json` 版本（**本地版本取安装时写入的 `.dsh-plugin-install.json` 固定快照**，不读会被同步改写的原始包，避免版本比较永远相等）；连接器无版本字段 → `canUpdate:false`。`canDelete` 仅对「插件安装的」为真（带安装标记或 `importedIds` / `installedSkills` 记录），手工放置的目录不可自动删 |
+| POST | `/resource/update` | body `{ type, id }` → 有更高版本时**删旧目录后重新走安装流程覆盖**（专家删 `~/.dsh/experts/<id>` + `imported/<id>` 后重建；技能删 `~/.dsh/skills/<dir>` 后重复制），成功后更新安装标记，返回 `{ ok, updated, from, to }`。无更新 / 非插件安装 / 清理失败均报错不覆盖 |
+| POST | `/resource/delete` | body `{ type, id }` → 删除插件安装的本地目录（专家/专家团/技能；连接器走 `/connectors/uninstall`），清理 `importedIds` / `installedSkills` 记录。对手工放置目录返回错误不删。**前端必须二次确认** |
 | GET | `/asset` | `path`（相对数据根的 POSIX 路径）→ 图片二进制，按扩展名 + 魔数返回真实 MIME |
 | GET | `/icon` | `id`（连接器 id）→ 图标二进制，先查资源仓库 `<数据根>/connectors/icons/<id>.<ext>`，再查本地已安装定义目录，都没有返回 404（前端回落首字母色块） |
 | GET | `/skill-icon` | `dir`（已安装技能目录名）→ `$DSH_HOME/skills[/ -disabled]/<dir>/_icon.*` 图片二进制；`dir` 过 `safeId` 白名单 + `realpath` 越界校验，找不到返回 404（前端回落首字母色块） |
@@ -750,6 +753,13 @@ order: 300
 | 客户端 ID / 客户端密钥 | 服务端 `POST /api/open/auth/client` 签发的接入凭据，测试连接时会校验有效性 |
 | 用户 API Key | `khub_pat_xxx`，所有数据请求用 `Authorization: Bearer` 带上；只看到 PAT 被授权的空间 |
 | 在线优先 | **默认开启**：填好地址与用户 API Key 保存后立即生效，不需要再点开关。只有显式关掉才只用本机目录（关掉后地址与密钥仍保留，随时可以再开） |
+
+**本地工作台自动上传**：在线配置就绪后，插件会**自动把本地工作台（HTML + CSV 数据表）上传一份到在线资料库**，上传完在线列表就能看到它们，本地那份被隐藏（文件原样保留、不删不改）。具体行为：
+
+- 选第一个有写权限的在线空间作为目标；在线已有同名工作台时新建「名称 (本地)」副本，不覆盖线上。
+- 上传时会把 HTML 里的本地表名（`books.csv`）改写成在线表名（`node-<id>.csv`），保证多表工作台读写正确；**本地磁盘原件不动**。
+- 幂等：传过的本地工作台记在 `state.settings.khub.uploadedWorkbenches`，不会重复上传。工作台面板工具栏有「上传本地」按钮可补传新工作台（`POST /workbench/upload-local`）。
+- 上传失败只记录到 warnings 并提示，不影响本地数据与在线原有内容。
 
 明文密钥只出现在保存请求里，服务端写入 `$DSH_HOME/dsh-buddy-expert-hub/credentials.enc`
 （AES-256-GCM，复用连接器凭据那套）；`state.json` 只存地址、clientId 和开关，
@@ -1096,6 +1106,12 @@ node _harness/workbench-smoke.mjs
 
 # 数据目录统一与迁移：11 条（默认目录可用 / 改目录整体迁移 / 旧目录保留 / 中文路径）
 node _harness/workbench-migration.mjs
+
+# 资源版本更新与删除：13 条（状态判定 / 版本比较 / 覆盖更新 / 只删插件安装的 / 连接器不提示更新）
+node _harness/resource-update.mjs
+
+# 本地工作台→在线自动上传：8 条（HTML/CSV 节点创建 / 表名改写 / catalog 识别 / 幂等 / 原件保留）
+node _harness/workbench-upload.mjs
 ```
 
 ---
