@@ -565,7 +565,7 @@ order: 300
 | --- | --- | --- |
 | GET | `/status` | `{ ok, repoReady, indexReady, lastSync, counts:{experts,teams,skills,connectors,connectable,unsupported}, localCounts:{experts,teams}, sourceUrl, sourceKind, dataRoot, indexDataRoot, indexStale, library, hasSkills, connectorSource, connectorSkipped, skipped, busy, progress, lastError, lastErrorRaw, warnings, importedCount, baseDir, localExpertsDir }`（本轮**没有新增 `/status` 字段**；新增的 `indexSwitchPending` 只写进 `state.json`，不对外暴露）；`counts.experts/teams` 为合并去重后的数量，与列表一致；`counts.connectors` 是**现算**的两源合并总条数（常规模式不进索引；本地资料库模式改用导出包快照），`counts.connectable` / `counts.unsupported` 是其中宿主能装载 / 装载不了的条数（`connectable + unsupported === connectors`）；`connectorSource` 为 `repo` / `none` / `library`；`connectorSkipped` 是**真正解析不了**（缺 id / 结构异常）的条数，正常数据下为 0 —— 它和「不可连接」不是一回事；`lastError` 是给人看的中文，`lastErrorRaw` 是原始错误堆栈；`sourceKind` 为 `git` / `local`，`local` 时 `dataRoot` 是设置里配置的本机目录；`busy` 是**真实的同步中状态**（不是恒 `true`）；`indexDataRoot` 是当前索引对应的数据根，`indexStale` 在「切到 git 数据源、数据根变化」时为 `true` —— 包含冷启动作废旧缓存、当前无索引的情况（此时 `indexDataRoot` 取 `state.json` 里记录的旧根），前端据此提示点「刷新」 |
 | GET | `/meta` | 插件自身元数据：`{ ok, name, version, repoUrl, starUrl, feedbackUrl, introSeenVersion, updateHistory }`。设置页与介绍弹窗只读这一个接口。`repoUrl` / `starUrl` / `feedbackUrl` 优先取远程配置的 `about.*`，否则 `repoUrl` 用 `package.json` 的 `repository`、`starUrl` 跟随 `repoUrl`、`feedbackUrl` 为 `repoUrl + '/issues'` |
-| GET | `/config/remote` | 远程配置状态：`{ ok, config:{ source, url, filename, loadedAt, appliedFields, active }, fieldDocs, sample }`。`fieldDocs` 是支持覆盖的字段说明，`sample` 是带中文注释的示例 JSON 文本 |
+| GET | `/config/remote` | 远程配置状态：`{ ok, config:{ source, url, filename, loadedAt, appliedFields, active }, fieldDocs, sample }`。`fieldDocs` 是支持覆盖的字段说明，`sample` 是**带中文注释的当前全量配置导出**（只含示例字段范围，密钥字段保留但值为空串占位、不泄露明文） |
 | POST | `/config/remote/load` | body `{ mode:'url', url }` 或 `{ mode:'upload', content, filename }` → 拉取/解析 → 白名单规范化 → 覆盖设置并落盘。成功 `{ ok, appliedFields, warnings, ignoredFields, config }`；非法 JSON / 无可识别字段 / 拉取失败 400。URL 拉取 15 秒超时、2MB 上限，仅 http(s) |
 | POST | `/config/remote/clear` | 清除远程配置，按加载时快照恢复本地设置（含密钥从加密备份还原）→ `{ ok, message, config }`。没有生效中的配置时也返回成功 |
 | POST | `/workbench/open-html-dir` | 用系统文件管理器打开工作台**数据目录**（当前配置值或默认目录，HTML + CSV 共用）。`{ ok, dir }`；目录不存在 / 无法启动文件管理器返回 500 带原因。Windows 上 explorer 退出码不可靠，只把「进程启动失败」当错误 |
@@ -652,27 +652,28 @@ order: 300
 
 - 入口：设置页第一个 tab「远程配置」，填一个 http(s) 的 JSON 地址点「从 URL 加载」，或直接「上传 JSON 文件」。
 - 生效：加载成功即覆盖对应设置项（数据源地址类参数下次同步生效），**清除后恢复加载前的本地值**。
-- 示例：点「下载示例 JSON」得到一份带中文说明的模板（注释会被加载端自动剥离，改完可直接上传）。
+- 导出：点「**备份配置**」得到一份**带中文说明的当前配置**（注释会被加载端自动剥离，改完可直接上传）。只导出示例里那批字段；`khub.apiKey` / `clientSecret` 等密钥字段保留但值恒为空串占位，既不泄露明文也保持结构完整（导入时空串 = 不改动）。按钮在「清除远程配置」前面。
+- **空值语义**：配置项缺失或值为空字符串 = **保留当前值、不覆盖**（含 `sourceBranch` / `skillhubUrl` / `workbench.dataDir` / `khub.baseUrl` / `about.*` 等）；密钥留空同样不改动本地已存的值。想清空某个字段请在设置页手动改，或用「清除远程配置」整体回滚。
 
-支持的字段（只列**设置页 UI 上可见**的项；留空字符串表示「不改动 / 用默认」）：
+支持的字段（只列**设置页 UI 上可见**的项）：
 
 | 字段 | 说明 |
 | --- | --- |
 | `sourceUrl` | 资源仓库地址（git 或本机目录）；空值忽略 |
-| `sourceBranch` | 资源仓库分支；留空跟随远端默认分支 |
-| `skillhubUrl` | SkillHub 地址；默认 `https://api.skillhub.cn` |
-| `workbench.dataDir` | 个人工作台数据目录（本机绝对路径）；空串清除 |
+| `sourceBranch` | 资源仓库分支；留空保留当前值 |
+| `skillhubUrl` | SkillHub 地址；留空保留当前值（默认 `https://api.skillhub.cn`） |
+| `workbench.dataDir` | 个人工作台数据目录（本机绝对路径）；空串保留当前值 |
 | `workbench.syncMs` | 工作台检查间隔，500–60000 毫秒，越界自动收敛 |
 | `khub.baseUrl` | 在线资料库服务地址 |
 | `khub.clientId` | 在线资料库客户端 ID |
 | `khub.clientSecret` | 客户端密钥：**只写 `credentials.enc`**，空串表示不改动 |
-| `khub.apiKey` | 用户 API Key：**只写 `credentials.enc`**，空串表示不改动 |
+| `khub.apiKey` | 用户 API Key：**只写 `credentials.enc`**，空串表示不改动；**导出时为空串占位** |
 | `khub.enabled` | 在线优先开关 |
 | `zhiliao.replyBaseUrl` | 智聊服务端地址 |
 | `zhiliao.enabled` | 启用智聊 |
 | `about.repoUrl` | 「关于与反馈」/ 头部点 Star 的仓库地址 |
-| `about.starUrl` | 点 Star 目标地址；留空跟随仓库地址 |
-| `about.feedbackUrl` | 反馈问题地址；留空为「仓库地址 + `/issues`」 |
+| `about.starUrl` | 点 Star 目标地址；留空保留当前值 |
+| `about.feedbackUrl` | 反馈问题地址；留空保留当前值 |
 
 示例（实际下载的模板带中文注释）：
 
