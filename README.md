@@ -6,7 +6,7 @@ DeepSeek Harness（dsh）插件：把 WorkBuddy 的「专家 · 技能 · 连接
 
 | 标签页 | 数据来源 | 数量 |
 | --- | --- | --- |
-| 专家 | `dsh-buddy-expert-hub-resource` 仓库 `experts/<dir>/.codebuddy-plugin/plugin.json`（`expertType=agent`）+ `~/.dsh/experts/` 本地已导入专家 | 随仓库变化 + 本地 |
+| 专家 | `dsh-buddy-expert-hub-resource` 仓库 `experts/<dir>/.buddy-hub-plugin/plugin.json`（`expertType=agent`；旧名 `.codebuddy-plugin` 同样兼容）+ `~/.dsh/experts/` 本地已导入专家 | 随仓库变化 + 本地 |
 | 专家团 | 同上（`expertType=team`，含团队成员名单） | 随仓库变化 + 本地 |
 | 技能 | 数据根下的 `skills/<collection>/.../SKILL.md` | 随上游仓库变化，见下方说明 |
 | 连接器 | 资源仓库 `connectors/connectors.json`（单文件清单）+ `$DSH_HOME/dsh-buddy-expert-hub/connectors/` 本地已安装定义 | 随仓库变化 + 本地 |
@@ -67,6 +67,27 @@ DSH 的「发现」页读的不是固定官方列表，而是**用户自己添�
 | 详情图 | `docs/DETAIL.md` / `docs/DETAIL.zh.md` + `docs/preview.svg` | 详情页那张单图（每份文档恰好一行图片） |
 
 包清单已导出 `./locale/*.json` 与 `./icon`，`files` 覆盖 `locale/*.json` / `icon.svg` / `docs`，`npm pack` 后这些文件都在包里。
+
+### 发布流程（维护者）
+
+1. **改版本号**：`package.json` 的 `version`（语义化版本；升级历史与介绍弹窗的「已读版本」都按它判断）。
+2. **本地自检全绿**：
+   ```bash
+   npm run check                      # 语法 + 发布清单（files 覆盖全部 lib 与元数据）
+   node _harness/appearance.mjs       # 外观铁律（颜色只认宿主 token）
+   node _harness/remote-config.mjs    # 远程配置
+   node _harness/workbench-smoke.mjs  # 个人工作台
+   node _harness/market-index.mjs     # 市场索引（真跑 dsh 的 parseMarketIndex）
+   ```
+3. **重新生成市场索引**（版本号变了必须重跑，否则索引里的版本与包不一致）：
+   ```bash
+   npm run build:market
+   ```
+4. **确认包内容**：`npm pack --dry-run` 检查 `lib/**`、`locale/*.json`、`icon.svg`、`builtin/**/skills/**`、`docs` 都在包里（`files` 白名单）。
+5. **发布**：`npm publish`（`publishConfig.access: public`，registry 为 npmjs）。
+6. **托管索引**：把更新后的 `market/index.json` 传到 http(s) 静态地址（见下一步）。
+
+> 版本号、`market/index.json`、`locale/*.json` 三处必须同步；只改代码不改版本号，用户端「检查更新」不会看到新版本。
 
 ### 让 DSH 真正收录（三步）
 
@@ -512,7 +533,7 @@ order: 300
 | 类型 | 目录根下必需文件 | 可选 / 兼容输入 |
 | --- | --- | --- |
 | 技能 `skill` | `SKILL.md`（frontmatter 建议写 `name`；解析不出时用目录名兜底，并在结果里标注） | `README.md` 与其它资源文件 |
-| 专家 `expert` | `expert.yml`（至少含 `id` / `display_name`）+ `role.md` | 或 `.codebuddy-plugin/plugin.json`（可解析、含 `name` / `displayName`），此时按兼容格式转换 |
+| 专家 `expert` | `expert.yml`（至少含 `id` / `display_name`）+ `role.md` | 或 `.buddy-hub-plugin/plugin.json`（旧名 `.codebuddy-plugin` 也认；可解析、含 `name` / `displayName`），此时按兼容格式转换 |
 | 专家团 `team` | `expert.yml` + `role.md` + `team.json`（含 `teamInfo` 或 `members` 数组） | 或 `plugin.json` 里带团队信息（`expertType=team` / `members` / `teamInfo`），导入时生成 `team.json` |
 
 校验失败会逐条列出缺哪些文件；后端是权威校验方，前端只做同规则的轻量预检并把结果展示在弹窗里。
@@ -541,7 +562,11 @@ order: 300
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/status` | `{ ok, repoReady, indexReady, lastSync, counts:{experts,teams,skills,connectors,connectable,unsupported}, localCounts:{experts,teams}, sourceUrl, sourceKind, dataRoot, indexDataRoot, indexStale, library, hasSkills, connectorSource, connectorSkipped, skipped, busy, progress, lastError, lastErrorRaw, warnings, importedCount, baseDir, localExpertsDir }`（本轮**没有新增 `/status` 字段**；新增的 `indexSwitchPending` 只写进 `state.json`，不对外暴露）；`counts.experts/teams` 为合并去重后的数量，与列表一致；`counts.connectors` 是**现算**的两源合并总条数（常规模式不进索引；本地资料库模式改用导出包快照），`counts.connectable` / `counts.unsupported` 是其中宿主能装载 / 装载不了的条数（`connectable + unsupported === connectors`）；`connectorSource` 为 `repo` / `none` / `library`；`connectorSkipped` 是**真正解析不了**（缺 id / 结构异常）的条数，正常数据下为 0 —— 它和「不可连接」不是一回事；`lastError` 是给人看的中文，`lastErrorRaw` 是原始错误堆栈；`sourceKind` 为 `git` / `local`，`local` 时 `dataRoot` 是设置里配置的本机目录；`busy` 是**真实的同步中状态**（不是恒 `true`）；`indexDataRoot` 是当前索引对应的数据根，`indexStale` 在「切到 git 数据源、数据根变化」时为 `true` —— 包含冷启动作废旧缓存、当前无索引的情况（此时 `indexDataRoot` 取 `state.json` 里记录的旧根），前端据此提示点「刷新」 |
-| GET | `/meta` | 插件自身元数据：`{ ok, name, version, repoUrl, starUrl, introSeenVersion, updateHistory }`。设置页与介绍弹窗只读这一个接口 |
+| GET | `/meta` | 插件自身元数据：`{ ok, name, version, repoUrl, starUrl, feedbackUrl, introSeenVersion, updateHistory }`。设置页与介绍弹窗只读这一个接口。`repoUrl` / `starUrl` / `feedbackUrl` 优先取远程配置的 `about.*`，否则 `repoUrl` 用 `package.json` 的 `repository`、`starUrl` 跟随 `repoUrl`、`feedbackUrl` 为 `repoUrl + '/issues'` |
+| GET | `/config/remote` | 远程配置状态：`{ ok, config:{ source, url, filename, loadedAt, appliedFields, active }, fieldDocs, sample }`。`fieldDocs` 是支持覆盖的字段说明，`sample` 是带中文注释的示例 JSON 文本 |
+| POST | `/config/remote/load` | body `{ mode:'url', url }` 或 `{ mode:'upload', content, filename }` → 拉取/解析 → 白名单规范化 → 覆盖设置并落盘。成功 `{ ok, appliedFields, warnings, ignoredFields, config }`；非法 JSON / 无可识别字段 / 拉取失败 400。URL 拉取 15 秒超时、2MB 上限，仅 http(s) |
+| POST | `/config/remote/clear` | 清除远程配置，按加载时快照恢复本地设置（含密钥从加密备份还原）→ `{ ok, message, config }`。没有生效中的配置时也返回成功 |
+| POST | `/workbench/open-html-dir` | 用系统文件管理器打开工作台 HTML 目录（固定 `WORKBENCH_DIR`，无用户输入）。`{ ok, dir }`；目录不存在 / 无法启动文件管理器返回 500 带原因。Windows 上 explorer 退出码不可靠，只把「进程启动失败」当错误 |
 | POST | `/intro/ack` | body `{ version }` → `{ ok, introSeenVersion }`；缺 version → 400 `invalid-version` |
 | GET | `/update/check` | 查 registry 最新版：`{ ok, current, latest, hasUpdate, publishedAt, registry }`；可带 `registry` / `force=1`；失败 502 `check-failed` |
 | POST | `/update/apply` | body `{ version?, dryRun? }` → 下载 → sha512 校验 → 备份 → 覆盖，任一步失败回滚；成功 `{ ok, from, to, files, backup, reloadRequired }`，失败 400 `apply-failed` |
@@ -593,15 +618,17 @@ order: 300
 
 ## dsh 设置页（设置 → Buddy 工作台）
 
-插件注册 `settings.section`（`order: 16`），在 dsh 设置左侧导航里贡献一个**一级入口「Buddy 工作台」**，与「内置插件」同级，页内五个分区：
+插件注册 `settings.section`（`order: 16`），在 dsh 设置左侧导航里贡献一个**一级入口「Buddy 工作台」**，与「内置插件」同级，页内七个分区：
 
 | 分区 | 内容 |
 | --- | --- |
+| **远程配置**（第一个 tab） | 填 http(s) 的 JSON 地址或上传 JSON 文件，一次覆盖下面各分区的参数；没加载 / 清除后回到本地设置（见「远程配置」一节） |
 | 资源仓库 | 仓库地址、分支、私有仓库凭据、Skillhub 地址、内置技能开关（原「设置」弹窗整体搬入，embedded 复用同一组件） |
-| 个人工作台 | 数据目录、自动检查间隔、创建技能安装状态（原「工作台设置」弹窗整体搬入） |
-| 插件升级 | 当前 / 最新版本、检查更新、一键升级、最近升级历史 |
-| 关于与反馈 | GitHub Star 入口、Issues、重看插件介绍 |
+| 个人工作台 | 数据目录、自动检查间隔、打开 HTML 目录（原「工作台设置」弹窗整体搬入） |
 | 在线资料库 | 后端地址 / clientId / clientSecret / 用户 API Key / 在线优先开关 + 测试连接 |
+| 智聊 | 智聊服务端地址、启用开关（设置页只暴露这两个可改项） |
+| 插件升级 | 当前 / 最新版本、检查更新、一键升级、最近升级历史 |
+| 关于与反馈 | 仓库地址 / 点 Star / 反馈问题（均可被远程配置覆盖）、重看插件介绍 |
 
 页面结构对齐参考项目 `dsh-our-free-model`：头部一行是**插件头像**（包内 `assets/avatar.png`，由 `GET /avatar` 返回）+ 标题，右侧是「**视觉特效**」开关与「**点个 Star**」；下面是一行横向分区导航（只有文字，不带计数），内容区按分区切换。「关于与反馈」分区里另有一个「去 GitHub 点 Star」主按钮。
 
@@ -613,6 +640,60 @@ order: 300
 - 系统开启「减少动态效果」（`prefers-reduced-motion`）时，所有新增的 `animation` / `transform` / 流光一律归零，功能不受影响。
 
 面板与工作台工具条**不再有齿轮按钮** —— 配置只有一个入口，避免两套弹窗各写一份字段。
+
+### 远程配置
+
+目的：**一份 JSON 统一下发设置页里的参数**，适合多台机器 / 团队统一配置，不用每台手填。
+
+- 入口：设置页第一个 tab「远程配置」，填一个 http(s) 的 JSON 地址点「从 URL 加载」，或直接「上传 JSON 文件」。
+- 生效：加载成功即覆盖对应设置项（数据源地址类参数下次同步生效），**清除后恢复加载前的本地值**。
+- 示例：点「下载示例 JSON」得到一份带中文说明的模板（注释会被加载端自动剥离，改完可直接上传）。
+
+支持的字段（只列**设置页 UI 上可见**的项；留空字符串表示「不改动 / 用默认」）：
+
+| 字段 | 说明 |
+| --- | --- |
+| `sourceUrl` | 资源仓库地址（git 或本机目录）；空值忽略 |
+| `sourceBranch` | 资源仓库分支；留空跟随远端默认分支 |
+| `skillhubUrl` | SkillHub 地址；默认 `https://api.skillhub.cn` |
+| `workbench.dataDir` | 个人工作台数据目录（本机绝对路径）；空串清除 |
+| `workbench.syncMs` | 工作台检查间隔，500–60000 毫秒，越界自动收敛 |
+| `khub.baseUrl` | 在线资料库服务地址 |
+| `khub.clientId` | 在线资料库客户端 ID |
+| `khub.clientSecret` | 客户端密钥：**只写 `credentials.enc`**，空串表示不改动 |
+| `khub.apiKey` | 用户 API Key：**只写 `credentials.enc`**，空串表示不改动 |
+| `khub.enabled` | 在线优先开关 |
+| `zhiliao.replyBaseUrl` | 智聊服务端地址 |
+| `zhiliao.enabled` | 启用智聊 |
+| `about.repoUrl` | 「关于与反馈」/ 头部点 Star 的仓库地址 |
+| `about.starUrl` | 点 Star 目标地址；留空跟随仓库地址 |
+| `about.feedbackUrl` | 反馈问题地址；留空为「仓库地址 + `/issues`」 |
+
+示例（实际下载的模板带中文注释）：
+
+```json
+{
+  "sourceUrl": "https://gitcode.com/zzx_2446/dsh-buddy-expert-hub-resource.git",
+  "skillhubUrl": "https://api.skillhub.cn",
+  "workbench": { "dataDir": "", "syncMs": 2000 },
+  "khub": { "baseUrl": "", "clientId": "", "clientSecret": "", "apiKey": "", "enabled": true },
+  "zhiliao": { "replyBaseUrl": "", "enabled": true },
+  "about": {
+    "repoUrl": "https://github.com/zhangzexu/dsh-buddy-expert-hub",
+    "starUrl": "",
+    "feedbackUrl": "https://github.com/zhangzexu/dsh-buddy-expert-hub/issues"
+  }
+}
+```
+
+**安全边界**：
+
+- `khub.clientSecret` / `khub.apiKey` 按用户要求支持远程下发，但**只写 `credentials.enc`（AES-256-GCM），绝不进 `state.json`、不随任何接口回显**；空串表示「不改动」而非「删除」，避免误删本地密钥。
+- 远程 JSON 是明文 http 内容，**密钥会经过网络**——只对可信地址使用。加载前会把本地原密钥备份到 `credentials.enc` 的专用键，清除远程配置时读回还原。
+- 智聊的 `webhookSecret` / `internalSecret` **不支持远程下发**（明文下发签名密钥等于交出伪造权限），`builtinSkills` 也不支持（涉及实际安装/卸载技能）。
+- 远程配置是**快照式**：加载时抓一份当前设置，清除时整体回滚。因此加载后手动改的设置，在「清除远程配置」时会被回滚到加载前状态。
+
+对应接口：`GET /config/remote`（状态 + 字段说明 + 示例）、`POST /config/remote/load`（`mode: url|upload`）、`POST /config/remote/clear`。
 
 ### 插件自身在线升级
 
@@ -829,6 +910,16 @@ $DSH_HOME/                                  # 默认 ~/.dsh，可用环境变量
 - Win / Linux / macOS 三端都从 `DSH_HOME` 派生路径（macOS 不读 `builtin/`）；Windows 的中文 / 空格路径、CSV 的 CRLF + BOM 均在覆盖范围内。
 - **插件不提供 HTML 写接口**：没有新增 / 修改 / 删除工作台 HTML 的路由，HTML 由 dsh agent 直接落盘到上述 workbench 目录，插件只读。
 
+### 直接查看 / 编辑 CSV
+
+左侧文件树里的每张 CSV 数据表都是**可点击的**：点一下，右侧从 HTML 页面切换成**可编辑表格**：
+
+- 单元格直接改，改完点「保存」写回磁盘（走 `POST /workbench/data`，带 `baseHash` 做 CAS；文件被 Excel 等外部改过会提示冲突并允许「重新加载」）。
+- 顶部三个按钮：**保存 / 重新加载 / 返回页面**；有未保存改动时显示「未保存」标记。
+- 表头与 `_id` 列**只读**：改列名会让后端按新列名重组数据、丢掉原列（风险大于收益），`_id` 是行身份标识。
+- 点工作台 HTML 节点或「返回页面」即退出网格，回到页面视图。
+- 底层结构：`/workbench/data` 返回的 `rows` 是**对象数组**（`{列名: 值}`），网格按列名读写，不按列序号。
+
 ### 快速体验
 
 仓库里带一个可直接落盘运行的「读书记录」示例工作台 `docs/workbench-example.html`：内嵌菜单声明，以及 `Workbench.read` / `write` / `onData` / `onConflict` 的完整用法，用来先把读写流程跑通一遍：
@@ -949,6 +1040,22 @@ npm run build:connectors
 
 > `lib/connector-meta.js` 里的 `readAuthModeMap()` 只被这个维护脚本使用（读市场元数据作为上游输入）；插件运行时不再读任何市场目录。
 
+### 清单目录改名（`.codebuddy-plugin` → `.buddy-hub-plugin`）
+
+资源仓库的专家 / 专家团清单目录已统一改为 `.buddy-hub-plugin`。插件**同时兼容两种名字**（读取时新名优先、旧名回退，见 `lib/index.js` 的 `PLUGIN_DIR_NAMES`），所以旧仓库不用改也能用。
+
+需要把某个旧仓库一次性迁到新名时：
+
+```bash
+# 预演（只打印，不改动）
+node scripts/rename-plugin-dirs.mjs E:/path/to/dsh-buddy-expert-hub-resource
+
+# 确认后执行
+node scripts/rename-plugin-dirs.mjs E:/path/to/dsh-buddy-expert-hub-resource --apply
+```
+
+脚本只改目录名、不动文件内容；目标名已存在则跳过，不覆盖不合并。
+
 ---
 
 ## 自检
@@ -979,6 +1086,13 @@ node _harness/snapshot-helper.mjs
 # 外部数据定时更新：本地 mock 资料库跑 40 条（upsert 只改声明列 / 增量 vs 整表 /
 # 断网入队与补推 / 幂等 / 分批 / inbox 文件通道 / 镜像兜底读）
 node _harness/ingest.mjs
+
+# 远程配置：真起 HTTP 跑 39 条（URL 拉取 / 上传 / 快照恢复 / 密钥只进加密文件 /
+# 关于地址 / 打开目录接口 / 示例带中文注释可解析 / 非法配置拒绝 / 重启持久化）
+node _harness/remote-config.mjs
+
+# 个人工作台：真起 HTTP 跑 40 条（数据读写 CAS / 冲突 409 / 桥注入 / 列表口径）
+node _harness/workbench-smoke.mjs
 ```
 
 ---
