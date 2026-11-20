@@ -1,6 +1,6 @@
 {
   "name": "dsh-buddy-expert-hub",
-  "version": "1.0.3",
+  "version": "2.0.0",
   "description": "DeepSeek Harness 插件：专家 / 专家团 / 技能 / 连接器 浏览、检索与导入面板",
   "repository": {
     "type": "git",
@@ -42,7 +42,7 @@
   "scripts": {
     "build:connectors": "node scripts/build-connectors.mjs",
     "build:market": "node scripts/build-market-index.mjs",
-    "check": "node --check lib/index.js && node --check lib/client.js && node --check lib/csv.js && node --check lib/workbench-menu.js && node --check lib/workbench.js && node --check lib/workbench-bridge.js && node --check lib/plugin-update.js && node --check lib/ooxml.js && node --check lib/frontmatter.js && node --check lib/connector-meta.js && node --check lib/connector-provision.js && node --check lib/connector-secret.js && node --check lib/connector-store.js && node --check lib/knowledge-hub.js && node --check lib/khub-workbench.js && node --check lib/ingest.js && node scripts/check-package.mjs",
+    "check": "node --check lib/index.js && node --check lib/zhiliao.js && node --check lib/zhiliao-queue.js && node --check lib/zhiliao-recycle.js && node --check lib/zhiliao-ws.js && node --check lib/client.js && node --check lib/csv.js && node --check lib/workbench-menu.js && node --check lib/workbench.js && node --check lib/workbench-bridge.js && node --check lib/plugin-update.js && node --check lib/ooxml.js && node --check lib/frontmatter.js && node --check lib/connector-meta.js && node --check lib/connector-provision.js && node --check lib/connector-secret.js && node --check lib/connector-store.js && node --check lib/knowledge-hub.js && node --check lib/khub-workbench.js && node --check lib/ingest.js && node scripts/check-package.mjs",
     "check:package": "node scripts/check-package.mjs --verbose"
   },
   "publishConfig": {

@@ -62,7 +62,7 @@
 约定边界：
 
 - 这条链路**只下发变量**，不注入任何样式表 / 不覆盖页面选择器 —— 页面自己的排版、菜单、圆角仍由 HTML 决定。
-- 页面里**禁止写死背景 / 文字 / 边框色**（否则深色外观下整页发白）；这条写进了 `workbench-creator` 技能的 UI 清单第 10 条，由 agent 在生成时保证。
+- 页面里**禁止写死背景 / 文字 / 边框色**（否则深色外观下整页发白）；这条由「在线工作台搭建师」专家（`khub-workbench-builder`）的视觉规范保证，旧的 `workbench-creator` 技能已删除。
 - 实心主色 / 状态色块上的文字用 `var(--dsw-alias-bg-base, #fff)` 反色 —— 深色主题下 `brand-primary` 可能就是白色。
 - 参考实现：`docs/workbench-example.html`（`:root` 里做一层 `--app-*` 映射，全站只用变量）。
 
