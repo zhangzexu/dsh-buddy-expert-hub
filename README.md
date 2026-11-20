@@ -758,7 +758,7 @@ order: 300
 
 - 选第一个有写权限的在线空间作为目标；在线已有同名工作台时新建「名称 (本地)」副本，不覆盖线上。
 - 上传时会把 HTML 里的本地表名（`books.csv`）改写成在线表名（`node-<id>.csv`），保证多表工作台读写正确；**本地磁盘原件不动**。
-- 幂等：传过的本地工作台记在 `state.settings.khub.uploadedWorkbenches`，不会重复上传。工作台面板工具栏有「上传本地」按钮可补传新工作台（`POST /workbench/upload-local`）。
+- 幂等：传过的本地工作台记在 `state.settings.khub.uploadedWorkbenches`，不会重复上传。工作台面板工具栏有「上传资料库」按钮可补传新工作台（`POST /workbench/upload-local`）；**当前打开的工作台已是在线的（`khub-*`）时该按钮不显示**，因为它本来就在线上。
 - 上传失败只记录到 warnings 并提示，不影响本地数据与在线原有内容。
 
 明文密钥只出现在保存请求里，服务端写入 `$DSH_HOME/dsh-buddy-expert-hub/credentials.enc`
