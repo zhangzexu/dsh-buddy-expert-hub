@@ -1098,12 +1098,19 @@ node _harness/snapshot-helper.mjs
 # 断网入队与补推 / 幂等 / 分批 / inbox 文件通道 / 镜像兜底读）
 node _harness/ingest.mjs
 
-# 远程配置：真起 HTTP 跑 39 条（URL 拉取 / 上传 / 快照恢复 / 密钥只进加密文件 /
-# 关于地址 / 打开目录接口 / 示例带中文注释可解析 / 非法配置拒绝 / 重启持久化）
+# 远程配置：真起 HTTP 跑 45 条（URL 拉取 / 上传 / 快照恢复 / 密钥只进加密文件 /
+# 关于地址 / 打开目录接口 / 示例带中文注释可解析 / 非法配置拒绝 / 重启持久化 /
+# 空值导入保留当前值 / 导出当前配置）
 node _harness/remote-config.mjs
+
+# 已导入权威口径：5 条（启动净化脏 id / /imported 只回真实目录 / 目录删除后清理并持久化）
+node _harness/imported-truth.mjs
 
 # 个人工作台：真起 HTTP 跑 40 条（数据读写 CAS / 冲突 409 / 桥注入 / 列表口径）
 node _harness/workbench-smoke.mjs
+
+# 新版工作台声明兼容：5 条（tables[].columns 回退 / 子目录中文文件名 / legacy fields 未破坏）
+node _harness/workbench-menu-columns.mjs
 
 # 数据目录统一与迁移：11 条（默认目录可用 / 改目录整体迁移 / 旧目录保留 / 中文路径）
 node _harness/workbench-migration.mjs
