@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" fill="none" role="img" aria-label="Expert hub">
+  <g stroke="#C4C9D2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 12.8V25.4" />
+    <path d="M10 14h8.3" />
+    <path d="M10 20h8.3" />
+    <path d="M10 25.4h8.3" />
+  </g>
+  <circle cx="10" cy="9.6" r="3.2" fill="#2B5AED" />
+  <circle cx="20.6" cy="14" r="2.3" fill="none" stroke="#6B7280" stroke-width="1.9" />
+  <circle cx="20.6" cy="20" r="2.3" fill="none" stroke="#6B7280" stroke-width="1.9" />
+  <circle cx="20.6" cy="25.4" r="2.3" fill="none" stroke="#6B7280" stroke-width="1.9" />
+</svg>

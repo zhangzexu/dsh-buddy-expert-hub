@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>读书记录 · 个人工作台示例</title>
+
+<!--
+  个人工作台菜单声明。插件只读这段 JSON，绝不执行本文件里的其它内容。
+  把这个文件复制到 $DSH_HOME/dsh-buddy-expert-hub/workbench/（默认 ~/.dsh/...），
+  在设置里填好「个人工作台数据目录」，回到面板点「刷新列表」即可打开。
+  数据表会自动落在 <数据目录>/reading-log/books.csv。
+-->
+<script type="application/json" id="workbench-menu">
+{
+  "version": 1,
+  "id": "reading-log",
+  "name": "读书记录",
+  "icon": "book",
+  "tables": [
+    {
+      "file": "books.csv",
+      "fields": [
+        { "key": "title",  "label": "书名", "type": "string", "required": true },
+        { "key": "rating", "label": "评分", "type": "number" },
+        { "key": "status", "label": "状态", "type": "enum", "options": ["想读", "在读", "已读"] },
+        { "key": "note",   "label": "备注", "type": "string" }
+      ]
+    }
+  ],
+  "menu": [
+    { "id": "overview", "label": "总览",     "view": "overview", "prompt": "帮我汇总这个月的读书进度，按状态分组" },
+    { "id": "add",      "label": "添加记录", "view": "add",      "prompt": "帮我在读书记录里新增一条读书记录" }
+  ]
+}
+</script>
+
+<style>
+  /* 宿主 dsh 会把通用外观变量注入本页 :root（--dsw-alias-*），并给 html 打 data-dsh-theme。
+     页面统一用变量 + 浅色回退：深色外观下自动变深，直接在浏览器打开也好看。 */
+  :root {
+    color-scheme: light;
+    --app-bg: var(--dsw-alias-bg-base, #fff);
+    --app-bg-soft: var(--dsw-alias-bg-layer-2, #f6f8fa);
+    --app-card: var(--dsw-alias-bg-layer-1, #fff);
+    --app-text: var(--dsw-alias-label-primary, #1f2328);
+    --app-text-sub: var(--dsw-alias-label-secondary, #57606a);
+    --app-border: var(--dsw-alias-border-l1, #d0d7de);
+    --app-primary: var(--dsw-alias-brand-primary, #0969da);
+    /* 实心主色块上的文字取「页面底色」做反色：深色主题下主色可能是白的 */
+    --app-on-primary: var(--dsw-alias-bg-base, #fff);
+    --app-danger: var(--dsw-alias-state-error-primary, #cf222e);
+    --app-warn-bg: var(--dsw-alias-bg-layer-2, #fffbeb);
+    --app-warn-fg: var(--dsw-alias-state-warning-primary, #92400e);
+    --app-err-bg: var(--dsw-alias-bg-layer-2, #fef2f2);
+    --app-info-bg: var(--dsw-alias-bg-layer-2, #eff6ff);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 20px 22px 40px; font: 13px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; color: var(--app-text); background: var(--app-bg); }
+  h1 { margin: 0 0 4px; font-size: 19px; font-weight: 650; }
+  .sub { margin: 0 0 18px; color: var(--app-text-sub); font-size: 12px; }
+  .bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  button { height: 30px; padding: 0 12px; border: 1px solid var(--app-border); border-radius: 6px; background: var(--app-card); color: var(--app-text); font-size: 12.5px; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--app-primary); color: var(--app-primary); }
+  button.primary { background: var(--app-primary); border-color: var(--app-primary); color: var(--app-on-primary); }
+  button.primary:hover:not(:disabled) { color: var(--app-on-primary); opacity: .9; }
+  button:disabled { opacity: .5; cursor: default; }
+  input, select { height: 30px; padding: 0 8px; border: 1px solid var(--app-border); border-radius: 6px; font: inherit; background: var(--app-card); color: inherit; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { padding: 7px 8px; border-bottom: 1px solid var(--app-border); text-align: left; vertical-align: middle; }
+  th { color: var(--app-text-sub); font-weight: 600; background: var(--app-bg-soft); }
+  td input, td select { width: 100%; min-width: 70px; }
+  td.op { width: 64px; text-align: right; }
+  .hint { margin: 14px 0 0; color: var(--app-text-sub); font-size: 12px; }
+  .msg { margin: 0 0 12px; padding: 8px 11px; border-radius: 7px; font-size: 12.5px; display: none; }
+  .msg.show { display: block; }
+  .msg.info { background: var(--app-info-bg); border: 1px solid var(--app-primary); color: var(--app-primary); }
+  .msg.warn { background: var(--app-warn-bg); border: 1px solid var(--app-warn-fg); color: var(--app-warn-fg); }
+  .msg.err  { background: var(--app-err-bg); border: 1px solid var(--app-danger); color: var(--app-danger); }
+  .empty { padding: 34px 12px; text-align: center; color: var(--app-text-sub); }
+  .tabs { display: flex; gap: 6px; margin: 0 0 12px; }
+  .tab { height: 30px; padding: 0 14px; border: 1px solid var(--app-border); border-radius: 15px; background: var(--app-card);
+         color: var(--app-text-sub); font-size: 13px; cursor: pointer; }
+  .tab:hover { border-color: var(--app-primary); color: var(--app-primary); }
+  .tab-on { background: var(--app-primary); border-color: var(--app-primary); color: var(--app-on-primary); }
+</style>
+</head>
+<body>
+
+<h1>📚 读书记录</h1>
+<p class="sub">数据存在 CSV 里，不写死在页面代码中。页面上改会写回 CSV；用 Excel 改 CSV 页面也会自动更新。</p>
+
+<!-- 页面自己的菜单：由本 HTML 渲染与控制，插件不代画任何按钮 -->
+<nav class="tabs" role="tablist" aria-label="读书记录菜单">
+  <button id="tab-overview" class="tab tab-on" type="button" role="tab" aria-selected="true">总览</button>
+  <button id="tab-add" class="tab" type="button" role="tab" aria-selected="false">添加记录</button>
+</nav>
+
+<div id="msg" class="msg" role="status"></div>
+
+<div class="bar">
+  <input id="new-title" type="text" placeholder="书名" aria-label="书名" style="flex:1;min-width:120px">
+  <input id="new-rating" type="number" placeholder="评分" aria-label="评分" style="width:76px">
+  <select id="new-status" aria-label="状态">
+    <option value="想读">想读</option>
+    <option value="在读">在读</option>
+    <option value="已读">已读</option>
+  </select>
+  <button id="btn-add" class="primary" type="button">新增</button>
+  <button id="btn-save" type="button">保存修改</button>
+  <button id="btn-reload" type="button">重新读取</button>
+</div>
+
+<table>
+  <thead><tr><th style="width:26%">书名</th><th style="width:10%">评分</th><th style="width:14%">状态</th><th>备注</th><th class="op">操作</th></tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+<div id="empty" class="empty" style="display:none">还没有记录，先在上方新增一条吧。</div>
+
+<p class="hint">
+  当前菜单：<span id="view">总览</span> · 数据表 <code>reading-log/books.csv</code> ·
+  版本 <code id="hash">—</code>。<br>
+  提示：本页由插件注入的 <code>window.Workbench</code> 桥代理读写，页面本身不能直接访问插件接口。
+</p>
+
+<script>
+(function () {
+  'use strict';
+
+  var TABLE = 'books.csv';
+  var STATUS = ['想读', '在读', '已读'];
+  var state = { columns: ['_id', 'title', 'rating', 'status', 'note'], rows: [], hash: '' };
+  var busy = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+  function say(text, kind) {
+    var el = $('msg');
+    el.textContent = text;
+    el.className = 'msg show ' + (kind || 'info');
+    if (kind !== 'warn' && kind !== 'err') {
+      setTimeout(function () { if (el.textContent === text) el.className = 'msg'; }, 2600);
+    }
+  }
+  function esc(value) {
+    return String(value === null || value === undefined ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /** 把后端快照收到本地状态并重绘。onData / read / write 成功都走这里。 */
+  function apply(payload) {
+    if (!payload) return;
+    if (Array.isArray(payload.columns) && payload.columns.length > 0) state.columns = payload.columns.slice();
+    if (Array.isArray(payload.rows)) state.rows = payload.rows;
+    if (typeof payload.hash === 'string') state.hash = payload.hash;
+    $('hash').textContent = state.hash ? state.hash.slice(0, 12) : '—';
+    render();
+  }
+
+  function render() {
+    var body = $('rows');
+    body.innerHTML = '';
+    $('empty').style.display = state.rows.length === 0 ? 'block' : 'none';
+    state.rows.forEach(function (row) {
+      var id = String(row._id || '');
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td><input data-id="' + esc(id) + '" data-key="title"  type="text"   value="' + esc(row.title) + '"></td>' +
+        '<td><input data-id="' + esc(id) + '" data-key="rating" type="number" value="' + esc(row.rating) + '"></td>' +
+        '<td><select data-id="' + esc(id) + '" data-key="status">' +
+          STATUS.map(function (s) {
+            return '<option value="' + s + '"' + (String(row.status) === s ? ' selected' : '') + '>' + s + '</option>';
+          }).join('') +
+        '</select></td>' +
+        '<td><input data-id="' + esc(id) + '" data-key="note" type="text" value="' + esc(row.note) + '"></td>' +
+        '<td class="op"><button type="button" data-del="' + esc(id) + '">删除</button></td>';
+      body.appendChild(tr);
+    });
+    Array.prototype.forEach.call(body.querySelectorAll('[data-del]'), function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-del');
+        state.rows = state.rows.filter(function (r) { return String(r._id || '') !== id; });
+        write(state.rows, '已删除一行');
+      });
+    });
+  }
+
+  /**
+   * 写回：baseHash 用当前快照，后端 CAS 判定；旧 hash 会返回 409，
+   * 桥会把 write() 的 Promise 拒绝掉，同时父组件会把最新数据 push 回来。
+   */
+  function write(rows, okText) {
+    if (busy) return;
+    busy = true;
+    $('btn-save').disabled = true;
+    Workbench.write({ table: TABLE, baseHash: state.hash, columns: state.columns, rows: rows })
+      .then(function (res) {
+        if (res && res.hash) state.hash = res.hash;
+        if (Array.isArray(res.rows)) state.rows = res.rows;
+        if (Array.isArray(res.columns) && res.columns.length > 0) state.columns = res.columns.slice();
+        $('hash').textContent = state.hash ? state.hash.slice(0, 12) : '—';
+        render();
+        say(okText || '已保存到 CSV', 'info');
+      })
+      .catch(function (error) {
+        say('保存未成功：' + (error && error.message ? error.message : String(error)) +
+            '。页面已自动重载磁盘上的最新数据，请确认后再改一次。', 'err');
+        /* 父组件在 409 时会 push 最新数据，这里再显式 read 一次兜底。 */
+        return Workbench.read({ table: TABLE }).then(apply).catch(function () {});
+      })
+      .then(function () { busy = false; $('btn-save').disabled = false; });
+  }
+
+  /* 外部（Excel / 编辑器 / 同步盘）改了 CSV → 父组件轮询发现后 push 过来。 */
+  Workbench.onData(function (payload) {
+    if (payload && payload.workbench && payload.workbench !== 'reading-log') return;
+    apply(payload);
+    if (payload && payload.reason === 'external-change') say('数据表已在外部更新，页面已刷新', 'info');
+  });
+  Workbench.onConflict(function (payload) {
+    say((payload && payload.error) || '数据表已在外部被修改，已重新加载，请确认后重试', 'warn');
+  });
+
+  $('btn-add').addEventListener('click', function () {
+    var title = $('new-title').value.trim();
+    if (title === '') { say('请先填书名', 'warn'); return; }
+    var next = state.rows.concat([{
+      _id: '', title: title,
+      rating: $('new-rating').value,
+      status: $('new-status').value,
+      note: ''
+    }]);
+    $('new-title').value = '';
+    $('new-rating').value = '';
+    write(next, '已新增并写入 CSV');
+  });
+
+  $('btn-save').addEventListener('click', function () {
+    var fields = document.querySelectorAll('#rows [data-id][data-key]');
+    Array.prototype.forEach.call(fields, function (el) {
+      var id = el.getAttribute('data-id');
+      var key = el.getAttribute('data-key');
+      state.rows.forEach(function (row) {
+        if (String(row._id || '') === id) row[key] = el.value;
+      });
+    });
+    write(state.rows, '已保存到 CSV');
+  });
+
+  $('btn-reload').addEventListener('click', function () {
+    Workbench.read({ table: TABLE }).then(function (payload) {
+      apply(payload);
+      say('已重新读取数据表', 'info');
+    }).catch(function (error) { say('读取失败：' + String(error && error.message || error), 'err'); });
+  });
+
+  /* 页面自己的菜单：纯前端切换，插件不参与；菜单就写在上面这段 HTML 里。 */
+  function setView(next) {
+    var isAdd = next === 'add';
+    $('tab-overview').className = 'tab' + (isAdd ? '' : ' tab-on');
+    $('tab-add').className = 'tab' + (isAdd ? ' tab-on' : '');
+    $('tab-overview').setAttribute('aria-selected', String(!isAdd));
+    $('tab-add').setAttribute('aria-selected', String(isAdd));
+    document.querySelector('.bar').style.display = isAdd ? 'flex' : 'none';
+    $('view').textContent = isAdd ? '添加记录' : '总览';
+    if (isAdd) $('new-title').focus();
+  }
+  $('tab-overview').addEventListener('click', function () { setView('overview'); });
+  $('tab-add').addEventListener('click', function () { setView('add'); });
+  setView('overview');
+
+  /* ready() 由注入的桥在 DOMContentLoaded 自动调用；这里再显式 read 一次，
+     避免首屏 push 早于本脚本注册 onData 时拿不到数据。 */
+  Workbench.read({ table: TABLE }).then(apply).catch(function (error) {
+    say('读取失败：' + String(error && error.message || error) +
+        '。请检查设置里的「个人工作台数据目录」。', 'err');
+  });
+})();
+</script>
+</body>
+</html>

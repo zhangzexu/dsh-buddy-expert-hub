@@ -6,7 +6,7 @@ DeepSeek Harness（dsh）插件：把 WorkBuddy 的「专家 · 技能 · 连接
 
 | 标签页 | 数据来源 | 数量 |
 | --- | --- | --- |
-| 专家 | `dsh-buddy-expert-hub-resource` 仓库 `experts/<dir>/.codebuddy-plugin/plugin.json`（`expertType=agent`）+ `~/.dsh/experts/` 本地已导入专家 | 随仓库变化 + 本地 |
+| 专家 | `dsh-buddy-expert-hub-resource` 仓库 `experts/<dir>/.buddy-hub-plugin/plugin.json`（`expertType=agent`；旧名 `.codebuddy-plugin` 同样兼容）+ `~/.dsh/experts/` 本地已导入专家 | 随仓库变化 + 本地 |
 | 专家团 | 同上（`expertType=team`，含团队成员名单） | 随仓库变化 + 本地 |
 | 技能 | 数据根下的 `skills/<collection>/.../SKILL.md` | 随上游仓库变化，见下方说明 |
 | 连接器 | 资源仓库 `connectors/connectors.json`（单文件清单）+ `$DSH_HOME/dsh-buddy-expert-hub/connectors/` 本地已安装定义 | 随仓库变化 + 本地 |
@@ -15,7 +15,9 @@ DeepSeek Harness（dsh）插件：把 WorkBuddy 的「专家 · 技能 · 连接
 
 输入框工具栏的**专家按钮**只列**已安装**的专家 / 专家团 / 技能 / 连接器；设置里还有一个「启用内置技能」开关，可把插件包内的内置技能一次性装进本地技能库（按系统取 `builtin/windows` 或 `builtin/linux`，装完在插件界面不可见，关闭开关即移除）。
 
-适用运行时：**dsh 0.1.5-rc.1**（`main` 为 keyed 插槽、`sidebar.panellist` 为 list 插槽，注册时只传 `label` 不传 `locale`）。
+适用运行时：**dsh 0.1.5 ~ 0.2.x**（已验证 `0.1.5-rc.1` / `0.1.7-rc.1` / `0.2.0-rc.2` / `0.2.1-rc.2` / `0.2.1-rc.5` / `0.2.2-rc.1` / `0.2.2-rc.5`，不含 0.3.0）。插件在 `package.json` 的 `engines.dsh` 与 `dsh.compatibility` 里声明了兼容范围，市场索引的 `versions[].engines` 与之一致，高版本 dsh 不会因「未声明」而误报不兼容。
+>
+> 历史口径：`0.1.5-rc.1` 时 `main` 为 keyed 插槽、`sidebar.panellist` 为 list 插槽，注册时只传 `label` 不传 `locale`；这些宿主契约在 0.2.x 仍被本插件使用的范围内保持一致。
 
 ## 文档
 
@@ -23,6 +25,7 @@ DeepSeek Harness（dsh）插件：把 WorkBuddy 的「专家 · 技能 · 连接
 | --- | --- |
 | [docs/user-guide.md](docs/user-guide.md) | 面向使用者的详细手册：安装、四个标签页、文件夹导入、专家按钮 / `/` 指令、连接器三步、设置、内置技能开关、FAQ 与排障 |
 | [docs/merge-guide.md](docs/merge-guide.md) | 维护者合并他人提交 / PR 的流程、检查清单、冲突处理、回滚与合并说明模板 |
+| [docs/ui-appearance.md](docs/ui-appearance.md) | **外观一致性铁律**：颜色只认宿主 `--dsw-alias-*` token、token 对照表、范围边界与自检方式 |
 
 本文件（`README.md`）保留设计口径、接口表、安全说明与目录结构。
 
@@ -51,6 +54,58 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
 ```
 
 卸载不会删除 `~/.dsh/ntd-resource`、`~/.dsh/dsh-buddy-expert-hub/` 与 `~/.dsh/experts/`，需要彻底清理时手动删除即可。
+
+---
+
+## 被 DSH 收录（插件市场索引）
+
+DSH 的「发现」页读的不是固定官方列表，而是**用户自己添加的索引源** —— 一个 http(s) 上的 JSON 文档（format 1，由 `@deepseek-ai/dsh-plugin-market-index` 校验）。本仓库已把收录需要的东西备齐：
+
+| 项 | 文件 | 作用 |
+| --- | --- | --- |
+| 索引文档 | `market/index.json` | format 1：`name` / `title` / `description` / `icon` / `metadata` / `versions` |
+| 包内元数据 | `locale/en.json`、`locale/zh.json` | `meta.title` / `meta.description` / `meta.detail`，插件行与详情页直接读 |
+| 图标 | `icon.svg`（36×36、≤256 KiB） | 插件行图标；Plugin Manager 自己画外框，图标里不画底 |
+| 详情图 | `docs/DETAIL.md` / `docs/DETAIL.zh.md` + `docs/preview.svg` | 详情页那张单图（每份文档恰好一行图片） |
+
+包清单已导出 `./locale/*.json` 与 `./icon`，`files` 覆盖 `locale/*.json` / `icon.svg` / `docs`，`npm pack` 后这些文件都在包里。
+
+### 发布流程（维护者）
+
+1. **改版本号**：`package.json` 的 `version`（语义化版本；升级历史与介绍弹窗的「已读版本」都按它判断）。
+2. **本地自检全绿**：
+   ```bash
+   npm run check                      # 语法 + 发布清单（files 覆盖全部 lib 与元数据）
+   node _harness/appearance.mjs       # 外观铁律（颜色只认宿主 token）
+   node _harness/remote-config.mjs    # 远程配置
+   node _harness/workbench-smoke.mjs  # 个人工作台
+   node _harness/market-index.mjs     # 市场索引（真跑 dsh 的 parseMarketIndex）
+   ```
+3. **重新生成市场索引**（版本号变了必须重跑，否则索引里的版本与包不一致）：
+   ```bash
+   npm run build:market
+   ```
+4. **确认包内容**：`npm pack --dry-run` 检查 `lib/**`、`locale/*.json`、`icon.svg`、`builtin/**/skills/**`、`docs` 都在包里（`files` 白名单）。
+5. **发布**：`npm publish`（`publishConfig.access: public`，registry 为 npmjs）。
+6. **托管索引**：把更新后的 `market/index.json` 传到 http(s) 静态地址（见下一步）。
+
+> 版本号、`market/index.json`、`locale/*.json` 三处必须同步；只改代码不改版本号，用户端「检查更新」不会看到新版本。
+
+### 让 DSH 真正收录（三步）
+
+1. **发布包**：`npm publish`。索引里的安装来源是 `{ "type": "npm" }`，不写 `registry` 就用客户端默认 registry。
+2. **托管索引**：把 `market/index.json` 放到任意 http(s) 静态地址（GitHub Pages、对象存储、内网静态服务都行）。`icon` 已内联成 `data:` URL，不需要额外托管图标。
+3. **在 DSH 里添加索引源**：Discover / 设置里把上面的 URL 加进索引源，搜 `dsh-buddy-expert-hub` 即可看到并安装。
+
+改了版本号后重新生成索引：`npm run build:market`（要复现旧时间可加 `--timestamp <unix 秒>`）。
+
+### 自检
+
+```bash
+node _harness/market-index.mjs
+```
+
+除结构断言外，它会在 dsh 安装目录里取 `@deepseek-ai/dsh-plugin-market-index`，**真跑一次 `parseMarketIndex`** 确认这个索引被 DSH 接受（找不到 dsh 时该条记为 SKIP）。
 
 ---
 
@@ -102,7 +157,7 @@ dsh plugin --profile web remove dsh-buddy-expert-hub
 
 ### 内置技能（设置里一个开关）
 
-设置弹窗里有「**启用内置技能**」开关（`role="switch"` + 原生 `checkbox`，浅色主题）：
+设置页的「资源仓库」分区里有「**启用内置技能**」开关（`role="switch"` + 原生 `checkbox`，浅色主题）：
 
 - 开启 = 把插件包内随包发布的内置技能**全部安装**到 `$DSH_HOME/skills/`；关闭 = 把它们**全部移除**：
   - `builtin/<platform>/skills/*` —— 随包发布的独立技能（Windows 当前 **4** 个、Linux 当前 **27** 个，数量取决于随包目录内容）；
@@ -228,7 +283,7 @@ https://gitcode.com/zzx_2446/dsh-buddy-expert-hub-resource.git
 | 自定义本机目录 | 面板「设置」里可直接填本机目录（见下节），`sourceKind` 为 `local`；保存时校验目录。`dataRoot` 立刻重算；新数据源为本机目录时，旧索引立即作废并在下次请求自动重建（不联网、不需要点刷新）；切回 git 仓库时索引保持到下次同步，界面会提示「数据源已切换，点刷新以应用新数据源」（**重启后仍提示**，见下节） |
 | 克隆目标 | `$DSH_HOME/dsh-buddy-expert-hub/repo`（只有完整仓库带 `skills/`）；本机目录模式不会创建或改动它 |
 | 同步方式 | git 数据源：首次 `git clone --depth 1`，之后 `git fetch --depth 1` + `git reset --hard FETCH_HEAD`；点「立即同步」或右上「刷新」触发。本机目录：只重读目录并重建索引，**不联网、不执行任何 git 命令** |
-| 私有仓库 | 设置弹窗会用 `/settings/probe` 匿名探测；判定为私有时自动出现「Git 用户名 + 访问令牌」输入区。探测失败（离线 / 内网 DNS）时可手动勾选「这是私有仓库」兜底。凭据加密保存在本地，令牌绝不回显 |
+| 私有仓库 | 设置页会用 `/settings/probe` 匿名探测；判定为私有时自动出现「Git 用户名 + 访问令牌」输入区。探测失败（离线 / 内网 DNS）时可手动勾选「这是私有仓库」兜底。凭据加密保存在本地，令牌绝不回显 |
 | 校验 | git 地址接受 `http://`、`https://` 与 `git@` 三种形式（不得含空白或 `..`；`http://` 用于内网自建 Git 服务，明文传输风险由用户自行评估）；本机目录必须是绝对地址，相对路径会被拒并提示填绝对路径；未知协议一律拒绝 |
 
 `sourceKind` 只有两个取值：`git`（远程 git 仓库）/ `local`（本机资源目录）。`/settings` 与 `/status` 都会返回它。
@@ -480,7 +535,7 @@ order: 300
 | 类型 | 目录根下必需文件 | 可选 / 兼容输入 |
 | --- | --- | --- |
 | 技能 `skill` | `SKILL.md`（frontmatter 建议写 `name`；解析不出时用目录名兜底，并在结果里标注） | `README.md` 与其它资源文件 |
-| 专家 `expert` | `expert.yml`（至少含 `id` / `display_name`）+ `role.md` | 或 `.codebuddy-plugin/plugin.json`（可解析、含 `name` / `displayName`），此时按兼容格式转换 |
+| 专家 `expert` | `expert.yml`（至少含 `id` / `display_name`）+ `role.md` | 或 `.buddy-hub-plugin/plugin.json`（旧名 `.codebuddy-plugin` 也认；可解析、含 `name` / `displayName`），此时按兼容格式转换 |
 | 专家团 `team` | `expert.yml` + `role.md` + `team.json`（含 `teamInfo` 或 `members` 数组） | 或 `plugin.json` 里带团队信息（`expertType=team` / `members` / `teamInfo`），导入时生成 `team.json` |
 
 校验失败会逐条列出缺哪些文件；后端是权威校验方，前端只做同规则的轻量预检并把结果展示在弹窗里。
@@ -509,6 +564,14 @@ order: 300
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/status` | `{ ok, repoReady, indexReady, lastSync, counts:{experts,teams,skills,connectors,connectable,unsupported}, localCounts:{experts,teams}, sourceUrl, sourceKind, dataRoot, indexDataRoot, indexStale, library, hasSkills, connectorSource, connectorSkipped, skipped, busy, progress, lastError, lastErrorRaw, warnings, importedCount, baseDir, localExpertsDir }`（本轮**没有新增 `/status` 字段**；新增的 `indexSwitchPending` 只写进 `state.json`，不对外暴露）；`counts.experts/teams` 为合并去重后的数量，与列表一致；`counts.connectors` 是**现算**的两源合并总条数（常规模式不进索引；本地资料库模式改用导出包快照），`counts.connectable` / `counts.unsupported` 是其中宿主能装载 / 装载不了的条数（`connectable + unsupported === connectors`）；`connectorSource` 为 `repo` / `none` / `library`；`connectorSkipped` 是**真正解析不了**（缺 id / 结构异常）的条数，正常数据下为 0 —— 它和「不可连接」不是一回事；`lastError` 是给人看的中文，`lastErrorRaw` 是原始错误堆栈；`sourceKind` 为 `git` / `local`，`local` 时 `dataRoot` 是设置里配置的本机目录；`busy` 是**真实的同步中状态**（不是恒 `true`）；`indexDataRoot` 是当前索引对应的数据根，`indexStale` 在「切到 git 数据源、数据根变化」时为 `true` —— 包含冷启动作废旧缓存、当前无索引的情况（此时 `indexDataRoot` 取 `state.json` 里记录的旧根），前端据此提示点「刷新」 |
+| GET | `/meta` | 插件自身元数据：`{ ok, name, version, repoUrl, starUrl, feedbackUrl, introSeenVersion, updateHistory }`。设置页与介绍弹窗只读这一个接口。`repoUrl` / `starUrl` / `feedbackUrl` 优先取远程配置的 `about.*`，否则 `repoUrl` 用 `package.json` 的 `repository`、`starUrl` 跟随 `repoUrl`、`feedbackUrl` 为 `repoUrl + '/issues'` |
+| GET | `/config/remote` | 远程配置状态：`{ ok, config:{ source, url, filename, loadedAt, appliedFields, active }, fieldDocs, sample }`。`fieldDocs` 是支持覆盖的字段说明，`sample` 是**带中文注释的当前全量配置导出**（只含示例字段范围，密钥字段保留但值为空串占位、不泄露明文） |
+| POST | `/config/remote/load` | body `{ mode:'url', url }` 或 `{ mode:'upload', content, filename }` → 拉取/解析 → 白名单规范化 → 覆盖设置并落盘。成功 `{ ok, appliedFields, warnings, ignoredFields, config }`；非法 JSON / 无可识别字段 / 拉取失败 400。URL 拉取 15 秒超时、2MB 上限，仅 http(s) |
+| POST | `/config/remote/clear` | 清除远程配置，按加载时快照恢复本地设置（含密钥从加密备份还原）→ `{ ok, message, config }`。没有生效中的配置时也返回成功 |
+| POST | `/workbench/open-html-dir` | 用系统文件管理器打开工作台**数据目录**（当前配置值或默认目录，HTML + CSV 共用）。`{ ok, dir }`；目录不存在 / 无法启动文件管理器返回 500 带原因。Windows 上 explorer 退出码不可靠，只把「进程启动失败」当错误 |
+| POST | `/intro/ack` | body `{ version }` → `{ ok, introSeenVersion }`；缺 version → 400 `invalid-version` |
+| GET | `/update/check` | 查 registry 最新版：`{ ok, current, latest, hasUpdate, publishedAt, registry }`；可带 `registry` / `force=1`；失败 502 `check-failed` |
+| POST | `/update/apply` | body `{ version?, dryRun? }` → 下载 → sha512 校验 → 备份 → 覆盖，任一步失败回滚；成功 `{ ok, from, to, files, backup, reloadRequired }`，失败 400 `apply-failed` |
 | GET | `/settings` | `{ ok, sourceUrl, sourceKind, sourceBranch, defaultBranch, branchSupported, defaultUrl, usingDefault, skillhubUrl, builtinSkills, builtinPlatform, builtinSkillCount, builtinSkillPluginCount, builtinSkillExcluded }`；`sourceKind` 同上。`builtinSkills` 是内置技能开关状态（旧 `state.json` 无该字段时缺省 `false`），`builtinPlatform` 为 `windows` / `linux`，`builtinSkillCount` 是插件包内当前平台**可用技能总数**（设置弹窗用它渲染「N 个技能」），`builtinSkillPluginCount` 是其中来自内置插件的自包含技能数，`builtinSkillExcluded` 是内置插件里未纳入的数量（全部因依赖插件运行时 / 体积超限，与宿主装了什么无关）。`sourceBranch` 是已配置分支（空串 = 未配置，跟随远端默认分支 HEAD；`defaultBranch` 为空串即表示这一语义），`branchSupported` 表示当前数据源是否为远程 git（决定设置弹窗是否显示分支栏） |
 | POST | `/settings` | body `{ sourceUrl, sourceBranch?, skillhubUrl?, sourceAuthUser?, sourceAuthToken?, sourceAuthClear? }` → `{ ok, sourceUrl, sourceKind, sourceBranch, defaultBranch, branchSupported, skillhubUrl, sourceAuthUser, sourceAuthConfigured }`。`sourceBranch` 可选：不传保持原值、空串清除（跟随远端默认分支 HEAD：clone 不传 `--branch`、fetch 不指定 ref）；只接受纯分支名（字母数字与 `. _ - /`，不能以 `-` 或 `/` 开头、不接受 `refs/heads/...`），非法返回 400；本机目录模式一律忽略并清空。私有仓库凭据：`sourceAuthUser` + `sourceAuthToken`（访问令牌 / PAT）只在远程 git 源时生效，令牌用 AES-256-GCM 加密存进 `$DSH_HOME/dsh-buddy-expert-hub/credentials.enc`，**不写 `state.json`、不随任何接口回显**（只回显 `sourceAuthUser` 与 `sourceAuthConfigured`）；令牌留空表示保持已保存的值，`sourceAuthClear: true` 清除，`POST /settings/reset` 也一并清除。凭据通过 `GIT_CONFIG_*` 环境变量注入 `http.extraHeader`，不会拼进 URL 或出现在命令行参数里；`git@` SSH 源用系统密钥，不走这套。`sourceUrl` 可填 `http://` / `https://` / `git@` 仓库地址或本机目录绝对地址；本机目录会校验存在性与 `experts/` / `skills/` / `connectors/` 结构，不合格返回 400 并给出中文原因；相对路径返回 400 且错误含「绝对路径」。数据根变化时按新数据源分流：**新源为本机目录** → 旧索引立即作废（`state.index` 清空 + 删 `index.json`），下次请求懒加载自动重建、不联网、不自动触发 git；**新源为 git** → 保留旧索引、不触发同步，`/status` 报 `indexStale: true` 由前端提示点「刷新」，并把 `indexSwitchPending: true` 写进 `state.json`（重启后仍提示、仍不自动克隆）；**git 地址互换且数据根不变** → 什么都不做。只改分支不改地址时数据根不变，但仍会置 `indexSwitchPending` 提示刷新，因为索引内容可能随分支变化 |
 | POST | `/settings/reset` | 清除自定义地址、回到 `SOURCE_URL`，返回 `{ ok, sourceUrl, sourceKind: 'git', defaultUrl, usingDefault: true, sourceBranch: '', defaultBranch, branchSupported: true }`；同时清空已配置的分支；数据根变化时按「新源为 git」处理，保留索引并置 `indexStale` |
@@ -525,6 +588,9 @@ order: 300
 | POST | `/builtin/skills/toggle` | body `{ enabled: boolean }`（非布尔返回 400，GET 返回 405）。开启 → 全量安装 `available` 里的技能（`excluded` 永不安装）并置 `state.settings.builtinSkills = true`，响应带 `{ total, installed, updated, skipped:[{dir,reason}] }`（`total` = 可用总数：Windows 4 / Linux 16，随 `counts.available` 变化）；关闭 → 只移除带标记的目录并置 `false`，响应带 `{ removed:[dir] }`。两种响应都带最新 `counts` |
 | GET | `/connectors` | `q` / `limit` / `offset` → `{ ok, total, items }` |
 | GET | `/detail` | `type`(`expert`\|`team`\|`skill`\|`connector`) + `id` → 单项完整信息 + `readme`（agent markdown / SKILL.md 正文前 2000 字）；专家优先查本地已导入目录。技能 `id` 走 `__skillhub` 去后缀别名兼容（改名前后都能命中），技能条目含 `displayName` / `version` / `icon`（有才带），找不到时回落到已安装技能库 |
+| GET | `/resource/status` | `type` + `id` → `{ ok, installed, installedVersion, remoteVersion, canUpdate, canDelete, installedLocally }`。专家 / 专家团比 `plugin.json` 版本、技能比 `_skillhub_meta.json` 版本（**本地版本取安装时写入的 `.dsh-plugin-install.json` 固定快照**，不读会被同步改写的原始包，避免版本比较永远相等）；连接器无版本字段 → `canUpdate:false`。`canDelete` 仅对「插件安装的」为真（带安装标记或 `importedIds` / `installedSkills` 记录），手工放置的目录不可自动删 |
+| POST | `/resource/update` | body `{ type, id }` → 有更高版本时**删旧目录后重新走安装流程覆盖**（专家删 `~/.dsh/experts/<id>` + `imported/<id>` 后重建；技能删 `~/.dsh/skills/<dir>` 后重复制），成功后更新安装标记，返回 `{ ok, updated, from, to }`。无更新 / 非插件安装 / 清理失败均报错不覆盖 |
+| POST | `/resource/delete` | body `{ type, id }` → 删除插件安装的本地目录（专家/专家团/技能；连接器走 `/connectors/uninstall`），清理 `importedIds` / `installedSkills` 记录。对手工放置目录返回错误不删。**前端必须二次确认** |
 | GET | `/asset` | `path`（相对数据根的 POSIX 路径）→ 图片二进制，按扩展名 + 魔数返回真实 MIME |
 | GET | `/icon` | `id`（连接器 id）→ 图标二进制，先查资源仓库 `<数据根>/connectors/icons/<id>.<ext>`，再查本地已安装定义目录，都没有返回 404（前端回落首字母色块） |
 | GET | `/skill-icon` | `dir`（已安装技能目录名）→ `$DSH_HOME/skills[/ -disabled]/<dir>/_icon.*` 图片二进制；`dir` 过 `safeId` 白名单 + `realpath` 越界校验，找不到返回 404（前端回落首字母色块） |
@@ -535,6 +601,13 @@ order: 300
 | GET | `/export/item` | `type`(`expert`\|`team`\|`skill`) + `id` → 下载单个条目的 `.json.gz` 包。专家 / 专家团的 `id` 先过 `safeId()` 单段目录名白名单，再用「词法前缀 + `realpathSync`」双重校验目录，目录穿越与符号链接逃逸一律 400/404；技能 `id` 是 `skills/<集合>/<名字>` 形式的相对路径，保留 `index.skills.find` + `safeRepoPath` 的既有链路。错误文案只回显 id，不回显绝对路径 |
 | POST | `/import/folder` | **本轮新增**：浏览器选择文件夹导入。请求体 `{ type:'skill'\|'expert'\|'team', rootName:string, files:[{path,data,encoding}] }`，`encoding` 为 `utf8` 或 `base64`。响应 `{ ok:true, mode:'single'\|'batch', imported:[{id,name,type,dir,already?,notes?}], skipped:[{dir,reason}] }`；全部失败时 `{ ok:false, error, imported:[], skipped, mode }`。先按「所选目录本身就是一个条目」校验，不通过再按一级子目录批量导入；三种类型格式要求不同，见「文件夹导入」章节。安全与幂等：拒绝 `..` / 绝对路径 / 盘符 / 反斜杠 / 符号链接，单文件 ≤ 2MB、文件数 ≤ 200、总计 ≤ 20MB，已存在目录返回 `already:true` 不覆盖 |
 | POST | `/library/import` | 上传整包字节（gzip JSON），原子落盘后切换数据源 |
+| GET | `/workbench/list` | 每次重扫数据目录（HTML 在根），返回 `workbenches[]` / `errors[]` / `htmlDir` / `dataDir`（两者同源）/ `defaultDataDir` / `usingDefaultDataDir` / `dataDirReady` / `syncIntervalMs`；新 HTML 落盘后点「刷新」即生效，无需重启宿主进程 |
+| GET | `/workbench/html?workbench=<id>` | 返回 `text/html; charset=utf-8`、`no-store`，在 `<head>` 后注入 postMessage 桥 bootstrap |
+| GET | `/workbench/data?workbench=<id>&table=<file>[&hash=<sha256>]` | 带相同 `hash` 时轻量返回 `{ok:true,changed:false,hash,mtimeMs,size}`（不含 `rows`）；带旧 `hash` 或不带 `hash` 返回完整 `{columns,fields,rows,hash,mtimeMs,size,lineEnding,changed}` |
+| POST | `/workbench/data` | body `{workbench,table,baseHash,columns,rows}`；同 hash 成功返回 `{ok:true,hash,columns,rows}`；hash 不一致返回 409 `{ok:false,code:'conflict',error,current:{columns,rows,hash}}`，自动重载 `current` 并给出「重试 / 放弃」提示，不静默覆盖 |
+| GET | `/workbench/bridge.js` | `application/javascript`，供宿主 CSP 禁止内联脚本时外链桥脚本（回退路径） |
+| GET | `/workbench/settings` | 独立工作台设置：`{ ok, dataDir（实际生效，未配置=默认）, configuredDataDir, dataDirDefault, usingDefaultDataDir, dataDirReady, syncMs, htmlDir（=dataDir）, order, autoSync, lastPrefs }`。`dataDir` / `syncMs` 与旧扁平字段镜像一致 |
+| POST | `/workbench/settings` | body 全可选 `{ dataDir?, syncMs?, order?, autoSync? }` → 200 回显完整 GET 形态；不传保持原值、空串清除数据目录 / 重置同步间隔。改 `dataDir` 时会把旧目录的 HTML + `<id>/` CSV 整体复制到新目录（**旧目录保留**，失败提示手动处理）。**不依赖 `sourceUrl`**（与 `/settings` 的关键区别）。400 一律带机器可读 `code`：`invalid-data-dir` / `invalid-sync-ms` / `invalid-action` |
 
 > **`repoReady` 与 `indexReady` 是两个独立信号**：
 > 前者表示「数据目录可用」（`dataRoot` 已定位到某个含 `experts/` / `skills/` / `connectors/` 之一的目录；git 克隆与 `ntd-resource` 仍要求 `experts/` 非空），
@@ -545,6 +618,354 @@ order: 300
 
 
 索引不可用时，数据类接口返回 `{ ok: false, busy, indexReady: false, error, message }`：`busy` 取**真实同步状态**（同步已失败即为 `false`），`error` 与 `message` 内容相同、同时提供，前端两条取值链都不会拿到空白文案。首次同步、同步失败、以及「切到 git 待刷新」三种情况给出不同提示，其中待刷新时提示「数据源已切换，点「刷新」以应用新数据源」。自动同步在「待刷新」或「上次同步失败」期间被抑制，只有用户主动点「刷新」才会重试。
+
+---
+
+## dsh 设置页（设置 → Buddy 工作台）
+
+插件注册 `settings.section`（`order: 16`），在 dsh 设置左侧导航里贡献一个**一级入口「Buddy 工作台」**，与「内置插件」同级，页内七个分区：
+
+| 分区 | 内容 |
+| --- | --- |
+| **远程配置**（第一个 tab） | 填 http(s) 的 JSON 地址或上传 JSON 文件，一次覆盖下面各分区的参数；没加载 / 清除后回到本地设置（见「远程配置」一节） |
+| 资源仓库 | 仓库地址、分支、私有仓库凭据、Skillhub 地址、内置技能开关（原「设置」弹窗整体搬入，embedded 复用同一组件） |
+| 个人工作台 | 数据目录、自动检查间隔、打开 HTML 目录（原「工作台设置」弹窗整体搬入） |
+| 在线资料库 | 后端地址 / clientId / clientSecret / 用户 API Key / 在线优先开关 + 测试连接 |
+| 智聊 | 智聊服务端地址、启用开关（设置页只暴露这两个可改项） |
+| 插件升级 | 当前 / 最新版本、检查更新、一键升级、最近升级历史 |
+| 关于与反馈 | 仓库地址 / 点 Star / 反馈问题（均可被远程配置覆盖）、重看插件介绍 |
+
+页面结构对齐参考项目 `dsh-our-free-model`：头部一行是**插件头像**（包内 `assets/avatar.png`，由 `GET /avatar` 返回）+ 标题，右侧是「**视觉特效**」开关与「**点个 Star**」；下面是一行横向分区导航（只有文字，不带计数），内容区按分区切换。「关于与反馈」分区里另有一个「去 GitHub 点 Star」主按钮。
+
+- **视觉特效**：默认开启，开关状态只记在当前浏览器（`localStorage` 键 `dsh-buddy-expert-hub:visual-effects:v2`，显式关过才保持关闭）。键带版本：v13 等旧版本曾默认关闭并写入过 `"0"`，换到带 `:v2` 的新键后，旧版写入的关闭状态不会带过来，所有用户升级后首次进入都是开启；之后用户在当前版本手动关掉仍写在新键里、下次进入继续保持关闭。开启后分两类：
+  - **常驻（`infinite`，打开页面什么都不做也一直在动）**：整页外框的缓慢流光（5.2s 一个来回）+ 呼吸描边（3.2s）、内容卡片的同节奏流光、头像呼吸光环（2.4s）、Star 按钮脉冲光晕（2.1s）、选中页签下划线微光（2s）与文字呼吸（2.6s）。流光用 `background-image: linear-gradient(...)` + `background-size:240% 100%` 直接画在背景层，不引入伪元素覆盖内容、不改 `position` / `z-index`，`.dshe-mask-embedded{position:static}` 不受影响。
+  - **交互触发**：切换分区时卡片整体上滑（26px + `scale(.97)`，0.5s 弹性曲线，逐项 90ms 错开），内部内容**只做错峰淡入**不叠加位移，收尾一次柔光高亮；选中页签下划线从左划出（0.35s）；头像 / Star / 页签 / 卡片 / 卡片按钮悬浮位移加大到 4–6px，并带明显的阴影与描边变化。
+- **审美约束**：流光中间色用 `var(--dsw-alias-interactive-bg-hover-solid, rgba(9,105,218,.10))`，浅色外观是淡蓝、深色外观是柔光，不写死一套蓝色；流光只画「外框 + 卡片」两层，不在 head / nav / body 上各叠一条；父层滑入 + 子层淡入，避免父子双重 `transform` 抖动。
+- 动画挂在内容区的**子元素**上而不是容器本身 —— 容器切分区时不会重挂载，动画只会在首次出现时播一次（等于看不见）。用 `animation-fill-mode: backwards` 而不是 `both`，播完把 transform 交还给元素，否则卡片悬停的位移会被动画最终帧锁死。所有 `animation` / `transform` 规则都带 `.dshe-setpage-effects` 作用域前缀（根卡片用 `.dshe-setpage.dshe-setpage-effects`，避免误伤同名的开关文字），关掉开关后整页完全静止。
+- 系统开启「减少动态效果」（`prefers-reduced-motion`）时，所有新增的 `animation` / `transform` / 流光一律归零，功能不受影响。
+
+面板与工作台工具条**不再有齿轮按钮** —— 配置只有一个入口，避免两套弹窗各写一份字段。
+
+### 远程配置
+
+目的：**一份 JSON 统一下发设置页里的参数**，适合多台机器 / 团队统一配置，不用每台手填。
+
+- 入口：设置页第一个 tab「远程配置」，填一个 http(s) 的 JSON 地址点「从 URL 加载」，或直接「上传 JSON 文件」。
+- 生效：加载成功即覆盖对应设置项（数据源地址类参数下次同步生效），**清除后恢复加载前的本地值**。
+- 导出：点「**备份配置**」得到一份**带中文说明的当前配置**（注释会被加载端自动剥离，改完可直接上传）。只导出示例里那批字段；`khub.apiKey` / `clientSecret` 等密钥字段保留但值恒为空串占位，既不泄露明文也保持结构完整（导入时空串 = 不改动）。按钮在「清除远程配置」前面。
+- **空值语义**：配置项缺失或值为空字符串 = **保留当前值、不覆盖**（含 `sourceBranch` / `skillhubUrl` / `workbench.dataDir` / `khub.baseUrl` / `about.*` 等）；密钥留空同样不改动本地已存的值。想清空某个字段请在设置页手动改，或用「清除远程配置」整体回滚。
+
+支持的字段（只列**设置页 UI 上可见**的项）：
+
+| 字段 | 说明 |
+| --- | --- |
+| `sourceUrl` | 资源仓库地址（git 或本机目录）；空值忽略 |
+| `sourceBranch` | 资源仓库分支；留空保留当前值 |
+| `skillhubUrl` | SkillHub 地址；留空保留当前值（默认 `https://api.skillhub.cn`） |
+| `workbench.dataDir` | 个人工作台数据目录（本机绝对路径）；空串保留当前值 |
+| `workbench.syncMs` | 工作台检查间隔，500–60000 毫秒，越界自动收敛 |
+| `khub.baseUrl` | 在线资料库服务地址 |
+| `khub.clientId` | 在线资料库客户端 ID |
+| `khub.clientSecret` | 客户端密钥：**只写 `credentials.enc`**，空串表示不改动 |
+| `khub.apiKey` | 用户 API Key：**只写 `credentials.enc`**，空串表示不改动；**导出时为空串占位** |
+| `khub.enabled` | 在线优先开关 |
+| `zhiliao.replyBaseUrl` | 智聊服务端地址 |
+| `zhiliao.enabled` | 启用智聊 |
+| `about.repoUrl` | 「关于与反馈」/ 头部点 Star 的仓库地址 |
+| `about.starUrl` | 点 Star 目标地址；留空保留当前值 |
+| `about.feedbackUrl` | 反馈问题地址；留空保留当前值 |
+
+示例（实际下载的模板带中文注释）：
+
+```json
+{
+  "sourceUrl": "https://gitcode.com/zzx_2446/dsh-buddy-expert-hub-resource.git",
+  "skillhubUrl": "https://api.skillhub.cn",
+  "workbench": { "dataDir": "", "syncMs": 2000 },
+  "khub": { "baseUrl": "", "clientId": "", "clientSecret": "", "apiKey": "", "enabled": true },
+  "zhiliao": { "replyBaseUrl": "", "enabled": true },
+  "about": {
+    "repoUrl": "https://github.com/zhangzexu/dsh-buddy-expert-hub",
+    "starUrl": "",
+    "feedbackUrl": "https://github.com/zhangzexu/dsh-buddy-expert-hub/issues"
+  }
+}
+```
+
+**安全边界**：
+
+- `khub.clientSecret` / `khub.apiKey` 按用户要求支持远程下发，但**只写 `credentials.enc`（AES-256-GCM），绝不进 `state.json`、不随任何接口回显**；空串表示「不改动」而非「删除」，避免误删本地密钥。
+- 远程 JSON 是明文 http 内容，**密钥会经过网络**——只对可信地址使用。加载前会把本地原密钥备份到 `credentials.enc` 的专用键，清除远程配置时读回还原。
+- 智聊的 `webhookSecret` / `internalSecret` **不支持远程下发**（明文下发签名密钥等于交出伪造权限），`builtinSkills` 也不支持（涉及实际安装/卸载技能）。
+- 远程配置是**快照式**：加载时抓一份当前设置，清除时整体回滚。因此加载后手动改的设置，在「清除远程配置」时会被回滚到加载前状态。
+
+对应接口：`GET /config/remote`（状态 + 字段说明 + 示例）、`POST /config/remote/load`（`mode: url|upload`）、`POST /config/remote/clear`。
+
+### 插件自身在线升级
+
+「插件升级」分区从 npm registry 查最新版并支持一键升级：
+
+```
+检查更新 → 下载 tarball → sha512 校验 → 解包到临时目录 → 校验包名 / 版本一致
+→ 整目录备份 <root>.bak-<from>-<时间戳> → 逐文件覆盖 → 任一步失败自动回滚
+```
+
+- 只认 http(s) registry；tarball 的主机必须与 registry 相同（防镜像重定向）；
+- 解包条目必须以 `package/` 开头且不含 `..`，越界条目直接丢弃；解压上限 64 MiB；
+- 覆盖时跳过 `.git` / `node_modules`；`dryRun: true` 只下载校验、不写盘；
+- **Windows 上覆盖正在加载的 `.js` 可能 EBUSY**：此时回滚并给出可读错误，改用 `dsh plugin --profile <p> add dsh-buddy-expert-hub@<version>` 重装；
+- 升级完成后需要**重启 dsh** 才会加载新代码（响应里 `reloadRequired: true`）。
+
+### 介绍弹窗（首装 / 版本更新）
+
+挂在 `shell.overlay`：拉一次 `GET /meta`，`introSeenVersion` 与当前版本不同就弹（首次安装是 `null`）。四页（概览 / 资源 / 工作台 / 升级与反馈），点「开始使用」写 `POST /intro/ack`，下次不再弹。「关于与反馈」里可以随时重看。
+
+---
+
+## 外观一致性（铁律）
+
+**插件自己的每一个颜色都必须来自宿主 dsh 的通用外观 token，不得自建一套配色。** 这是硬约束，后续任何 UI 改动都按这条走。
+
+- 写法固定：`var(--dsw-alias-<语义>, <回退值>)` —— 宿主提供就跟随（含深浅主题切换），不提供就回退，渲染不塌。
+- 裸色值只允许两种：`#fff`（彩色底上的前景文字）、`rgba()`（阴影 / 遮罩）。其余一律 token 化。
+- 禁止：`--wb-*` 之类的私有颜色变量、`prefers-color-scheme` 媒体查询、`data-theme` 切换、往 iframe 注入主题脚本、插件自己的主题设置。
+- 语义 token 九件套：`bg-base` / `bg-layer-1` / `bg-layer-2` / `interactive-bg-hover-solid` / `label-primary` / `label-secondary` / `border-l1` / `brand-primary` / `state-{error,success,warning}-primary`。
+- 唯一登记例外：技能卡片图标色板 `SKILL_TILE_PALETTE`（内容装饰色，20 个色值）。
+- **实心色块上的文字一律用 `var(--dsw-alias-bg-base, #fff)` 做反色**：深色外观下 `brand-primary` 可能就是白色，写死 `#fff` 会变成白底白字（实机踩过，见 AP10）。
+- iframe 里的工作台 HTML：插件仍会下发同一套 token（页面写 `var(--dsw-alias-*, 回退)` 就跟随深浅色），但**页面也可以完全自带一套配色**——适配器只会补页面没有定义的变量，不会覆盖页面自己的 `--bg/--card/--line` 等，`color-scheme` 也尊重页面声明。详见 [docs/ui-appearance.md §4](docs/ui-appearance.md)。
+
+完整对照表、范围边界、推测 token 标注与新增 UI 的流程见 **[docs/ui-appearance.md](docs/ui-appearance.md)**；落地情况由 `node _harness/appearance.mjs`（AP1–AP10）自动把关，必须 10/10 PASS。
+
+---
+
+## 在线资料库（Knowledge Hub）
+
+插件可以接一个自部署的 [Knowledge Hub](https://github.com/) 风格的在线资料库服务端。
+**整个插件共用一套后端与凭据**：工作台的 HTML / CSV、以及新增的「资料库」文档浏览都从这里读；
+本地目录只在在线不可用时作为备用。
+
+### 配置
+
+在 **设置 → Buddy 工作台 → 在线资料库** 里填：
+
+| 字段 | 说明 |
+|---|---|
+| 后端服务地址 | 例如 `http://127.0.0.1:8080`；只接受 http(s) |
+| 客户端 ID / 客户端密钥 | 服务端 `POST /api/open/auth/client` 签发的接入凭据，测试连接时会校验有效性 |
+| 用户 API Key | `khub_pat_xxx`，所有数据请求用 `Authorization: Bearer` 带上；只看到 PAT 被授权的空间 |
+| 在线优先 | **默认开启**：填好地址与用户 API Key 保存后立即生效，不需要再点开关。只有显式关掉才只用本机目录（关掉后地址与密钥仍保留，随时可以再开） |
+
+**本地工作台自动上传**：在线配置就绪后，插件会**自动把本地工作台（HTML + CSV 数据表）上传一份到在线资料库**，上传完在线列表就能看到它们，本地那份被隐藏（文件原样保留、不删不改）。具体行为：
+
+- 选第一个有写权限的在线空间作为目标；在线已有同名工作台时新建「名称 (本地)」副本，不覆盖线上。
+- 上传时会把 HTML 里的本地表名（`books.csv`）改写成在线表名（`node-<id>.csv`），保证多表工作台读写正确；**本地磁盘原件不动**。
+- 幂等：传过的本地工作台记在 `state.settings.khub.uploadedWorkbenches`，不会重复上传。工作台面板工具栏有「上传资料库」按钮可补传新工作台（`POST /workbench/upload-local`）；**当前打开的工作台已是在线的（`khub-*`）时该按钮不显示**，因为它本来就在线上。
+- 上传失败只记录到 warnings 并提示，不影响本地数据与在线原有内容。
+
+明文密钥只出现在保存请求里，服务端写入 `$DSH_HOME/dsh-buddy-expert-hub/credentials.enc`
+（AES-256-GCM，复用连接器凭据那套）；`state.json` 只存地址、clientId 和开关，
+GET 回显只有「是否已配置」，输入框永远回填空（留空 = 不改动，勾选「清除」才删除）。
+「测试连接」会同时验证 PAT 能列出哪些空间、以及 client 凭据是否有效。
+
+### 数据优先级
+
+```
+/workbench/list | html | data  →  在线可用就用在线；任一步失败静默回落到原来的本地实现
+```
+
+- **在线工作台**：把资料库里每个 `HTML` 节点当作一个工作台，挂在它下面的 `CSV` 子节点当作数据表。
+  插件工作台要求的 `workbench-menu` 声明由插件按树自动合成，在线 HTML 不需要改。
+- **KB → Workbench 适配**：在线 HTML 用的是 `window.KB`（`listChildren / getCsv / updateCell / readTable`），
+  插件 iframe 注入的是 `window.Workbench`。插件在返回 HTML 时注入一层适配器，把 KB 调用翻译成
+  父桥的 `read` / `write`（父桥只放宽了「允许 iframe 指定 table」），因此在线 HTML 原样能跑，
+  单元格编辑最终写回 `PUT /api/nodes/{id}/csv/matrix`。
+- **`readTable` 两边的返回必须同形**：`{ headers, matrix, version, rowCount, colCount, text }`
+  （`matrix` 第 0 行是表头；在线版额外带 `rows` 对象数组，插件版 build 6 起也带）。
+  曾经在线 `kb-bridge.js` 只回 `{ headers, rows, version, raw }` 把 `matrix` 丢了，
+  页面里 `t.matrix` 取到 `undefined` → 表格渲染成空表，而状态灯仍显示「已同步」——
+  表现就是「插件里能查数据，在线资料库里查不出来」。改契约时两边必须一起改。
+- **版本即 hash**：在线 CSV 的 `version` 统一变成 `v<n>` 当作插件的 hash，
+  沿用现有的轻量轮询、CAS 与 409 冲突 UI；前端一行没改。
+- **写入不静默改本地**：在线写入失败会返回可读错误，不会偷偷写进本地 CSV 造成两边数据分裂。
+- **主题**：在线 HTML 自带的 `:root` 变量在注入时被映射到宿主 `--dsw-alias-*`，
+  想跟随就用这些变量，想自带主题也不会被覆盖（适配器只补缺省值）。
+
+### 外部数据定时更新（ingest）
+
+工作台页面跑在 iframe 里，不能自己执行代码。需要「每天自动取数」时由 dsh 自动化任务跑用户自己的
+python / node 采集脚本，产出批次 JSON 交给插件写表：
+
+```
+dsh 自动化任务 → 采集脚本 → ingest/inbox/<batchId>.json
+    ├─ 本地镜像 <数据目录>/<工作台 id>/<表名>.csv   ← 断网时页面读这个
+    └─ 在线资料库（只推变化：单元格 / 追加行；变化大才整表覆盖 + baseVersion）
+```
+
+- **批次契约**：`batchId / workbench / table / mode / primaryKey / columns / rows`。`mode` 三选一：
+  `upsert`（默认，按主键只覆盖声明列）/ `append`（只增，可按主键去重）/ `replace`（整表快照）。
+  `primaryKey` **优选单列**（如订单号、手机号、日期）—— 单列主键直接走服务端按主键 upsert；
+  两列以上（日期 + 代码这类）仍能正常工作，但走的是逐格增量，请求更多。
+- **两个投递通道**：写 `ingest/inbox/` 文件（主通道，离线可用、跨平台、不受端口影响），
+  或 `POST /workbench/ingest`（要即时结果时用）。
+- **在线按模式选最省的路**：
+
+  | 场景 | 走法 | 请求数 |
+  | --- | --- | --- |
+  | `upsert` + **单列主键** | `POST /csv/upsert`（服务端文档锁内按主键匹配，只更新传入的列、未命中追加） | 1 次，不读整表 |
+  | `upsert` + 多列主键 | 逐格 `PUT /csv/cell` + 追加 `POST /csv/row`（服务端只支持单列主键）；格数 + 新增行 > `deltaMax`（默认 200）才 `PUT /csv/matrix` | 按变化量 |
+  | `append` | 只追加主键未命中的行（`POST /csv/row`），**绝不改已有行** | 按新增行 |
+  | `replace` | `PUT /csv/matrix`（带 `baseVersion`，409 自动重读重算 2 次） | 2 次 |
+
+  单列主键但在线表头里没有这一列（用户改过列名）时自动降级为逐格路径并标记「降级」，不让整批失败。
+  服务端 upsert 单次上限 5000 行，插件按 `chunkRows`（默认 2000）自动分批。
+- **本地先行**：先写本地镜像再推在线。在线失败不报错、入 `pending.json` 待补推，
+  联网后自动补（或面板点「立即处理」）。断网时 `GET /workbench/data` 直接读镜像，
+  `khub-*` 工作台页面照常可用；离线保存也带 CAS，并挂待补推。
+- **幂等**：`batchId + 内容 checksum` 记账（`ingest/state.json`），重复投递跳过；内容变了才重做。
+- **分批**：单批按 `chunkRows`（默认 2000）切块处理，单批硬上限 20 万行；超出请脚本拆批。
+- **面板**：工作台工具栏「同步」显示待处理 / 待补推 / 失败数，弹窗里能复制 inbox 路径、
+  看最近处理记录、手动催一轮。颜色全部走宿主 token。
+
+### 「资料库」面板
+
+侧栏新增独立入口「资料库」，版式为左侧树形导航 + 右侧文档区，功能对齐在线资料库的文档区：
+
+- **树形侧栏**：空间 → 目录 → 文件递归展开，按类型着色（目录 / Markdown / CSV / HTML / 图片 / Office），
+  可展开折叠、点目录看子项、点文件直接打开；悬停任意节点出现「···」菜单。
+- **侧栏可拖宽、可收起**：与个人工作台同一套交互 —— 侧栏右侧的分隔条拖动改宽度（180–460px，默认 262px），
+  双击复位、聚焦后 `←`/`→` 微调（`Shift` 大步）；标题行右侧的收起按钮把侧栏折叠成 32px 窄条，
+  再点展开。宽度与收起状态都存 `localStorage`，刷新后保持。
+- **节点操作**（统一收在左侧「···」菜单与右键菜单里）：新建子项、重命名、移动到其它目录、删除、收藏 / 取消收藏、分享、版本历史。
+  编辑器顶部只保留针对内容的动作（返回、编辑/源码/预览、保存、下载），不重复堆节点级按钮。
+- **收藏**：左侧「收藏」进入，可按收藏夹分组筛选（服务端的默认分组 + 自建分组），树里已收藏的节点带星标。
+- **共享**：左侧「共享」进入，分「我发出的 / 收到的」两个页签；每条可复制链接、改只读/可写、取消。
+- **分享**：左侧节点菜单里点「分享」创建链接，支持只读 / 可写、有效期（小时）、访问密码；
+  HTML 节点额外给出「直链」`/p/{token}/{nodeId}`（对方浏览器直接打开就是页面本身）。
+- **版本历史**：列出历史版本（版本号、备注、编辑人、大小、时间），可查看内容并回滚（回滚会生成新版本）。
+- **Markdown 按 Word 方式编辑**：默认所见即所得（contenteditable + 工具栏：H1/H2/H3、加粗、斜体、
+  下划线、删除线、有序/无序列表、引用、链接、代码块），保存时把 DOM 序列化回 Markdown 源码；
+  也可切「源码」「预览」。
+- **最近访问**：左侧「最近」按服务端访问记录排序。
+- 只做文档区能力；空间 / 成员 / 权限等后台管理不在本插件范围内。
+
+支持的类型（与在线资料库的查看器对齐，Office 除外）：
+
+**Office 版式级预览 + 在线编辑（有写权限时）**：在线资料库启用 ONLYOFFICE 时，打开 Word / Excel / PPT
+会自动启用版式级预览——插件服务端带 PAT 代取编辑器配置，返回一张插件自身同源的薄 HTML，
+在里面加载 Document Server；在线未配置 / 不可用 / 加载失败时自动回退到内置轻量查看 / 编辑。
+默认只读预览；服务端确认该节点 `canWrite=true` 后，面板才显示「编辑」按钮，切到版式编辑态。
+**保存由 OnlyOffice 通过在线资料库的回调异步完成**（版本自动递增），插件侧不阻塞、不伪造版本号，
+编辑器回报保存后只做目录刷新提示；随时可点「返回预览」「切换轻量视图」回退。
+`mode=edit` 有服务端权限门槛：`canWrite` 不为 true 时不生成可写编辑器、不下发可写配置。
+
+| 类型 | 插件内能力 | 说明 |
+|---|---|---|
+| 目录 FOLDER | 进入 | 面包屑返回上级 |
+| Markdown MD | 查看 + 编辑 | 可视化（Word 式工具栏：撤销重做 / 段落格式 / 粗斜体下划线删除线 / 行内代码 / 文字颜色与高亮 / 对齐 / 列表 / 缩进 / 引用 / 代码块 / 分隔线 / 链接 / 插图 / 表格 / 清除格式）+ 源码 + 预览三种模式（浏览器原生能力，零第三方依赖）；正文里的 `![](kb:21)`、`![](素材/a.png)` 会被解析成 `/khub/raw` 直链直接显示，`[周会纪要](kb:18)` 渲染成可点链接、点一下就在面板里打开目标节点；解析不到的图片显示「图片未找到：<路径>」而不是破图 |
+| CSV | 查看 + 编辑 | 表格网格逐格编辑、加行加列，保存走 `PUT /khub/csv`（整表覆盖 + `baseVersion` 乐观锁，冲突提示刷新） |
+| HTML | 查看 + 编辑 | iframe 预览（sandbox 不给 `allow-same-origin`）可运行页面里的 `window.KB` 读写挂载的 CSV；另有「源码」与「刷新」 |
+| IMAGE | 查看 | `GET /khub/raw?id=` 由插件服务端带 PAT 取回字节再转发（img/iframe 无法自带认证头） |
+| FILE（PDF / 文本等） | 查看 + 下载 | 浏览器能内嵌的直接显示，其余给「下载」 |
+| Word (.docx) | 版式级预览 + 版式编辑 + 轻量查看 / 编辑 | ONLYOFFICE 可用时自动启用只读版式级预览，有写权限时可点「编辑」进入版式编辑态（保存由在线回调异步完成、版本自动递增）；不可用时自动回退到内置轻量编辑器（按段落改正文，保存生成新版本；版式、图片、表格结构原样保留） |
+| Excel (.xlsx) | 版式级预览 + 版式编辑 + 轻量查看 / 编辑 | ONLYOFFICE 可用时自动启用只读版式级预览，有写权限时可进入版式编辑态；不可用时自动回退到内置轻量编辑器（逐个单元格编辑，多工作表页签切换；保留公式与样式，字符串写成 inlineStr 不污染共享字符串） |
+| PPT (.pptx) | 版式级预览 + 版式编辑 + 轻量只读 | ONLYOFFICE 可用时自动启用只读版式级预览，有写权限时可进入版式编辑态；不可用时逐页文本预览（改内容请下载后用本地 Office 编辑再上传新版本） |
+| 旧格式 .doc/.xls/.ppt | 不支持 | 二进制老格式无法安全重写，提示下载后本地编辑 |
+
+与在线版的差异只有两处，都是刻意取舍：Markdown 的可视化（富文本）模式没做，改成源码 + 分栏 + 预览；
+Office 只在 ONLYOFFICE 可用时提供版式级预览 / 编辑（编辑需在线确认写权限，保存走在线异步回调），
+不可用时自动回退到轻量查看 / 编辑。其余（目录、CSV 网格、HTML 预览与源码、图片、附件下载）行为一致。
+
+
+
+### 相关接口
+
+| 接口 | 说明 |
+|---|---|
+| `GET/POST /khub/settings` | 回显 / 保存在线配置（密钥只进加密文件） |
+| `POST /khub/probe` | 测试连接，返回可见空间与客户端校验结果 |
+| `GET /khub/spaces` · `/khub/tree?spaceId=` · `/khub/children?id=` | 空间与目录 |
+| `GET /khub/content?id=` · `/khub/csv?id=` · `/khub/search?spaceId=&keyword=` | 正文 / 数据表 / 搜索 |
+| `GET /khub/attachments?id=` | 容器后代清单（带 relPath，Markdown 引用解析用） |
+| `GET /khub/office?id=` · `POST /khub/office?id=` | 内置 Office 轻量读写：解析成段落 / 单元格模型；保存时重建 OOXML 并上传为新版本 |
+| `GET /khub/office/status` | 探测在线 Office 能力；只回传 `provider / enabled / docServerUrl / backendUrl / jwtConfigured / wpsConfigured`，不含任何密钥 |
+| `GET /khub/office/config?id=&mode=view\|edit` | 服务端带 PAT 代取 OnlyOffice 配置；`mode=edit` 需在线确认 `canWrite=true`，否则 403 `forbidden`（且不含 token）；view 只读原样透传 frame 所需字段（面板正常流程不调用它） |
+| `GET /khub/office/frame?id=&mode=view\|edit` | 返回插件自身同源的薄 HTML：view 强制只读，edit 需 `canWrite=true` 才生成可写编辑器；浏览器 `new DocsAPI.DocEditor` 加载。frame 用 `dshe:office:ready/saved/close/error/fallback` 与面板通信，targetOrigin 收敛到页面自身 origin |
+| `POST /khub/node` · `PUT /khub/node` · `DELETE /khub/node?id=` | 新建 / 保存或重命名 / 删除 |
+
+自检：`node _harness/knowledge-hub.mjs`（本机 mock 服务，62 条断言，不依赖真实后端：资料库 HTML 预览内联 seed、KB 适配器写回返回完整 CSV 视图）；`node _harness/library-ui.mjs`（严格 React 桩真渲染资料库面板，51 条断言：整片空白、Markdown 图片/引用解析、树高亮跟随、Office 编辑器与保存、HTML 预览父窗口桥 read/write 回信）；`node _harness/ooxml.mjs`（合成 docx / xlsx 往返 12 条：zip、段落、单元格、公式保留）；`node _harness/table-edit.mjs`（从 client.js 抽真实函数源码、用 Edge 无头真 DOM 跑 56 条：Markdown 表格解析 / 往返、加行删行加列删列、列宽行高拖拽与持久化、colgroup 联动）；`node _harness/khub-fast-path.mjs`（起本地 mock 资料库，10 条：工作台数据直读 `node-<id>.csv` 不采 catalog、catalog 并发去重与缓存命中）；`node _harness/snapshot-helper.mjs`（从 khub-workbench.js 抽真实采集器源码、用 Edge 无头真 DOM 跑 8 条：去脚本 / 禁交互 / 固化表单值 / 输出完整静态页）。`node _harness/ingest.mjs`（本地 mock 资料库 + 临时目录，40 条：批次校验、三种合并模式、服务端按主键 upsert 与 5000 行分批、多列主键降级、旧后端 404 降级、append 只增不改、409 重算、断网待补推与补推、幂等、inbox 归档、镜像兜底读）。
+
+---
+
+## 个人工作台
+
+面板新增一个大块「个人工作台」：块内二级菜单由每个 HTML 的 `menu[]` 提供，右侧是一个 `iframe`。页面不是插件渲染的，而是 **dsh agent 直接落盘到磁盘的 HTML**；插件只负责只读地展示它，并通过注入的桥帮它读写旁边的 CSV 数据表。落盘后在工作台点「刷新」即生效，无需重启宿主进程（`GET /workbench/list` 每次重扫目录）。v2 起创建规则收敛到内置技能、配置拆到独立设置、菜单与整体观感可按风格切换，详见下文各节。
+
+这 7 个路由与其它接口一样挂在 `/dsh-buddy-expert-hub` 前缀下、全部继承宿主同源门禁；其中 `/workbench/html` 与 `/workbench/bridge.js` 直接返回内容（`text/html` / `application/javascript`），不走 `{ ok, ... }` 包裹，其余沿用前缀下的错误约定。
+
+### 目录结构
+
+**HTML 与 CSV 现在共用一个「工作台数据目录」**：HTML 放目录根，CSV 放同目录的 `<工作台 id>/` 子目录。**用户不配置也能用**——默认数据目录就是原来的 HTML 目录 `$DSH_HOME/dsh-buddy-expert-hub/workbench/`（`DSH_HOME` 可用环境变量覆盖，默认 `~/.dsh`），因此老用户的数据零迁移。
+
+```text
+<工作台数据目录>/                           # 默认 ~/.dsh/dsh-buddy-expert-hub/workbench，可在设置里改
+├── reading-log.html                        # HTML 页面（工作台 id 来自页面内菜单声明）
+├── books.html
+└── <工作台 id>/                            # 如 reading-log/
+    ├── books.csv                           # 表名 = tables[].file
+    └── ...
+```
+
+- **不配置也可用**：未填数据目录时回落到默认目录，HTML / CSV 读写都正常；设置页会显示当前实际生效的路径。
+- **改目录自动迁移**：在设置里改成另一个绝对路径时，插件会把旧目录里的 HTML（根目录 `*.html`）与 `<id>/` CSV 子目录**整体复制到新目录**；**旧目录保留不删**，迁移失败时两边都留着并给出提示，绝不丢数据。注意目标目录必须**已存在且可写**。
+- `id` 来自 HTML 内菜单声明，`<表名>` 来自 `tables[].file`；两层都做词法 + realpath 越界校验（`id` 小写字母/数字/连字符、表名无路径的 `.csv`）。
+- Win / Linux / macOS 三端都从 `DSH_HOME` 派生默认路径；Windows 的中文 / 空格路径同样支持（迁移用自建的 `copyTreeSync`，规避 Node 22 在中文路径下 `fs.cpSync` 静默失败的问题）；CSV 的 CRLF + BOM 均覆盖。
+- **插件不提供 HTML 写接口**：没有新增 / 修改 / 删除工作台 HTML 的路由，HTML 由 dsh agent 直接落盘到数据目录根，插件只读。
+
+### 直接查看 / 编辑 CSV
+
+左侧文件树里的每张 CSV 数据表都是**可点击的**：点一下，右侧从 HTML 页面切换成**可编辑表格**：
+
+- 单元格直接改，改完点「保存」写回磁盘（走 `POST /workbench/data`，带 `baseHash` 做 CAS；文件被 Excel 等外部改过会提示冲突并允许「重新加载」）。
+- 顶部三个按钮：**保存 / 重新加载 / 返回页面**；有未保存改动时显示「未保存」标记。
+- 表头与 `_id` 列**只读**：改列名会让后端按新列名重组数据、丢掉原列（风险大于收益），`_id` 是行身份标识。
+- 点工作台 HTML 节点或「返回页面」即退出网格，回到页面视图。
+- 底层结构：`/workbench/data` 返回的 `rows` 是**对象数组**（`{列名: 值}`），网格按列名读写，不按列序号。
+
+### 快速体验
+
+仓库里带一个可直接落盘运行的「读书记录」示例工作台 `docs/workbench-example.html`：内嵌菜单声明，以及 `Workbench.read` / `write` / `onData` / `onConflict` 的完整用法，用来先把读写流程跑通一遍：
+
+1. 把 `docs/workbench-example.html` 复制到默认数据目录 `$DSH_HOME/dsh-buddy-expert-hub/workbench/`（`DSH_HOME` 默认 `~/.dsh`）；**不配置数据目录也能直接跑**；
+2. （可选）想换目录时，在「设置 → Buddy 工作台 → 个人工作台」填一个已存在且可写的绝对路径 —— 旧的 HTML/CSV 会自动复制过去；
+3. 回到面板的「个人工作台」大块点「刷新」—— 列表每次重扫数据目录，示例工作台立刻出现，**不用重启宿主进程**；
+4. 打开后即可在页面上增删改数据，数据表会自动落在 `<数据目录>/reading-log/books.csv`（`id` 是 `reading-log`、`tables[].file` 是 `books.csv`）。
+
+> 这个文件只是**示例 / 模板**，方便照着写自己的 HTML。正式工作台仍由 dsh agent 生成并落盘到 `workbench/` 目录，插件不提供上传 / 编辑 HTML 的界面。
+
+### 工作台是怎么创建的（历史）
+
+`@` 工作台模板指令源和随包的 `workbench-creator` 技能**都已删除**。创建/修改工作台的唯一入口是
+召唤 `khub-workbench-builder`（在线工作台搭建师）专家：它在在线资料库里建 `HTML` 节点 + 直接子 `CSV` 表，
+开搭前先确认名称 / 目录 / 风格 / 功能四项。旧方案（本地 `workbench/*.html` + `workbench-menu` 载体）
+仅是历史设计，相关路径与桥 API 不再作为生成依据；本插件只负责展示与数据桥接。
+
+### 安全边界
+
+- 全部接口继承宿主的**同源门禁**（`localRequestGuard()`：只接受 localhost / 127.0.0.1 / ::1，带 `Origin` 时校验 host 一致，`Sec-Fetch-Site: cross-site` 一律 403）；
+- 路径做**词法 + `realpath` 双重越界校验**：HTML 与 CSV 共用一个数据目录 root，`workbench`（id）/ `table` 参数一律按白名单与单段文件名解析，目录穿越与符号链接逃逸都拒绝；迁移只复制不删除旧目录，不跟随符号链接；
+- 菜单声明只做字符串提取 + `JSON.parse` + 白名单校验，不执行 HTML；iframe 不给 `allow-same-origin`，页面拿不到宿主同源凭据；
+- CSV 只支持 **UTF-8**：自动剥 BOM、沿用首次创建时的 CRLF 或 LF 行尾、正确处理引号 / 逗号 / 字段内换行与 `""` 转义；
+- `hash` = `sha256(磁盘 CSV 原始字节)` 的 hex，`mtimeMs` / `size` 只作轮询预检；写入按**字段名对齐列**合并（新列留空、已有行全保留），进程内串行队列 + 队列内 double-check，`tmp` → `rename` 原子写，**不做分布式锁**。
+
+### 明确不做的事
+
+> **本期是纯本地单机**：数据写在用户自己指定的本地目录里；团队协作靠把这个目录指到共享盘/同步盘实现，插件本身不提供服务端、账号或云端同步，多人同时写同一张表会走 CAS 冲突提示。
+
+以下都不在本次范围内，接口与文档不含糊带过：
+
+- **HTML 写接口**：插件没有写 / 改 / 删工作台 HTML 的路由，HTML 一律由 dsh agent 落盘，插件只读；
+- **云端存储**：HTML 与 CSV 都在本机 `DSH_HOME` / 用户自填目录里，不上传、不跨机同步；
+- **多表消费**：插件只按 `table` 逐表读写，不提供跨表关联 / 联合查询，多表消费属于后续增量。
 
 ---
 
@@ -591,10 +1012,20 @@ dsh-buddy-expert-hub/
 │   ├── linux/mcps/<name>/       # CodeBuddy 宿主插件 MCP 清单（.mcp.json / .codebuddy-plugin），本插件只读 SKILL.md、不注册 MCP
 │   └── linux/                  # 其它平台（darwin / linux）：含 skills/、builtin-plugins/、mcps/（当前 16 个独立技能，插件来源与 mcps 已清理）
 ├── scripts/build-connectors.mjs   # 资源仓库维护工具（见下节）
+├── scripts/build-market-index.mjs # 生成 market/index.json（DSH 插件市场索引 format 1）
+├── locale/
+│   ├── en.json                 # meta.title / meta.description / meta.detail（英文）
+│   └── zh.json                 # 同上（中文），插件行与详情页直接读这两个文件
+├── icon.svg                    # 插件行图标：36×36，无底、无文字、≤256 KiB
+├── docs/
+│   ├── DETAIL.md               # 详情页图（英文，恰好一行图片）
+│   ├── DETAIL.zh.md            # 详情页图（中文）
+│   └── preview.svg             # 640×300 示意图，两主题通用
+├── market/index.json           # 市场索引（format 1），托管到 http(s) 后即可被 DSH 收录
 └── README.md
 ```
 
-**没有 `data/` 目录**：插件不再内置连接器清单与图标，`package.json` 的 `files` 发布 `lib` / `builtin` / `cordis.patch.yml` / `README.md`；`scripts/check-package.mjs` 会断言 `builtin` 已进 `files`（漏了就会出现「开启内置技能后 0 个技能」）。
+**没有 `data/` 目录**：插件不再内置连接器清单与图标，`package.json` 的 `files` 发布 `lib` / `locale/*.json` / `icon.svg` / `builtin` / `cordis.patch.yml` / `README.md` / `docs`；`scripts/check-package.mjs` 会断言 `builtin` 已进 `files`（漏了就会出现「开启内置技能后 0 个技能」）。`market/index.json` 不随包发布，它是给索引托管用的独立文档。
 
 零 npm 依赖、零构建步骤：host 半是纯 ESM，client 半是一个由 `window.__ModuleLoader__` 加载的普通脚本，使用 `React.createElement` 而不用 JSX。
 
@@ -620,6 +1051,22 @@ npm run build:connectors
 
 > `lib/connector-meta.js` 里的 `readAuthModeMap()` 只被这个维护脚本使用（读市场元数据作为上游输入）；插件运行时不再读任何市场目录。
 
+### 清单目录改名（`.codebuddy-plugin` → `.buddy-hub-plugin`）
+
+资源仓库的专家 / 专家团清单目录已统一改为 `.buddy-hub-plugin`。插件**同时兼容两种名字**（读取时新名优先、旧名回退，见 `lib/index.js` 的 `PLUGIN_DIR_NAMES`），所以旧仓库不用改也能用。
+
+需要把某个旧仓库一次性迁到新名时：
+
+```bash
+# 预演（只打印，不改动）
+node scripts/rename-plugin-dirs.mjs E:/path/to/dsh-buddy-expert-hub-resource
+
+# 确认后执行
+node scripts/rename-plugin-dirs.mjs E:/path/to/dsh-buddy-expert-hub-resource --apply
+```
+
+脚本只改目录名、不动文件内容；目标名已存在则跳过，不覆盖不合并。
+
 ---
 
 ## 自检
@@ -628,6 +1075,51 @@ npm run build:connectors
 npm run check            # 所有 lib/*.js 语法检查 + 发布清单自检
 node --check lib/index.js
 node --check lib/client.js
+
+# 外观铁律（必须 10/10 PASS）：颜色只认宿主 --dsw-alias-* token
+node _harness/appearance.mjs
+
+# 市场收录（含用 dsh 自带 parseMarketIndex 真校验 market/index.json）
+node _harness/market-index.mjs
+
+# 资料库面板真渲染（严格 React 桩：拒绝原始对象当子元素 / 打开文档不崩）
+node _harness/library-ui.mjs
+
+# Markdown 表格：解析 / 往返 / 加行加列（抽 client.js 真代码，用 Edge 无头跑真 DOM）
+node _harness/table-edit.mjs
+
+# 在线工作台首屏：数据接口直读 node-<id>.csv，不再每次采 catalog（本地 mock，10 条）
+node _harness/khub-fast-path.mjs
+
+# 当前页分享（静态快照）：抽真实采集器源码，Edge 无头跑真 DOM（8 条）
+node _harness/snapshot-helper.mjs
+
+# 外部数据定时更新：本地 mock 资料库跑 40 条（upsert 只改声明列 / 增量 vs 整表 /
+# 断网入队与补推 / 幂等 / 分批 / inbox 文件通道 / 镜像兜底读）
+node _harness/ingest.mjs
+
+# 远程配置：真起 HTTP 跑 45 条（URL 拉取 / 上传 / 快照恢复 / 密钥只进加密文件 /
+# 关于地址 / 打开目录接口 / 示例带中文注释可解析 / 非法配置拒绝 / 重启持久化 /
+# 空值导入保留当前值 / 导出当前配置）
+node _harness/remote-config.mjs
+
+# 已导入权威口径：5 条（启动净化脏 id / /imported 只回真实目录 / 目录删除后清理并持久化）
+node _harness/imported-truth.mjs
+
+# 个人工作台：真起 HTTP 跑 40 条（数据读写 CAS / 冲突 409 / 桥注入 / 列表口径）
+node _harness/workbench-smoke.mjs
+
+# 新版工作台声明兼容：5 条（tables[].columns 回退 / 子目录中文文件名 / legacy fields 未破坏）
+node _harness/workbench-menu-columns.mjs
+
+# 数据目录统一与迁移：11 条（默认目录可用 / 改目录整体迁移 / 旧目录保留 / 中文路径）
+node _harness/workbench-migration.mjs
+
+# 资源版本更新与删除：13 条（状态判定 / 版本比较 / 覆盖更新 / 只删插件安装的 / 连接器不提示更新）
+node _harness/resource-update.mjs
+
+# 本地工作台→在线自动上传：8 条（HTML/CSV 节点创建 / 表名改写 / catalog 识别 / 幂等 / 原件保留）
+node _harness/workbench-upload.mjs
 ```
 
 ---
