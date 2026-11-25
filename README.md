@@ -1,23 +1,57 @@
 # dsh-buddy-expert-hub
 
-DeepSeek Harness（dsh）插件：把 WorkBuddy 的「专家 · 技能 · 连接器」体验搬进 dsh。
+DeepSeek Harness（dsh）插件：把 WorkBuddy 的「专家 · 技能 · 连接器」以及工作台 / 资料库体验搬进 dsh。
 
-左侧边栏多一行入口，点开后是一个四标签页面板：
+左侧边栏多三行入口：**专家 · 技能 · 连接器**、**个人工作台**、**在线资料库**。
 
-| 标签页 | 数据来源 | 数量 |
+| 入口 | 看到什么 / 能做什么 | 数据来源 |
 | --- | --- | --- |
-| 专家 | `dsh-buddy-expert-hub-resource` 仓库 `experts/<dir>/.buddy-hub-plugin/plugin.json`（`expertType=agent`；旧名 `.codebuddy-plugin` 同样兼容）+ `~/.dsh/experts/` 本地已导入专家 | 随仓库变化 + 本地 |
-| 专家团 | 同上（`expertType=team`，含团队成员名单） | 随仓库变化 + 本地 |
-| 技能 | 数据根下的 `skills/<collection>/.../SKILL.md` | 随上游仓库变化，见下方说明 |
-| 连接器 | 资源仓库 `connectors/connectors.json`（单文件清单）+ `$DSH_HOME/dsh-buddy-expert-hub/connectors/` 本地已安装定义 | 随仓库变化 + 本地 |
+| 专家 · 技能 · 连接器 | 四标签页面板（细分见下表）：搜索、筛选、详情查看、把专家 / 专家团导入成 DSH 原生专家、复制 MCP 配置 | 资源仓库 + `~/.dsh/experts/` 本地已导入 + `$DSH_HOME/dsh-buddy-expert-hub/connectors/` |
+| 个人工作台 | 左侧工作台菜单 + 右侧 `iframe`：页面是 **dsh agent 直接落盘的 HTML**，插件只读展示，并通过注入的桥帮它读写同目录 CSV；落盘后在面板点「刷新」即生效，无需重启 | `<工作台数据目录>`（默认 `$DSH_HOME/dsh-buddy-expert-hub/workbench`，可在设置里改；在线就绪时自动上传一份到资料库） |
+| 在线资料库 | 整屏左树 + 右列表：空间 / 文件夹 / 文档预览（Office、PDF）、CSV 网格、HTML 预览、收藏与分享 | 自部署 [Knowledge Hub](https://gitee.com/zhangzexu/knowledge-hub)（`/khub/*` 代理）；在线优先，断网回落到本地镜像与离线队列 |
 
-支持搜索、分页加载、详情查看、快捷提示复制、MCP 配置复制，把专家 / 专家团**导入**成 DSH 原生专家格式，以及通过各标签页工具栏的 `+` 按钮**从文件夹**添加技能 / 导入专家 / 导入专家团（带格式校验、批量模式与幂等不覆盖）。
+**专家 · 技能 · 连接器** 面板里的四个标签页：
+
+| 标签页 | 看到什么 / 能做什么 | 数据来源 |
+| --- | --- | --- |
+| 专家 | 专家卡片：名称、来源、技能标签、是否已导入；顶部可按「全部 / 已安装 / 云端」筛选，右上角「导入专家」 | 资源仓库 `experts/<dir>/.buddy-hub-plugin/plugin.json`（`expertType=agent`；旧名 `.codebuddy-plugin` 同样兼容）+ `~/.dsh/experts/` 本地已导入专家 |
+| 专家团 | 团队卡片与成员名单，同样支持筛选与一键导入 | 同上（`expertType=team`，含团队成员） |
+| 技能 | 技能卡片：名称、版本号、一句话说明；按「全部技能 / SkillHub 商店」筛选，点开看完整 `SKILL.md` | 数据根下的 `skills/<collection>/.../SKILL.md` |
+| 连接器 | MCP 连接器卡片：作者、来源、配置预览，可一键复制到自己的 MCP 设置 | 资源仓库 `connectors/connectors.json`（单文件清单）+ `$DSH_HOME/dsh-buddy-expert-hub/connectors/` 本地已安装定义 |
+
+资源仓库当前约 40 位专家 / 20+ 个专家团 / 160+ 个技能 / 200+ 个连接器（同一份清单里还有上百个可选、未安装的连接器），具体数量以插件面板里显示的为准；随上游仓库更新自动变化，不需要升级插件。
+
+各标签页工具栏的 `+` 按钮支持**从文件夹**添加技能 / 导入专家 / 导入专家团（带格式校验、批量模式与幂等不覆盖）；专家详情里的提示词、连接器详情里的 MCP 配置都可一键复制。
 
 输入框工具栏的**专家按钮**只列**已安装**的专家 / 专家团 / 技能 / 连接器；设置里还有一个「启用内置技能」开关，可把插件包内的内置技能一次性装进本地技能库（按系统取 `builtin/windows` 或 `builtin/linux`，装完在插件界面不可见，关闭开关即移除）。
 
 适用运行时：**dsh 0.1.5 ~ 0.2.x**（已验证 `0.1.5-rc.1` / `0.1.7-rc.1` / `0.2.0-rc.2` / `0.2.1-rc.2` / `0.2.1-rc.5` / `0.2.2-rc.1` / `0.2.2-rc.5`，不含 0.3.0）。插件在 `package.json` 的 `engines.dsh` 与 `dsh.compatibility` 里声明了兼容范围，市场索引的 `versions[].engines` 与之一致，高版本 dsh 不会因「未声明」而误报不兼容。
 >
 > 历史口径：`0.1.5-rc.1` 时 `main` 为 keyed 插槽、`sidebar.panellist` 为 list 插槽，注册时只传 `label` 不传 `locale`；这些宿主契约在 0.2.x 仍被本插件使用的范围内保持一致。
+
+## 界面
+
+**专家面板** —— 卡片式陈列，可按「全部 / 已安装 / 云端」切换；卡片标出来源与技能标签，右上角一键「导入专家」。
+
+![专家面板](assets/screenshots/01-expert-panel.png)
+
+**技能面板** —— 技能卡片网格，可按来源（全部技能 / SkillHub 商店）筛选；每张卡片带版本号与一句话说明，便于快速判断用哪个。
+
+![技能面板](assets/screenshots/02-skill-list.png)
+
+**个人工作台** —— 插件托管的 HTML 工作台，页面自己画 KPI、图表与卡片，数据存放在同目录的 CSV 里，打开即最新。
+
+![个人工作台](assets/screenshots/03-workspace.png)
+
+**在线资料库** —— 左侧空间树 + 右侧预览；Office / PDF 走在线预览，支持新建、收藏与分享。
+
+![在线资料库](assets/screenshots/04-documents.png)
+
+**设置** —— 「Buddy 工作台」设置页：工作台数据目录（HTML + CSV）、自动检查间隔，以及打开配置 / 数据目录的入口。
+
+![设置](assets/screenshots/05-setting.png)
+
+> 以上 5 张图，加上「个人工作台」章节里的创建示例，共同作为插件市场的展示图（`screenshots.json`，共 6 张）；换图只需替换 `assets/screenshots/` 下的同名文件，不必改 README。
 
 ## 文档
 
@@ -740,7 +774,12 @@ order: 300
 
 ## 在线资料库（Knowledge Hub）
 
-插件可以接一个自部署的 [Knowledge Hub](https://github.com/) 风格的在线资料库服务端。
+插件可以接一个自部署的 [Knowledge Hub](https://gitee.com/zhangzexu/knowledge-hub) 风格的在线资料库服务端。
+
+> **服务端源码**：<https://gitee.com/zhangzexu/knowledge-hub>
+> （`git clone https://gitee.com/zhangzexu/knowledge-hub.git`，部署方式与运行环境见该仓库 README）。
+> 插件这边只做客户端：填地址 + 用户 API Key 即接入，调用的接口清单见下方「相关接口」。
+
 **整个插件共用一套后端与凭据**：工作台的 HTML / CSV、以及新增的「资料库」文档浏览都从这里读；
 本地目录只在在线不可用时作为备用。
 
@@ -901,6 +940,24 @@ Office 只在 ONLYOFFICE 可用时提供版式级预览 / 编辑（编辑需在�
 面板新增一个大块「个人工作台」：块内二级菜单由每个 HTML 的 `menu[]` 提供，右侧是一个 `iframe`。页面不是插件渲染的，而是 **dsh agent 直接落盘到磁盘的 HTML**；插件只负责只读地展示它，并通过注入的桥帮它读写旁边的 CSV 数据表。落盘后在工作台点「刷新」即生效，无需重启宿主进程（`GET /workbench/list` 每次重扫目录）。v2 起创建规则收敛到内置技能、配置拆到独立设置、菜单与整体观感可按风格切换，详见下文各节。
 
 这 7 个路由与其它接口一样挂在 `/dsh-buddy-expert-hub` 前缀下、全部继承宿主同源门禁；其中 `/workbench/html` 与 `/workbench/bridge.js` 直接返回内容（`text/html` / `application/javascript`），不走 `{ ok, ... }` 包裹，其余沿用前缀下的错误约定。
+
+### 用「工作台搭建师」创建 / 改造工作台
+
+工作台不是插件“画”出来的，是 **agent 直接写 HTML + CSV**。插件内置了一位专门做这件事的专家「**工作台搭建师**」（资源仓库 `experts/khub-workbench-builder`），它会按 `khub-workbench-spec` 规范生成页面、数据表并自动跑数据层自检——不用你自己拼数据层，也不用记接口。
+
+1. **选专家**：点输入框左侧的专家按钮（或左边栏「专家 · 技能 · 连接器」→ 专家）→ 选「**工作台搭建师**」。没装过就先在专家面板搜一下、点「导入专家」。
+2. **一句话说需求**：
+   - 新建：说清 **名称 / 放在哪 / 页面形态 / 要哪些字段**。例：「做一个《峡谷配装工坊》，按英雄列卡片，字段：英雄、位置、核心套路、符文、出装」。
+   - 改造：说清要给谁加什么。例：「给《英雄符文速查》再补 12 位英雄，按位置分组，卡片字段别动」。
+3. **等它落盘**：专家会生成或改写 `<工作台数据目录>` 下的 HTML 与 CSV，并自己跑一遍数据层自检；完成后在「个人工作台」面板点一次**刷新**就能看到。
+4. **验收三件事**：首屏 KPI 是真实数字（不是 `--`）、翻页正常、改一格 / 新增一行能写回 CSV。
+
+![用工作台搭建师创建 / 改造工作台](assets/screenshots/06-build-with-expert.png)
+
+![用工作台搭建师创建 / 改造工作台](assets/screenshots/07-build-with-expert.png)
+
+> 例图：让「工作台搭建师」给《英雄符文速查》从 8 张扩到 20 张卡片，它按位置分组补齐、逐张核对字段后落盘，面板刷新即生效。
+> 想改样式或加模块，继续在同一个对话里说就行——它改的是同一个 HTML 与 CSV，不会重建一份。
 
 ### 目录结构
 
