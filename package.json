@@ -33,7 +33,7 @@
     "cordis.patch.yml",
     "README.md",
     "docs",
-    "assets"
+    "assets/avatar.png"
   ],
   "exports": {
     ".": "./lib/index.js",

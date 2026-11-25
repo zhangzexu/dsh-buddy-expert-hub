@@ -270,3 +270,60 @@ if (fs.existsSync(marketIndexFile)) {
     process.exit(1)
   }
 }
+
+/* screenshots.json（仓库根）：插件市场的截图清单。
+   相对路径必须落在仓库内、文件真实存在——市场上出现过大量「截图 404」，
+   提交前在这里挡掉，比合并后才发现便宜得多。 */
+const shotsFile = path.join(PLUGIN_ROOT, 'screenshots.json')
+if (fs.existsSync(shotsFile)) {
+  let shots = null
+  try {
+    const raw = JSON.parse(fs.readFileSync(shotsFile, 'utf8'))
+    shots = Array.isArray(raw) ? raw
+      : (raw !== null && typeof raw === 'object' && Array.isArray(raw.screenshots) ? raw.screenshots : null)
+  } catch (error) {
+    console.error('FAIL  screenshots.json 不是合法 JSON：' + String((error && error.message) || error))
+    process.exit(1)
+  }
+  if (shots === null) {
+    console.error('FAIL  screenshots.json 必须是数组，或 { "screenshots": [...] }')
+    process.exit(1)
+  }
+  if (shots.length < 1 || shots.length > 8) {
+    console.error('FAIL  screenshots.json 需要 1–8 张截图，当前 ' + String(shots.length) + ' 张')
+    process.exit(1)
+  }
+  const remoteOk = /^https:\/\/(raw\.githubusercontent\.com|user-images\.githubusercontent\.com|camo\.githubusercontent\.com|github\.com)\//i
+  for (const item of shots) {
+    const rel = String(item === null || item === undefined ? '' : item).trim()
+    if (rel === '') {
+      console.error('FAIL  screenshots.json 有空项')
+      process.exit(1)
+    }
+    if (/^https?:\/\//i.test(rel)) {
+      if (remoteOk.test(rel) !== true) {
+        console.error('FAIL  截图只允许 GitHub 托管的 https 地址：' + rel)
+        process.exit(1)
+      }
+      continue
+    }
+    if (rel.startsWith('/') || rel.indexOf('..') >= 0) {
+      console.error('FAIL  截图路径不能以 / 开头或包含 ..：' + rel)
+      process.exit(1)
+    }
+    const abs = path.resolve(PLUGIN_ROOT, rel)
+    if (abs.startsWith(path.resolve(PLUGIN_ROOT) + path.sep) !== true) {
+      console.error('FAIL  截图路径跳出仓库：' + rel)
+      process.exit(1)
+    }
+    if (fs.existsSync(abs) !== true) {
+      console.error('FAIL  截图文件不存在：' + rel)
+      process.exit(1)
+    }
+    if (/\.(png|jpe?g|webp)$/i.test(abs) !== true) {
+      console.error('FAIL  截图必须是 png / jpg / webp：' + rel)
+      process.exit(1)
+    }
+  }
+  console.log('PASS  screenshots.json ' + String(shots.length) + ' 张截图，路径与文件均有效')
+}
