@@ -2,13 +2,14 @@
 
 DeepSeek Harness（dsh）插件：把 WorkBuddy 的「专家 · 技能 · 连接器」以及工作台 / 资料库体验搬进 dsh。
 
-左侧边栏多三行入口：**专家 · 技能 · 连接器**、**个人工作台**、**在线资料库**。
+左侧边栏多四行入口：**专家 · 技能 · 连接器**、**个人工作台**、**在线资料库**、**智聊**。
 
 | 入口 | 看到什么 / 能做什么 | 数据来源 |
 | --- | --- | --- |
 | 专家 · 技能 · 连接器 | 四标签页面板（细分见下表）：搜索、筛选、详情查看、把专家 / 专家团导入成 DSH 原生专家、复制 MCP 配置 | 资源仓库 + `~/.dsh/experts/` 本地已导入 + `$DSH_HOME/dsh-buddy-expert-hub/connectors/` |
 | 个人工作台 | 左侧工作台菜单 + 右侧 `iframe`：页面是 **dsh agent 直接落盘的 HTML**，插件只读展示，并通过注入的桥帮它读写同目录 CSV；落盘后在面板点「刷新」即生效，无需重启 | `<工作台数据目录>`（默认 `$DSH_HOME/dsh-buddy-expert-hub/workbench`，可在设置里改；在线就绪时自动上传一份到资料库） |
 | 在线资料库 | 整屏左树 + 右列表：空间 / 文件夹 / 文档预览（Office、PDF）、CSV 网格、HTML 预览、收藏与分享 | 自部署 [Knowledge Hub](https://gitee.com/zhangzexu/knowledge-hub)（`/khub/*` 代理）；在线优先，断网回落到本地镜像与离线队列 |
+| 智聊 | WS 长连接配置 + 在线连接 / 接收用户 / 人设 / 待发草稿管理；客户端连上后，AI 能把消息和文件推到聊天里，也能从聊天收消息触发 AI | 插件内置 WebSocket 服务（默认 `18779`）+ 聊天客户端主动连接；详见「智聊」一节 |
 
 **专家 · 技能 · 连接器** 面板里的四个标签页：
 
@@ -51,7 +52,11 @@ DeepSeek Harness（dsh）插件：把 WorkBuddy 的「专家 · 技能 · 连接
 
 ![设置](assets/screenshots/05-setting.png)
 
-> 以上 5 张图，加上「个人工作台」章节里的创建示例，共同作为插件市场的展示图（`screenshots.json`，共 6 张）；换图只需替换 `assets/screenshots/` 下的同名文件，不必改 README。
+**智聊** —— 左侧 WS 配置 / 在线连接 / 接收用户，右侧是客户端与 dsh 之间收发的 JSON 帧，实时可见消息和附件的投递过程。
+
+![智聊](assets/screenshots/08-zhiliao.png)
+
+> 以上图，加上「个人工作台」章节里的创建示例，共同作为插件市场的展示图（`screenshots.json`）；换图只需替换 `assets/screenshots/` 下的同名文件，不必改 README。
 
 ## 文档
 
@@ -60,6 +65,9 @@ DeepSeek Harness（dsh）插件：把 WorkBuddy 的「专家 · 技能 · 连接
 | [docs/user-guide.md](docs/user-guide.md) | 面向使用者的详细手册：安装、四个标签页、文件夹导入、专家按钮 / `/` 指令、连接器三步、设置、内置技能开关、FAQ 与排障 |
 | [docs/merge-guide.md](docs/merge-guide.md) | 维护者合并他人提交 / PR 的流程、检查清单、冲突处理、回滚与合并说明模板 |
 | [docs/ui-appearance.md](docs/ui-appearance.md) | **外观一致性铁律**：颜色只认宿主 `--dsw-alias-*` token、token 对照表、范围边界与自检方式 |
+| [docs/zhiliao-integration.md](docs/zhiliao-integration.md) | **智聊接入指南**：面板配置、WS 连接鉴权、收发消息、文件传输、主动推送、排障 |
+| [docs/zhiliao-ws-protocol.md](docs/zhiliao-ws-protocol.md) | 智聊 WS 帧协议与管理接口细节 |
+| [docs/zhiliao-command-attachments.md](docs/zhiliao-command-attachments.md) | `/zhiliao` 命令带附件的实现、踩坑与复查清单 |
 
 本文件（`README.md`）保留设计口径、接口表、安全说明与目录结构。
 
@@ -268,6 +276,80 @@ node _harness/market-index.mjs
 
 > 两边同名的只有 `tencent-docs-plugin` / `weixinpay`，其余是同一插件在两个平台的不同命名。
 > Linux 的插件命名、技能集合与 `mcps` 都和 Windows 不同，但九条自包含规则在两边逐字一致。
+
+---
+
+## 智聊（WebSocket 长连接）
+
+把聊天工具（企业微信 / 飞书 / 自研 IM / 机器人）接进 dsh，让 AI 能在对话里收发消息和文件。
+**客户端主动连**插件内置的 WebSocket 服务，首帧鉴权后双向收发 JSON 帧，不需要独立适配层。
+
+### 面板配置
+
+设置 → Buddy 工作台 → 智聊 tab：
+
+| 配置项 | 说明 |
+| --- | --- |
+| 启用 WS 长连接 | 总开关 |
+| 监听 IP | 客户端同机填 `127.0.0.1`，跨机填 dsh 所在机器的局域网 IP（如 `192.168.50.180`） |
+| 端口 | 默认 `18779` |
+| clientId / token | 客户端鉴权凭据；token 保存后只显示「已配置」不回明文 |
+| 附件保留天数 | 1–365，默认 7；过期文件自动清理，URL 会 404 |
+
+监听地址变化时重启服务，`clientId` / `token` / 群 @ 规则 / 黑白名单改完立即生效。
+服务绑非回环地址时会自动在 `127.0.0.1:<port>` 开一个 TCP 代理转发，本机脚本写死回环也能用。
+
+同 tab 还能管理：**接收用户**（人设 / skill 包 / 文件推送方式 / 群 @ 规则 / 发送前确认）、
+**全局人设**、**在线连接**（断开保留、可手动删除）、**待发草稿**。
+
+### 客户端接入（四步）
+
+1. **连接**：`ws://<监听IP>:<端口>/ws`（路径必须是 `/ws`）
+2. **鉴权**：首帧发
+   ```json
+   {"type":"auth","clientId":"my-chat-bot","token":"<面板填的token>",
+    "capabilities":["message.in","message.out","push","persona","attachment"]}
+   ```
+   成功回 `auth.ok`。服务端每 30 秒主动发 ping，客户端按协议回 pong 保活。
+3. **发消息给 AI**：发 `message.in`（带 `chatKey` / `senderId` / `text` / `atBot` 等），
+   服务端回 `message.ack`，AI 处理完用 `message.out` 回复。
+4. **收 AI 回复**：`message.out` 带 `text` + `attachments`，文件附件的 `name` 是**真实文件名**，
+   `mode:"binary"` 时用 `GET url` 取原始字节，URL 有保留期。
+
+完整帧格式、管理接口见 [docs/zhiliao-ws-protocol.md](docs/zhiliao-ws-protocol.md)。
+插件包内附 **用户接入 Skill**（`skills/zhiliao-integration/SKILL.md`），引用它可让 AI 按标准流程帮你接入自己的客户端。
+
+### 让 AI 推送消息 / 文件
+
+- **对话里直接说**：如「把桌面那个 sql 发给我」。AI 会在最终回复里用 `MEDIA: <路径>` 内联文件，
+  服务端随这条回复一次下发正文 + 附件（不会重复推两条）。
+- **斜杠命令**：`/zhiliao @u2 发个图`，直接拖图片 / 文件到输入框，多个附件一条消息下发。
+- **推送脚本**：
+  ```bash
+  node ~/.dsh/dsh-buddy-expert-hub/zhiliao-push.mjs <chatKey> <正文UTF-8文件> [@uid ...] [--image <路径>]
+  ```
+  正文写文件避免命令行中文乱码；返回 JSON 里 `delivered` 表示有客户端收到。
+
+### 发送前确认（两级）
+
+- **用户默认**：接收用户 → 修改 →「发送消息需要用户确认」
+- **会话级覆盖**：同一弹窗的下拉选会话 → 勾选，可连续设置多个，点保存一起生效；
+  「恢复默认」按钮清除该会话覆盖，回退到用户默认。
+
+`requireConfirm=true` 时 AI 起草不直接发，进待发草稿，用户在面板确认后才投给客户端。
+
+### 排障速查
+
+| 现象 | 检查 |
+| --- | --- |
+| 面板 `ws-service-unreachable` | 管理代理地址是否写死回环，服务实际绑在哪个 IP |
+| 客户端连上又断 | 是否在回 pong（服务端空闲 30s 发 ping，180s 无响应踢） |
+| `no-client-online` / `sent:0` | 服务正常，只是没有在线客户端，让用户先连上 |
+| 收到 base64 不是 URL | 该接收用户 fileMode 配成了 base64，在面板改 |
+| 附件 URL 404 | 超过保留期被清理 |
+| `/{cmd} 不接受附件` | 命令没声明 `input.attachments: true` |
+
+详细版见 [docs/zhiliao-integration.md](docs/zhiliao-integration.md)。
 
 ---
 
@@ -665,7 +747,7 @@ order: 300
 | 资源仓库 | 仓库地址、分支、私有仓库凭据、Skillhub 地址、内置技能开关（原「设置」弹窗整体搬入，embedded 复用同一组件） |
 | 个人工作台 | 数据目录、自动检查间隔、打开 HTML 目录（原「工作台设置」弹窗整体搬入） |
 | 在线资料库 | 后端地址 / clientId / clientSecret / 用户 API Key / 在线优先开关 + 测试连接 |
-| 智聊 | 智聊服务端地址、启用开关（设置页只暴露这两个可改项） |
+| 智聊 | WebSocket 长连接卡片（启用 / 监听 IP / 端口 / clientId / token / 附件保留天数）+ 接收用户、人设、全局人设、会话级确认规则、在线连接、待发草稿（详见「智聊」一节） |
 | 插件升级 | 当前 / 最新版本、检查更新、一键升级、最近升级历史 |
 | 关于与反馈 | 仓库地址 / 点 Star / 反馈问题（均可被远程配置覆盖）、重看插件介绍 |
 

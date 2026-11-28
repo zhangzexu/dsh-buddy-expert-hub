@@ -1,9 +1,9 @@
-# 智聊（ZhiLiao）方案 v4 · 定稿
+# 智聊（ZhiLiao）方案 v5 · 适配层
 
-> 状态：**已定稿，阶段 0 / 1 / 2 / 3 均已完成**（阶段 3 分区串行队列 + 并发闸 + 退出 paused + 闲时回收已实现）
-> 更新时间：2026-11-16
-> 继续约定：用户下次说「继续下一阶段」= 从**阶段 1（HuLa Server 完整接入）**开始实施。
-> 本文件是权威方案，改动前先读它。环境/API 证据索引见第 9 节。
+> 状态：**v4 阶段 0–3 已完成；v5 新增独立适配层（2026-11-26）**——不再写死 HuLa，任意聊天工具实现固定接口即可接入，权限在适配层
+> 更新时间：2026-11-26
+> 继续约定：接入新聊天工具只需在 `zhiliao-adapter/config.json` 登记 adapter，**插件侧零改动**
+> 本文件是权威方案，改动前先读它。环境/API 证据索引见第 9 节；适配层见第 10 节。
 
 ---
 
@@ -334,3 +334,37 @@ curl -s -X POST "http://127.0.0.1:<PORT>/dsh-buddy-expert-hub/zhiliao/inbound" \
 **HuLa**
 - 客户端 https://github.com/HuLaSpark/HuLa
 - 服务端 https://github.com/HuLaSpark/HuLa-Server （自建，README 无官方 Bot/Webhook/OpenAPI，需自行加）
+
+---
+
+## 10. 适配层（v5，2026-11-26）
+
+**背景**：v4 把插件直接焊在 HuLa Server 上（webhook 入站、internal 接口回投、hulaUid 绑定），换一家 IM 就得改插件。
+
+**改为**：插件保持「HuLa 协议」，新增独立本地服务 `zhiliao-adapter/`（零依赖，Node ≥ 20）扮演 HuLa：
+
+```
+聊天工具 --POST /v1/inbound(HMAC)--> adapter --POST /zhiliao/inbound--> dsh 插件
+聊天工具 <--POST callbackUrl-------- adapter <--POST /internal/reply---- 插件回投
+```
+
+- 聊天工具只实现两个固定接口：推消息（`/v1/inbound`）+ 收回复（配置里的 `callbackUrl`）。
+  签名 `hex(hmac_sha256(secret, timestamp + '.' + rawBody))`，时间戳窗口 ±5 分钟。
+- **权限全部在适配层**，顺序固定：adapter 开关 → 用户黑名单 → 用户白名单 → 会话黑名单 →
+  会话白名单（支持 `direct:*` / `group:*` / `*` 通配）→ 群必须 @ → 文本长度。
+- **纯通道**：不做限流、不做死信、不做重试（IM 平台自己有重试，再叠一层只会放大问题）。
+- **附件**：入站支持 base64 图片/文件，落盘到插件会话工作目录下的 `inbox/<adapter>/<requestId>/`，
+  转发时在文本末尾注入绝对路径清单，agent 用文件工具直接读；出站约定「正文里单独一行 `MEDIA:/绝对路径`」，
+  适配层剥离该行并把文件以 base64 放进 `attachments` 回传（只允许 `attachments.dir` 与 `mediaRoots` 内的文件）。
+- **主动推送** `POST /v1/push`：不经过 dsh，直接投递给聊天工具，可带附件；鉴权为 adminToken 或 adapter 签名，
+  同样受 `chats.allow/deny` 约束。
+- **会话人设** `/v1/persona`（POST/GET/DELETE）：按 `adapterId + chatKey` 存，下一条消息时在正文前注入一次，
+  改过人设（version 变）会重注，`persona.alwaysInject` 可改成每轮都注入。
+- 附带：messageId 24h 去重、审计 `runtime/audit.jsonl`、
+  `requestId → adapter/chatKey` 与 personas 落 `runtime/state.json`（重启后回投仍能路由）。
+- 拒绝返回 **200 + `accepted:false`**（避免 IM 把权限拒绝当故障重试）。
+- 插件侧零改动：设置里 `replyBaseUrl` 指向 adapter，`internalSecret` / `webhookSecret` 两边一致即可。
+- 验证：`cd zhiliao-adapter && node test/e2e.mjs` → **33 PASS**
+  （转发 / 去重 / 白名单 / 群 @ / 超长 / 签名 / 时间戳 / 附件落盘与注入 / 人设注入与重注 / 回投 MEDIA 提取 /
+  主动推送 / 推送附件 / 越权拒绝 / 管理接口）。
+- 后续：附件可支持 URL 形式（不强制 base64）；多实例部署需要把去重窗口换共享存储。

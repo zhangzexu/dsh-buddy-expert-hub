@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "port": 18779,
+  "host": "127.0.0.1",
+  "adminToken": "change-me-admin-token",
+  "clients": [
+    {
+      "id": "wecom-bot",
+      "secret": "change-me-client-secret",
+      "capabilities": ["message.in", "message.out", "push", "persona", "attachment"],
+      "users": { "allow": [], "deny": [] },
+      "chats": { "allow": ["direct:*", "group:*"], "deny": [] },
+      "group": { "requireMention": true },
+      "maxTextLength": 4000
+    }
+  ]
+}
